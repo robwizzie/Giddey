@@ -33,10 +33,12 @@ const gemColors: Record<string, { bg: string; border: string }> = {
   'ruby': { bg: '#dc2626', border: '#fca5a5' },
 };
 
+// All card sizes are now unified for consistent look across draft options and grid
+const CARD_SIZE = { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7.5, posFont: 7.5, teamLogo: 14 };
 const sizeConfig = {
-  grid: { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7, posFont: 7 },
-  option: { w: 112, h: 150, gemSize: 28, imgH: 72, nameFont: 12, infoFont: 8.5, posFont: 8 },
-  result: { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7, posFont: 7 },
+  grid: CARD_SIZE,
+  option: CARD_SIZE,
+  result: CARD_SIZE,
 };
 
 // Short division abbreviations for compact cards
@@ -102,9 +104,8 @@ export default function PlayerCard({
   const s = sizeConfig[size];
   const headshotUrl = getPlayerHeadshotUrl(card.id);
   const teamLogoUrl = getTeamLogoUrl(card.team.abbreviation);
-  const isSmall = size === 'grid' || size === 'result';
 
-  const maxLen = isSmall ? 10 : 13;
+  const maxLen = 10;
   const lastName = card.lastName.length > maxLen
     ? card.lastName.substring(0, maxLen - 1) + '.'
     : card.lastName;
@@ -163,7 +164,7 @@ export default function PlayerCard({
         {/* === TOP BAR: OVR gem + Position === */}
         <div
           className="relative z-10 flex items-start justify-between"
-          style={{ padding: isSmall ? '3px 4px 0' : '4px 5px 0' }}
+          style={{ padding: '3px 4px 0' }}
         >
           <GemBadge ovr={card.overall} size={s.gemSize} tier={card.tier} />
 
@@ -182,8 +183,8 @@ export default function PlayerCard({
               <div
                 className="rounded-sm overflow-hidden"
                 style={{
-                  width: isSmall ? 14 : 18,
-                  height: isSmall ? 14 : 18,
+                  width: s.teamLogo,
+                  height: s.teamLogo,
                   background: 'rgba(255,255,255,0.15)',
                 }}
               >
@@ -219,7 +220,7 @@ export default function PlayerCard({
         <div
           className="relative z-10 w-full"
           style={{
-            padding: isSmall ? '3px 4px 4px' : '4px 5px 5px',
+            padding: '3px 4px 4px',
             background: 'rgba(0,0,0,0.55)',
             backdropFilter: 'blur(2px)',
           }}
@@ -235,15 +236,14 @@ export default function PlayerCard({
             {lastName}
           </div>
 
-          {/* Chemistry info: Team • Division • Year — clearly separated */}
+          {/* Chemistry info: Team • Division • Year */}
           <div
             className="flex items-center justify-center gap-0 leading-none text-center whitespace-nowrap"
             style={{
-              marginTop: isSmall ? 2 : 3,
+              marginTop: 2,
               fontSize: s.infoFont,
             }}
           >
-            {/* Team abbreviation with team color accent */}
             <span
               className="font-bold"
               style={{ color: card.team.primaryColor, textShadow: '0 0 4px rgba(0,0,0,0.8)' }}
@@ -252,11 +252,11 @@ export default function PlayerCard({
             </span>
             <span className="text-white/30 mx-[2px] font-light">&bull;</span>
             <span className="font-semibold text-white/75">
-              {isSmall ? (divisionShort[card.team.division] || card.team.division) : card.team.division}
+              {divisionShort[card.team.division] || card.team.division}
             </span>
             <span className="text-white/30 mx-[2px] font-light">&bull;</span>
             <span className="font-semibold text-white/75">
-              {isSmall ? `'${String(card.draftYear).slice(-2)}` : card.draftYear}
+              &apos;{String(card.draftYear).slice(-2)}
             </span>
           </div>
         </div>

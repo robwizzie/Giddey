@@ -15,25 +15,29 @@ import { PlayerCard, GridSlot, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, S
  *
  * MAX CHEMISTRY: 26 (lines) + 99 (dots) = 125
  *
- * TALENT: Sum of each player's (OVR - 79)
- *   99 OVR → 20 talent, 95 OVR → 16, 90 OVR → 11, 85 OVR → 6, 80 OVR → 1
- *   Range: 9 (all 80s) to 180 (all 99s), realistic ~60-110
+ * TALENT: Sum of each player's (OVR - 75)
+ *   100 OVR → 25 talent, 90 OVR → 15, 80 OVR → 5, 76 OVR → 1
  */
 
-function getLineChemistry(cardA: PlayerCard, cardB: PlayerCard): { level: ChemLineLevel; points: number } {
+function getLineChemistry(cardA: PlayerCard, cardB: PlayerCard): { level: ChemLineLevel; points: number; reasons: string[] } {
   const sameTeam = cardA.teamId === cardB.teamId;
   const sameDivision = cardA.team.division === cardB.team.division;
   const sameDraftYear = cardA.draftYear === cardB.draftYear;
 
+  const reasons: string[] = [];
+  if (sameTeam) reasons.push('team');
+  if (sameDivision) reasons.push('division');
+  if (sameDraftYear) reasons.push('year');
+
   if (sameTeam || (sameDivision && sameDraftYear)) {
-    return { level: 'green', points: 2 };
+    return { level: 'green', points: 2, reasons };
   }
 
   if (sameDivision || sameDraftYear) {
-    return { level: 'yellow', points: 1 };
+    return { level: 'yellow', points: 1, reasons };
   }
 
-  return { level: 'red', points: 0 };
+  return { level: 'red', points: 0, reasons: [] };
 }
 
 function getDotChemistry(lineChem: number): { level: ChemDotLevel; points: number } {
@@ -46,15 +50,15 @@ function getDotChemistry(lineChem: number): { level: ChemDotLevel; points: numbe
   return { level: 'red', points: 0 };
 }
 
-/** Convert OVR to talent points: OVR - 79 (80→1, 99→20) */
+/** Convert OVR to talent points: OVR - 75 (100→25, 90→15, 80→5, 76→1) */
 export function ovrToTalent(ovr: number): number {
-  return Math.max(ovr - 79, 1);
+  return Math.max(ovr - 75, 1);
 }
 
 export function calculateScore(grid: GridSlot[]): ScoreBreakdown {
   const filledSlots = grid.filter((s) => s.card !== null);
 
-  // Talent = sum of each player's (OVR - 79)
+  // Talent = sum of each player's (OVR - 75)
   const talent = filledSlots.reduce((sum, slot) => {
     if (!slot.card) return sum;
     return sum + ovrToTalent(slot.card.overall);
@@ -73,12 +77,12 @@ export function calculateScore(grid: GridSlot[]): ScoreBreakdown {
     const cardB = grid[to]?.card;
 
     if (cardA && cardB) {
-      const { level, points } = getLineChemistry(cardA, cardB);
-      lines.push({ from, to, level, points });
+      const { level, points, reasons } = getLineChemistry(cardA, cardB);
+      lines.push({ from, to, level, points, reasons });
       playerLineChem[from] += points;
       playerLineChem[to] += points;
     } else {
-      lines.push({ from, to, level: 'red', points: 0 });
+      lines.push({ from, to, level: 'red', points: 0, reasons: [] });
     }
   }
 

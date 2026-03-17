@@ -5,19 +5,27 @@ import Link from 'next/link';
 import { Tier, DRAFT_ODDS } from '@/lib/types';
 
 const tiers: { tier: Tier; label: string; ovrRange: string }[] = [
-  { tier: 'dark-matter', label: 'Dark Matter', ovrRange: '99' },
-  { tier: 'pink-diamond', label: 'Pink Diamond', ovrRange: '95-98' },
-  { tier: 'diamond', label: 'Diamond', ovrRange: '90-94' },
-  { tier: 'amethyst', label: 'Amethyst', ovrRange: '85-89' },
-  { tier: 'ruby', label: 'Ruby', ovrRange: '80-84' },
+  { tier: 'dark-matter', label: 'Dark Matter', ovrRange: '100' },
+  { tier: 'galaxy-opal', label: 'Galaxy Opal', ovrRange: '97-99' },
+  { tier: 'pink-diamond', label: 'Pink Diamond', ovrRange: '95-96' },
+  { tier: 'diamond', label: 'Diamond', ovrRange: '92-94' },
+  { tier: 'amethyst', label: 'Amethyst', ovrRange: '90-91' },
+  { tier: 'ruby', label: 'Ruby', ovrRange: '87-89' },
+  { tier: 'sapphire', label: 'Sapphire', ovrRange: '84-86' },
+  { tier: 'emerald', label: 'Emerald', ovrRange: '80-83' },
+  { tier: 'gold', label: 'Gold', ovrRange: '76-79' },
 ];
 
 const tierColors: Record<string, string> = {
   'dark-matter': '#8b5cf6',
+  'galaxy-opal': '#f0abfc',
   'pink-diamond': '#ec4899',
   'diamond': '#06b6d4',
   'amethyst': '#a855f7',
   'ruby': '#ef4444',
+  'sapphire': '#3b82f6',
+  'emerald': '#22c55e',
+  'gold': '#eab308',
 };
 
 export default function HowToPlayPage() {
@@ -64,18 +72,18 @@ export default function HowToPlayPage() {
         <div className="mb-8">
           <h2 className="text-xl font-black text-orange-500 uppercase tracking-wider mb-3">Talent</h2>
           <p className="text-sm text-white/70 leading-relaxed mb-4">
-            Each player has an <strong className="text-white">Overall Rating (OVR)</strong> shown on their card. Higher OVR players contribute more to your talent score. Talent per player = <strong className="text-white">OVR - 79</strong> (so a 99 OVR adds 20, an 80 OVR adds 1).
+            Each player has an <strong className="text-white">Overall Rating (OVR)</strong> shown on their card. Higher OVR players contribute more to your talent score. Talent per player = <strong className="text-white">OVR - 75</strong> (so a 100 OVR adds 25, a 90 OVR adds 15, a 76 OVR adds 1).
           </p>
 
           <div className="bg-black/40 rounded-xl p-4 border border-white/10">
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-9 gap-1">
               {tiers.map(({ tier, label, ovrRange }) => (
-                <div key={tier} className="flex flex-col items-center gap-2">
-                  <span className="text-[10px] font-bold" style={{ color: tierColors[tier] }}>
+                <div key={tier} className="flex flex-col items-center gap-1.5">
+                  <span className="text-[8px] font-bold leading-tight text-center" style={{ color: tierColors[tier] }}>
                     {label.split(' ').map(w => w[0]).join('')}
                   </span>
-                  <div className={`w-10 h-12 rounded-lg tier-${tier}`} />
-                  <span className="text-[10px] font-bold text-white/60">
+                  <div className={`w-8 h-10 rounded-md tier-${tier}`} />
+                  <span className="text-[8px] font-bold text-white/60 leading-tight text-center">
                     {ovrRange}
                   </span>
                 </div>
@@ -94,7 +102,7 @@ export default function HowToPlayPage() {
           <div className="bg-black/40 rounded-xl p-4 border border-white/10 space-y-3">
             <div className="flex items-start gap-3">
               <div className="flex items-center gap-2 min-w-[120px]">
-                <div className="w-5 h-1 rounded bg-green-500" />
+                <div className="w-5 h-1.5 rounded bg-green-500" />
                 <span className="text-xs font-bold text-green-400">Green Line</span>
               </div>
               <p className="text-xs text-white/60">Same team <strong className="text-white/80">OR</strong> same division + draft year</p>
@@ -102,7 +110,7 @@ export default function HowToPlayPage() {
 
             <div className="flex items-start gap-3">
               <div className="flex items-center gap-2 min-w-[120px]">
-                <div className="w-5 h-1 rounded bg-yellow-500" />
+                <div className="w-5 h-1.5 rounded bg-yellow-500" />
                 <span className="text-xs font-bold text-yellow-400">Yellow Line</span>
               </div>
               <p className="text-xs text-white/60">Same division <strong className="text-white/80">OR</strong> same draft year</p>
@@ -110,7 +118,7 @@ export default function HowToPlayPage() {
 
             <div className="flex items-start gap-3">
               <div className="flex items-center gap-2 min-w-[120px]">
-                <div className="w-5 h-1 rounded bg-red-500" />
+                <div className="w-5 h-1.5 rounded bg-red-500" />
                 <span className="text-xs font-bold text-red-400">Red Line</span>
               </div>
               <p className="text-xs text-white/60">No matching traits</p>
@@ -118,13 +126,13 @@ export default function HowToPlayPage() {
           </div>
 
           <p className="text-sm text-white/70 leading-relaxed mt-4 mb-3">
-            As a player creates connections, <strong className="text-white">the dot under their card</strong> changes colors for bonus chem:
+            Chemistry match labels appear on the lines showing what connects players (<strong className="text-white">TEAM</strong>, <strong className="text-white">DIV</strong>, <strong className="text-white">YR</strong>). As a player creates connections, <strong className="text-white">the dot under their card</strong> changes colors for bonus chem:
           </p>
 
           <div className="bg-black/40 rounded-xl p-4 border border-white/10 space-y-3">
             <div className="flex items-start gap-3">
               <div className="flex items-center gap-2 min-w-[120px]">
-                <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+                <div className="w-3.5 h-3.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,1),0_0_20px_rgba(34,197,94,0.5)]" />
                 <span className="text-xs font-bold text-green-400">Green Dot</span>
               </div>
               <p className="text-xs text-white/60">+11 Chem — Player has 4+ line chem</p>
@@ -132,7 +140,7 @@ export default function HowToPlayPage() {
 
             <div className="flex items-start gap-3">
               <div className="flex items-center gap-2 min-w-[120px]">
-                <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]" />
+                <div className="w-3.5 h-3.5 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,1),0_0_20px_rgba(234,179,8,0.5)]" />
                 <span className="text-xs font-bold text-yellow-400">Yellow Dot</span>
               </div>
               <p className="text-xs text-white/60">+6 Chem — Player has 2+ line chem</p>
@@ -140,7 +148,7 @@ export default function HowToPlayPage() {
 
             <div className="flex items-start gap-3">
               <div className="flex items-center gap-2 min-w-[120px]">
-                <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />
+                <div className="w-3.5 h-3.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" />
                 <span className="text-xs font-bold text-red-400">Red Dot</span>
               </div>
               <p className="text-xs text-white/60">No bonus</p>
@@ -205,11 +213,11 @@ export default function HowToPlayPage() {
           </p>
 
           <div className="bg-black/40 rounded-xl border border-white/10 overflow-hidden">
-            <div className="grid grid-cols-6 gap-0 p-2 border-b border-white/10">
-              <div className="text-[10px] font-bold text-white/60 text-center">Round</div>
+            <div className="grid grid-cols-10 gap-0 p-2 border-b border-white/10">
+              <div className="text-[9px] font-bold text-white/60 text-center">Rnd</div>
               {tiers.map(({ tier, label }) => (
-                <div key={tier} className="text-[9px] font-bold text-center" style={{ color: tierColors[tier] }}>
-                  {label.split(' ').map(w => w.substring(0, 3)).join(' ')}
+                <div key={tier} className="text-[8px] font-bold text-center" style={{ color: tierColors[tier] }}>
+                  {label.split(' ').map(w => w.substring(0, 2)).join('')}
                 </div>
               ))}
             </div>
@@ -217,7 +225,7 @@ export default function HowToPlayPage() {
             {Array.from({ length: 9 }, (_, i) => i + 1).map((round) => (
               <div
                 key={round}
-                className={`grid grid-cols-6 gap-0 p-2 ${round % 2 === 0 ? 'bg-white/[0.02]' : ''}`}
+                className={`grid grid-cols-10 gap-0 p-2 ${round % 2 === 0 ? 'bg-white/[0.02]' : ''}`}
               >
                 <div className="text-xs font-bold text-white/80 text-center">{round}</div>
                 {tiers.map(({ tier }) => {
@@ -225,7 +233,7 @@ export default function HowToPlayPage() {
                   return (
                     <div
                       key={tier}
-                      className="text-[11px] font-bold text-center"
+                      className="text-[10px] font-bold text-center"
                       style={{ color: pct === 0 ? '#374151' : tierColors[tier] }}
                     >
                       {pct}%

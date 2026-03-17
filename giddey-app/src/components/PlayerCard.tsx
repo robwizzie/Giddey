@@ -34,9 +34,19 @@ const gemColors: Record<string, { bg: string; border: string }> = {
 };
 
 const sizeConfig = {
-  grid: { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7.5, posFont: 7 },
-  option: { w: 112, h: 150, gemSize: 28, imgH: 72, nameFont: 12, infoFont: 9, posFont: 8 },
-  result: { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7.5, posFont: 7 },
+  grid: { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7, posFont: 7 },
+  option: { w: 112, h: 150, gemSize: 28, imgH: 72, nameFont: 12, infoFont: 8.5, posFont: 8 },
+  result: { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7, posFont: 7 },
+};
+
+// Short division abbreviations for compact cards
+const divisionShort: Record<string, string> = {
+  Atlantic: 'ATL',
+  Central: 'CEN',
+  Southeast: 'SE',
+  Northwest: 'NW',
+  Pacific: 'PAC',
+  Southwest: 'SW',
 };
 
 function GemBadge({ ovr, size, tier }: { ovr: number; size: number; tier: string }) {
@@ -102,7 +112,7 @@ export default function PlayerCard({
   return (
     <div className="flex flex-col items-center shrink-0">
       <div
-        className={`${tierClass} card-2k rounded-lg relative overflow-hidden cursor-pointer select-none shrink-0 flex flex-col ${className}`}
+        className={`${tierClass} card-2k rounded-lg relative cursor-pointer select-none shrink-0 flex flex-col ${className}`}
         style={{
           width: s.w,
           height: s.h,
@@ -113,39 +123,42 @@ export default function PlayerCard({
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-        {/* Dark Matter shimmer */}
-        {card.tier === 'dark-matter' && (
-          <div className="absolute inset-0 dark-matter-shimmer pointer-events-none z-20" />
-        )}
+        {/* Clip area for headshot/gradient — does NOT clip bottom bar */}
+        <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
+          {/* Dark Matter shimmer */}
+          {card.tier === 'dark-matter' && (
+            <div className="absolute inset-0 dark-matter-shimmer z-20" />
+          )}
 
-        {/* Subtle team logo watermark behind everything */}
-        {teamLogoUrl && (
+          {/* Subtle team logo watermark behind everything */}
+          {teamLogoUrl && (
+            <div
+              className="absolute z-0"
+              style={{
+                top: '5%',
+                left: '15%',
+                right: '15%',
+                bottom: '25%',
+                opacity: 0.08,
+              }}
+            >
+              <img
+                src={teamLogoUrl}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                draggable={false}
+              />
+            </div>
+          )}
+
+          {/* Darkening gradient for bottom text */}
           <div
-            className="absolute z-0 pointer-events-none"
+            className="absolute inset-0 z-[1]"
             style={{
-              top: '5%',
-              left: '15%',
-              right: '15%',
-              bottom: '25%',
-              opacity: 0.08,
+              background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%)',
             }}
-          >
-            <img
-              src={teamLogoUrl}
-              alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              draggable={false}
-            />
-          </div>
-        )}
-
-        {/* Darkening gradient for bottom text */}
-        <div
-          className="absolute inset-0 z-[1] pointer-events-none"
-          style={{
-            background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%)',
-          }}
-        />
+          />
+        </div>
 
         {/* === TOP BAR: OVR gem + Position === */}
         <div
@@ -186,7 +199,7 @@ export default function PlayerCard({
         </div>
 
         {/* === PLAYER HEADSHOT === */}
-        <div className="relative z-[2] flex-1 flex items-end justify-center">
+        <div className="relative z-[2] flex-1 flex items-end justify-center overflow-hidden">
           <img
             src={headshotUrl}
             alt={`${card.firstName} ${card.lastName}`}
@@ -206,14 +219,14 @@ export default function PlayerCard({
         <div
           className="relative z-10 w-full"
           style={{
-            padding: isSmall ? '3px 5px 4px' : '4px 6px 5px',
+            padding: isSmall ? '3px 4px 4px' : '4px 5px 5px',
             background: 'rgba(0,0,0,0.55)',
             backdropFilter: 'blur(2px)',
           }}
         >
           {/* Player name */}
           <div
-            className="font-black text-white uppercase truncate leading-none text-center"
+            className="font-black text-white uppercase leading-none text-center whitespace-nowrap overflow-hidden text-ellipsis"
             style={{
               fontSize: s.nameFont,
               letterSpacing: '0.5px',
@@ -224,7 +237,7 @@ export default function PlayerCard({
 
           {/* Chemistry info: Team • Division • Year — clearly separated */}
           <div
-            className="flex items-center justify-center gap-0 leading-none text-center"
+            className="flex items-center justify-center gap-0 leading-none text-center whitespace-nowrap"
             style={{
               marginTop: isSmall ? 2 : 3,
               fontSize: s.infoFont,
@@ -237,13 +250,13 @@ export default function PlayerCard({
             >
               {card.team.abbreviation}
             </span>
-            <span className="text-white/30 mx-[3px] font-light">&bull;</span>
+            <span className="text-white/30 mx-[2px] font-light">&bull;</span>
             <span className="font-semibold text-white/75">
-              {card.team.division}
+              {isSmall ? (divisionShort[card.team.division] || card.team.division) : card.team.division}
             </span>
-            <span className="text-white/30 mx-[3px] font-light">&bull;</span>
+            <span className="text-white/30 mx-[2px] font-light">&bull;</span>
             <span className="font-semibold text-white/75">
-              {card.draftYear}
+              {isSmall ? `'${String(card.draftYear).slice(-2)}` : card.draftYear}
             </span>
           </div>
         </div>

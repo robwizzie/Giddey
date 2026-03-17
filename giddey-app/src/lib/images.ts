@@ -195,6 +195,16 @@ export const NBA_PLAYER_IDS: Record<string, number> = {
   clingan: 1642270,
   edey: 1641744,
   knecht: 1642261,
+
+  // 2025 Rookies
+  flagg: 1642843,
+  harper: 1642844,
+  edgecombe: 1642845,
+  knueppel: 1642851,
+  ace_bailey: 1642846,
+  tre_johnson: 1642848,
+  fears: 1642847,
+  demin: 1642856,
 };
 
 export function getPlayerHeadshotUrl(playerId: string): string {

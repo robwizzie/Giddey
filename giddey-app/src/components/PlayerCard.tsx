@@ -18,19 +18,27 @@ interface PlayerCardProps {
 
 const tierClassMap: Record<string, string> = {
   'dark-matter': 'tier-dark-matter',
+  'galaxy-opal': 'tier-galaxy-opal',
   'pink-diamond': 'tier-pink-diamond',
   'diamond': 'tier-diamond',
   'amethyst': 'tier-amethyst',
   'ruby': 'tier-ruby',
+  'sapphire': 'tier-sapphire',
+  'emerald': 'tier-emerald',
+  'gold': 'tier-gold',
 };
 
 // Gem badge colors per tier
 const gemColors: Record<string, { bg: string; border: string }> = {
   'dark-matter': { bg: '#7c3aed', border: '#a78bfa' },
+  'galaxy-opal': { bg: '#9333ea', border: '#f0abfc' },
   'pink-diamond': { bg: '#db2777', border: '#f9a8d4' },
   'diamond': { bg: '#0891b2', border: '#67e8f9' },
   'amethyst': { bg: '#7c3aed', border: '#c4b5fd' },
   'ruby': { bg: '#dc2626', border: '#fca5a5' },
+  'sapphire': { bg: '#2563eb', border: '#93c5fd' },
+  'emerald': { bg: '#16a34a', border: '#86efac' },
+  'gold': { bg: '#ca8a04', border: '#fde047' },
 };
 
 // All card sizes are now unified for consistent look across draft options and grid
@@ -126,8 +134,8 @@ export default function PlayerCard({
       >
         {/* Clip area for headshot/gradient — does NOT clip bottom bar */}
         <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
-          {/* Dark Matter shimmer */}
-          {card.tier === 'dark-matter' && (
+          {/* Dark Matter / Galaxy Opal shimmer */}
+          {(card.tier === 'dark-matter' || card.tier === 'galaxy-opal') && (
             <div className="absolute inset-0 dark-matter-shimmer z-20" />
           )}
 
@@ -264,7 +272,7 @@ export default function PlayerCard({
 
       {/* Chemistry Dot */}
       {showDot && (
-        <div className={`w-3 h-3 rounded-full chem-dot-${dotLevel} mt-1`} />
+        <div className={`w-3.5 h-3.5 rounded-full chem-dot-${dotLevel} mt-1`} />
       )}
     </div>
   );

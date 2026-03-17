@@ -14,7 +14,7 @@ function rollTier(round: number): Tier {
   const roll = Math.random() * 100;
   let cumulative = 0;
 
-  const tiers: Tier[] = ['dark-matter', 'pink-diamond', 'diamond', 'amethyst', 'ruby'];
+  const tiers: Tier[] = ['dark-matter', 'galaxy-opal', 'pink-diamond', 'diamond', 'amethyst', 'ruby', 'sapphire', 'emerald', 'gold'];
   for (const tier of tiers) {
     cumulative += odds[tier];
     if (roll < cumulative) return tier;

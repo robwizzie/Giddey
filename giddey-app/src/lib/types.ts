@@ -2,7 +2,7 @@ export type Position = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
 
 export type GridPosition = Position | 'UTIL';
 
-export type Tier = 'dark-matter' | 'pink-diamond' | 'diamond' | 'amethyst' | 'ruby';
+export type Tier = 'dark-matter' | 'galaxy-opal' | 'pink-diamond' | 'diamond' | 'amethyst' | 'ruby' | 'sapphire' | 'emerald' | 'gold';
 
 export type Conference = 'Eastern' | 'Western';
 
@@ -55,6 +55,7 @@ export interface ChemLine {
   to: number;
   level: ChemLineLevel;
   points: number;
+  reasons: string[]; // e.g. ['team', 'division', 'year']
 }
 
 export interface ChemDot {
@@ -74,12 +75,16 @@ export interface ScoreBreakdown {
   dots: ChemDot[];
 }
 
-export const TIER_CONFIG: Record<Tier, { label: string; talent: number; color: string; borderColor: string }> = {
-  'dark-matter': { label: 'Dark Matter', talent: 15, color: '#8b5cf6', borderColor: 'rgba(138,43,226,0.8)' },
-  'pink-diamond': { label: 'Pink Diamond', talent: 11, color: '#ec4899', borderColor: 'rgba(255,105,180,0.7)' },
-  'diamond': { label: 'Diamond', talent: 8, color: '#22d3ee', borderColor: 'rgba(0,191,255,0.7)' },
-  'amethyst': { label: 'Amethyst', talent: 5, color: '#a855f7', borderColor: 'rgba(155,89,182,0.7)' },
-  'ruby': { label: 'Ruby', talent: 3, color: '#ef4444', borderColor: 'rgba(231,76,60,0.7)' },
+export const TIER_CONFIG: Record<Tier, { label: string; color: string; borderColor: string }> = {
+  'dark-matter': { label: 'Dark Matter', color: '#8b5cf6', borderColor: 'rgba(138,43,226,0.8)' },
+  'galaxy-opal': { label: 'Galaxy Opal', color: '#f0abfc', borderColor: 'rgba(240,171,252,0.8)' },
+  'pink-diamond': { label: 'Pink Diamond', color: '#ec4899', borderColor: 'rgba(255,105,180,0.7)' },
+  'diamond': { label: 'Diamond', color: '#22d3ee', borderColor: 'rgba(0,191,255,0.7)' },
+  'amethyst': { label: 'Amethyst', color: '#a855f7', borderColor: 'rgba(155,89,182,0.7)' },
+  'ruby': { label: 'Ruby', color: '#ef4444', borderColor: 'rgba(231,76,60,0.7)' },
+  'sapphire': { label: 'Sapphire', color: '#3b82f6', borderColor: 'rgba(59,130,246,0.7)' },
+  'emerald': { label: 'Emerald', color: '#22c55e', borderColor: 'rgba(34,197,94,0.7)' },
+  'gold': { label: 'Gold', color: '#eab308', borderColor: 'rgba(234,179,8,0.7)' },
 };
 
 /*
@@ -143,13 +148,13 @@ export const SLOT_POSITIONS: { x: number; y: number }[] = [
 ];
 
 export const DRAFT_ODDS: Record<number, Record<Tier, number>> = {
-  1: { 'dark-matter': 2, 'pink-diamond': 80, 'diamond': 18, 'amethyst': 0, 'ruby': 0 },
-  2: { 'dark-matter': 2, 'pink-diamond': 50, 'diamond': 45, 'amethyst': 3, 'ruby': 0 },
-  3: { 'dark-matter': 2, 'pink-diamond': 10, 'diamond': 65, 'amethyst': 23, 'ruby': 0 },
-  4: { 'dark-matter': 2, 'pink-diamond': 8, 'diamond': 45, 'amethyst': 40, 'ruby': 5 },
-  5: { 'dark-matter': 2, 'pink-diamond': 8, 'diamond': 25, 'amethyst': 60, 'ruby': 5 },
-  6: { 'dark-matter': 2, 'pink-diamond': 7, 'diamond': 10, 'amethyst': 50, 'ruby': 31 },
-  7: { 'dark-matter': 2, 'pink-diamond': 7, 'diamond': 10, 'amethyst': 41, 'ruby': 40 },
-  8: { 'dark-matter': 2, 'pink-diamond': 5, 'diamond': 7, 'amethyst': 21, 'ruby': 65 },
-  9: { 'dark-matter': 2, 'pink-diamond': 4, 'diamond': 6, 'amethyst': 18, 'ruby': 70 },
+  1: { 'dark-matter': 1, 'galaxy-opal': 5, 'pink-diamond': 55, 'diamond': 30, 'amethyst': 9, 'ruby': 0, 'sapphire': 0, 'emerald': 0, 'gold': 0 },
+  2: { 'dark-matter': 1, 'galaxy-opal': 4, 'pink-diamond': 30, 'diamond': 45, 'amethyst': 18, 'ruby': 2, 'sapphire': 0, 'emerald': 0, 'gold': 0 },
+  3: { 'dark-matter': 1, 'galaxy-opal': 3, 'pink-diamond': 10, 'diamond': 40, 'amethyst': 36, 'ruby': 10, 'sapphire': 0, 'emerald': 0, 'gold': 0 },
+  4: { 'dark-matter': 1, 'galaxy-opal': 2, 'pink-diamond': 6, 'diamond': 20, 'amethyst': 40, 'ruby': 25, 'sapphire': 6, 'emerald': 0, 'gold': 0 },
+  5: { 'dark-matter': 1, 'galaxy-opal': 2, 'pink-diamond': 5, 'diamond': 12, 'amethyst': 30, 'ruby': 35, 'sapphire': 12, 'emerald': 3, 'gold': 0 },
+  6: { 'dark-matter': 1, 'galaxy-opal': 1, 'pink-diamond': 3, 'diamond': 8, 'amethyst': 20, 'ruby': 35, 'sapphire': 22, 'emerald': 8, 'gold': 2 },
+  7: { 'dark-matter': 1, 'galaxy-opal': 1, 'pink-diamond': 2, 'diamond': 5, 'amethyst': 12, 'ruby': 30, 'sapphire': 28, 'emerald': 16, 'gold': 5 },
+  8: { 'dark-matter': 1, 'galaxy-opal': 1, 'pink-diamond': 2, 'diamond': 4, 'amethyst': 8, 'ruby': 20, 'sapphire': 30, 'emerald': 25, 'gold': 9 },
+  9: { 'dark-matter': 1, 'galaxy-opal': 1, 'pink-diamond': 1, 'diamond': 3, 'amethyst': 6, 'ruby': 15, 'sapphire': 28, 'emerald': 30, 'gold': 15 },
 };

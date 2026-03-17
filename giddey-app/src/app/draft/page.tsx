@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { PlayerCard as PlayerCardType, GridSlot, ScoreBreakdown, DRAFT_ODDS, TIER_CONFIG } from '@/lib/types';
+import { PlayerCard as PlayerCardType, GridSlot, ScoreBreakdown, DRAFT_ODDS } from '@/lib/types';
 import { createInitialGrid, generateOptions, placeCard, swapCards, getValidSlotsForCard } from '@/lib/draft';
 import { calculateScore } from '@/lib/scoring';
 import Header from '@/components/Header';
@@ -12,37 +12,45 @@ import ResultsScreen from '@/components/ResultsScreen';
 
 // --- Odds Modal ---
 function OddsModal({ onClose }: { onClose: () => void }) {
-  const tiers = ['dark-matter', 'pink-diamond', 'diamond', 'amethyst', 'ruby'] as const;
+  const tiers = ['dark-matter', 'galaxy-opal', 'pink-diamond', 'diamond', 'amethyst', 'ruby', 'sapphire', 'emerald', 'gold'] as const;
   const tierLabels: Record<string, string> = {
     'dark-matter': 'DM',
+    'galaxy-opal': 'GO',
     'pink-diamond': 'PD',
     'diamond': 'DIA',
     'amethyst': 'AME',
     'ruby': 'RBY',
+    'sapphire': 'SAP',
+    'emerald': 'EME',
+    'gold': 'GLD',
   };
   const tierColors: Record<string, string> = {
     'dark-matter': '#a78bfa',
+    'galaxy-opal': '#f0abfc',
     'pink-diamond': '#f472b6',
     'diamond': '#22d3ee',
     'amethyst': '#a78bfa',
     'ruby': '#f87171',
+    'sapphire': '#60a5fa',
+    'emerald': '#4ade80',
+    'gold': '#facc15',
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-[#111827] rounded-2xl border border-white/10 p-5 max-w-sm w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[#111827] rounded-2xl border border-white/10 p-5 max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Draft Odds</h2>
           <button onClick={onClose} className="text-white/40 hover:text-white text-lg">&times;</button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[10px]">
+          <table className="w-full text-[9px]">
             <thead>
               <tr className="border-b border-white/10">
                 <th className="py-2 text-left text-white/50 font-semibold">RND</th>
                 {tiers.map((t) => (
-                  <th key={t} className="py-2 text-center font-bold" style={{ color: tierColors[t] }}>
+                  <th key={t} className="py-2 text-center font-bold px-0.5" style={{ color: tierColors[t] }}>
                     {tierLabels[t]}
                   </th>
                 ))}
@@ -53,7 +61,7 @@ function OddsModal({ onClose }: { onClose: () => void }) {
                 <tr key={round} className="border-b border-white/5">
                   <td className="py-1.5 text-white/70 font-semibold">{round}</td>
                   {tiers.map((t) => (
-                    <td key={t} className="py-1.5 text-center text-white/60">
+                    <td key={t} className="py-1.5 text-center text-white/60 px-0.5">
                       {DRAFT_ODDS[round][t]}%
                     </td>
                   ))}

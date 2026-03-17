@@ -2,14 +2,18 @@
 
 import Link from 'next/link';
 import Header from '@/components/Header';
-import { TIER_CONFIG, Tier, DRAFT_ODDS } from '@/lib/types';
+import { TIER_CONFIG, Tier } from '@/lib/types';
 
-const tiers: { tier: Tier; label: string }[] = [
-  { tier: 'dark-matter', label: 'Dark Matter' },
-  { tier: 'pink-diamond', label: 'Pink Diamond' },
-  { tier: 'diamond', label: 'Diamond' },
-  { tier: 'amethyst', label: 'Amethyst' },
-  { tier: 'ruby', label: 'Ruby' },
+const tiers: { tier: Tier; label: string; ovr: string }[] = [
+  { tier: 'dark-matter', label: 'Dark Matter', ovr: '100' },
+  { tier: 'galaxy-opal', label: 'Galaxy Opal', ovr: '97-99' },
+  { tier: 'pink-diamond', label: 'Pink Diamond', ovr: '95-96' },
+  { tier: 'diamond', label: 'Diamond', ovr: '92-94' },
+  { tier: 'amethyst', label: 'Amethyst', ovr: '90-91' },
+  { tier: 'ruby', label: 'Ruby', ovr: '87-89' },
+  { tier: 'sapphire', label: 'Sapphire', ovr: '84-86' },
+  { tier: 'emerald', label: 'Emerald', ovr: '80-83' },
+  { tier: 'gold', label: 'Gold', ovr: '76-79' },
 ];
 
 export default function Home() {
@@ -56,16 +60,16 @@ export default function Home() {
             <div className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Max Chem</div>
           </div>
           <div className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
-            <div className="text-2xl font-black text-purple-400">5</div>
+            <div className="text-2xl font-black text-purple-400">9</div>
             <div className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Card Tiers</div>
           </div>
         </div>
 
         {/* Tier preview */}
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <h3 className="text-xs uppercase tracking-widest text-white/40 font-semibold text-center mb-3">Card Tiers</h3>
-          <div className="flex justify-center gap-2">
-            {tiers.map(({ tier, label }) => {
+          <div className="flex justify-center gap-1.5">
+            {tiers.map(({ tier, label, ovr }) => {
               const config = TIER_CONFIG[tier];
               return (
                 <div
@@ -73,12 +77,13 @@ export default function Home() {
                   className="flex flex-col items-center gap-1"
                 >
                   <div
-                    className={`w-10 h-10 rounded-lg tier-${tier.replace('-', '-')} flex items-center justify-center`}
-                  >
-                    <span className="text-xs font-bold text-white">+{config.talent}</span>
-                  </div>
-                  <span className="text-[8px] text-white/50 font-semibold text-center leading-tight" style={{ maxWidth: 60 }}>
-                    {label}
+                    className={`w-8 h-8 rounded-md tier-${tier} flex items-center justify-center`}
+                  />
+                  <span className="text-[7px] font-bold text-center leading-tight" style={{ maxWidth: 45, color: config.color }}>
+                    {label.split(' ').map(w => w[0]).join('')}
+                  </span>
+                  <span className="text-[7px] text-white/50 font-semibold text-center leading-tight">
+                    {ovr}
                   </span>
                 </div>
               );

@@ -25,6 +25,19 @@ function getCellCenter(index: number) {
   };
 }
 
+// Short labels for chemistry reasons
+const reasonLabels: Record<string, string> = {
+  team: 'TEAM',
+  division: 'DIV',
+  year: 'YR',
+};
+
+const reasonColors: Record<string, string> = {
+  green: '#22c55e',
+  yellow: '#eab308',
+  red: '#ef4444',
+};
+
 function CourtLines() {
   const cx = GRID_CONTAINER_W / 2;
   const cy = GRID_CONTAINER_H / 2;
@@ -47,6 +60,50 @@ function CourtLines() {
       <rect x={cx - 65} y={GRID_CONTAINER_H - 108} width="130" height="100" rx="3"
         fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
     </svg>
+  );
+}
+
+function ChemLabel({ line, from, to }: { line: ChemLine; from: { x: number; y: number }; to: { x: number; y: number } }) {
+  if (line.reasons.length === 0) return null;
+
+  const mx = (from.x + to.x) / 2;
+  const my = (from.y + to.y) / 2;
+  const label = line.reasons.map(r => reasonLabels[r] || r).join(' + ');
+  const color = reasonColors[line.level];
+
+  // Calculate label width based on text length
+  const labelWidth = Math.max(label.length * 5.5 + 10, 30);
+  const labelHeight = 14;
+
+  return (
+    <g>
+      {/* Background pill */}
+      <rect
+        x={mx - labelWidth / 2}
+        y={my - labelHeight / 2}
+        width={labelWidth}
+        height={labelHeight}
+        rx={7}
+        fill="rgba(0,0,0,0.75)"
+        stroke={color}
+        strokeWidth="1"
+        strokeOpacity={0.6}
+      />
+      {/* Label text */}
+      <text
+        x={mx}
+        y={my + 0.5}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill={color}
+        fontSize="7.5"
+        fontWeight="800"
+        fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
+        letterSpacing="0.5"
+      >
+        {label}
+      </text>
+    </g>
   );
 }
 
@@ -140,15 +197,17 @@ export default function Grid({
           const to = getCellCenter(line.to);
 
           return (
-            <line
-              key={i}
-              x1={from.x} y1={from.y}
-              x2={to.x} y2={to.y}
-              className={`chem-line-${line.level}`}
-              strokeWidth={line.level === 'green' ? 3 : line.level === 'yellow' ? 2 : 1.5}
-              strokeOpacity={line.level === 'red' ? 0.3 : 0.85}
-              strokeLinecap="round"
-            />
+            <g key={i}>
+              <line
+                x1={from.x} y1={from.y}
+                x2={to.x} y2={to.y}
+                className={`chem-line-${line.level}`}
+                strokeWidth={line.level === 'green' ? 5 : line.level === 'yellow' ? 4 : 2.5}
+                strokeOpacity={line.level === 'red' ? 0.35 : 0.9}
+                strokeLinecap="round"
+              />
+              <ChemLabel line={line} from={from} to={to} />
+            </g>
           );
         })}
       </svg>

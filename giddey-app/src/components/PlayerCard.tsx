@@ -3,11 +3,28 @@
 import { PlayerCard as PlayerCardType, ChemDotLevel } from '@/lib/types';
 import { getPlayerHeadshotUrl, getTeamLogoUrl } from '@/lib/images';
 
+/** Lighten dark team colors so they're always readable on dark card backgrounds */
+function ensureReadable(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+  if (luminance > 90) return hex;
+  // Boost towards white to ensure readability
+  const boost = 1.8;
+  const nr = Math.min(255, Math.round(r * boost + 60));
+  const ng = Math.min(255, Math.round(g * boost + 60));
+  const nb = Math.min(255, Math.round(b * boost + 60));
+  return `rgb(${nr},${ng},${nb})`;
+}
+
 interface PlayerCardProps {
   card: PlayerCardType;
   size?: 'grid' | 'option' | 'result';
   showDot?: boolean;
   dotLevel?: ChemDotLevel;
+  /** Which traits are matching with at least one neighbor: 'team', 'division', 'year' */
+  matchingTraits?: Set<string>;
   onClick?: () => void;
   className?: string;
   animationDelay?: number;
@@ -42,7 +59,7 @@ const gemColors: Record<string, { bg: string; border: string }> = {
 };
 
 // All card sizes are now unified for consistent look across draft options and grid
-const CARD_SIZE = { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7.5, posFont: 7.5, teamLogo: 14 };
+const CARD_SIZE = { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7.5, posFont: 7.5, teamLogo: 22 };
 const sizeConfig = {
   grid: CARD_SIZE,
   option: CARD_SIZE,
@@ -101,6 +118,7 @@ export default function PlayerCard({
   size = 'option',
   showDot = false,
   dotLevel = 'red',
+  matchingTraits,
   onClick,
   className = '',
   animationDelay = 0,
@@ -164,7 +182,7 @@ export default function PlayerCard({
           <div
             className="absolute inset-0 z-[1]"
             style={{
-              background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%)',
+              background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.65) 100%)',
             }}
           />
         </div>
@@ -189,11 +207,17 @@ export default function PlayerCard({
             </span>
             {teamLogoUrl && (
               <div
-                className="rounded-sm overflow-hidden"
+                className="rounded overflow-hidden flex items-center justify-center"
                 style={{
                   width: s.teamLogo,
                   height: s.teamLogo,
-                  background: 'rgba(255,255,255,0.15)',
+                  background: matchingTraits?.has('team')
+                    ? 'rgba(34,197,94,0.5)'
+                    : 'rgba(255,255,255,0.18)',
+                  backdropFilter: 'blur(4px)',
+                  padding: 2,
+                  boxShadow: matchingTraits?.has('team') ? '0 0 8px rgba(34,197,94,0.6)' : undefined,
+                  border: matchingTraits?.has('team') ? '1px solid rgba(34,197,94,0.7)' : undefined,
                 }}
               >
                 <img
@@ -201,6 +225,9 @@ export default function PlayerCard({
                   alt=""
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   draggable={false}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
               </div>
             )}
@@ -228,9 +255,10 @@ export default function PlayerCard({
         <div
           className="relative z-10 w-full"
           style={{
-            padding: '3px 4px 4px',
-            background: 'rgba(0,0,0,0.55)',
-            backdropFilter: 'blur(2px)',
+            padding: '4px 5px 5px',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.75) 100%)',
+            backdropFilter: 'blur(4px)',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
           }}
         >
           {/* Player name */}
@@ -239,6 +267,7 @@ export default function PlayerCard({
             style={{
               fontSize: s.nameFont,
               letterSpacing: '0.5px',
+              textShadow: '0 1px 3px rgba(0,0,0,0.8)',
             }}
           >
             {lastName}
@@ -254,16 +283,34 @@ export default function PlayerCard({
           >
             <span
               className="font-bold"
-              style={{ color: card.team.primaryColor, textShadow: '0 0 4px rgba(0,0,0,0.8)' }}
+              style={{
+                color: matchingTraits?.has('team') ? '#4ade80' : ensureReadable(card.team.primaryColor),
+                textShadow: matchingTraits?.has('team')
+                  ? '0 0 6px rgba(34,197,94,0.8), 0 0 2px rgba(0,0,0,1)'
+                  : '0 0 6px rgba(0,0,0,1), 0 0 2px rgba(0,0,0,1), 0 1px 1px rgba(0,0,0,0.9)',
+                WebkitTextStroke: matchingTraits?.has('team') ? undefined : '0.3px rgba(255,255,255,0.25)',
+              }}
             >
               {card.team.abbreviation}
             </span>
             <span className="text-white/30 mx-[2px] font-light">&bull;</span>
-            <span className="font-semibold text-white/75">
+            <span
+              className="font-semibold"
+              style={{
+                color: matchingTraits?.has('division') ? '#4ade80' : 'rgba(255,255,255,0.75)',
+                textShadow: matchingTraits?.has('division') ? '0 0 6px rgba(34,197,94,0.8)' : undefined,
+              }}
+            >
               {divisionShort[card.team.division] || card.team.division}
             </span>
             <span className="text-white/30 mx-[2px] font-light">&bull;</span>
-            <span className="font-semibold text-white/75">
+            <span
+              className="font-semibold"
+              style={{
+                color: matchingTraits?.has('year') ? '#4ade80' : 'rgba(255,255,255,0.75)',
+                textShadow: matchingTraits?.has('year') ? '0 0 6px rgba(34,197,94,0.8)' : undefined,
+              }}
+            >
               &apos;{String(card.draftYear).slice(-2)}
             </span>
           </div>
@@ -272,7 +319,7 @@ export default function PlayerCard({
 
       {/* Chemistry Dot */}
       {showDot && (
-        <div className={`w-3.5 h-3.5 rounded-full chem-dot-${dotLevel} mt-1`} />
+        <div className={`w-4 h-4 rounded-full chem-dot-${dotLevel} mt-1.5`} />
       )}
     </div>
   );

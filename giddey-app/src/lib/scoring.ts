@@ -1,4 +1,4 @@
-import { PlayerCard, GridSlot, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, ScoreBreakdown, ADJACENCIES } from './types';
+import { PlayerCard, GridSlot, GridPosition, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, ScoreBreakdown, ADJACENCIES } from './types';
 
 /**
  * Chemistry Scoring System for Giddey
@@ -114,4 +114,58 @@ export function calculateScore(grid: GridSlot[]): ScoreBreakdown {
     lines,
     dots,
   };
+}
+
+/**
+ * Find the optimal arrangement of drafted players to maximize chemistry score.
+ * Uses brute-force permutation with position-constraint pruning.
+ * With 9 slots and position restrictions, the search space is very manageable.
+ */
+export function findOptimalLineup(grid: GridSlot[]): { bestScore: ScoreBreakdown; bestGrid: GridSlot[] } {
+  const cards = grid.filter(s => s.card !== null).map(s => s.card!);
+  if (cards.length < 9) {
+    return { bestScore: calculateScore(grid), bestGrid: grid };
+  }
+
+  const slotPositions = grid.map(s => s.position);
+  let bestTotal = -1;
+  let bestArrangement: (PlayerCard | null)[] = grid.map(s => s.card);
+
+  function canPlace(card: PlayerCard, slotPos: GridPosition): boolean {
+    if (slotPos === 'UTIL') return true;
+    return slotPos === card.position;
+  }
+
+  // Recursive permutation with pruning
+  const used = new Array(cards.length).fill(false);
+  const current: (PlayerCard | null)[] = new Array(9).fill(null);
+
+  function solve(slotIdx: number) {
+    if (slotIdx === 9) {
+      // Build temporary grid and score it
+      const tempGrid: GridSlot[] = grid.map((s, i) => ({ ...s, card: current[i] }));
+      const sc = calculateScore(tempGrid);
+      if (sc.total > bestTotal) {
+        bestTotal = sc.total;
+        bestArrangement = [...current];
+      }
+      return;
+    }
+
+    for (let c = 0; c < cards.length; c++) {
+      if (used[c]) continue;
+      if (!canPlace(cards[c], slotPositions[slotIdx])) continue;
+      used[c] = true;
+      current[slotIdx] = cards[c];
+      solve(slotIdx + 1);
+      used[c] = false;
+      current[slotIdx] = null;
+    }
+  }
+
+  solve(0);
+
+  const bestGrid: GridSlot[] = grid.map((s, i) => ({ ...s, card: bestArrangement[i] }));
+  const bestScore = calculateScore(bestGrid);
+  return { bestScore, bestGrid };
 }

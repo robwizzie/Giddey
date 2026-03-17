@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { PlayerCard as PlayerCardType, GridSlot, ScoreBreakdown, DRAFT_ODDS } from '@/lib/types';
-import { createInitialGrid, generateOptions, placeCard, swapCards, getValidSlotsForCard } from '@/lib/draft';
+import { createInitialGrid, generateOptions, placeCard, swapCards, getValidSlotsForCard, getValidSwapTargets } from '@/lib/draft';
 import { calculateScore } from '@/lib/scoring';
 import Header from '@/components/Header';
 import Grid from '@/components/Grid';
@@ -345,6 +345,7 @@ export default function DraftPage() {
             onSlotClick={handleSlotClick}
             onCardClick={handleCardClick}
             swapSource={swapMode}
+            swapTargets={swapMode !== null ? getValidSwapTargets(grid, swapMode) : []}
             isComplete={draftComplete}
             onDropOnSlot={handleDropOnSlot}
             onDragSwap={handleDragSwap}

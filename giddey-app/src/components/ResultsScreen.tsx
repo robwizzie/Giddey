@@ -1,6 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
 import { GridSlot, ScoreBreakdown } from '@/lib/types';
+import { findOptimalLineup } from '@/lib/scoring';
 import Header from './Header';
 import Grid from './Grid';
 import Link from 'next/link';
@@ -31,6 +33,11 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
   const yellowLines = score.lines.filter((l) => l.level === 'yellow').length;
   const greenDots = score.dots.filter((d) => d.level === 'green').length;
   const yellowDots = score.dots.filter((d) => d.level === 'yellow').length;
+
+  // Calculate optimal lineup
+  const optimal = useMemo(() => findOptimalLineup(grid), [grid]);
+  const isOptimal = score.total >= optimal.bestScore.total;
+  const missedPoints = optimal.bestScore.total - score.total;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #0a0e17 0%, #0d1117 100%)' }}>
@@ -66,6 +73,42 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
           </div>
         </div>
 
+        {/* Optimal lineup comparison */}
+        <div className="w-full bg-black/40 rounded-2xl border border-white/10 p-4 mb-5 animate-slide-up" style={{ animationDelay: '150ms' }}>
+          {isOptimal ? (
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">&#x2728;</div>
+              <div>
+                <div className="text-sm font-bold text-green-400">Perfect Placement!</div>
+                <div className="text-[11px] text-white/50">You found the best arrangement for your drafted players.</div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-white/70 uppercase tracking-wider">Best Possible</div>
+                  <div className="text-[11px] text-white/40 mt-0.5">with your drafted players</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xl font-black text-cyan-400">{optimal.bestScore.total}</div>
+                  <div className="text-[10px] text-cyan-400/60 font-semibold">+{missedPoints} missed</div>
+                </div>
+              </div>
+              <div className="flex gap-2 text-[10px]">
+                <div className="flex-1 bg-white/5 rounded-lg p-2 text-center">
+                  <div className="font-bold text-orange-400">{optimal.bestScore.talent}</div>
+                  <div className="text-white/40">Talent</div>
+                </div>
+                <div className="flex-1 bg-white/5 rounded-lg p-2 text-center">
+                  <div className="font-bold text-green-400">{optimal.bestScore.totalChem}</div>
+                  <div className="text-white/40">Chemistry</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Chemistry details */}
         <div className="w-full bg-black/40 rounded-2xl border border-white/10 p-4 mb-5 animate-slide-up" style={{ animationDelay: '200ms' }}>
           <h3 className="text-xs uppercase tracking-widest text-white/40 font-semibold mb-3">Chemistry Breakdown</h3>
@@ -73,7 +116,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-0.5 bg-green-500 rounded" />
+                <div className="w-6 h-1 bg-green-400 rounded-full" style={{ boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
                 <span className="text-xs text-white/70">Green Lines ({greenLines})</span>
               </div>
               <span className="text-xs font-bold text-green-400">+{greenLines * 2}</span>
@@ -81,7 +124,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-0.5 bg-yellow-500 rounded" />
+                <div className="w-6 h-1 bg-yellow-400 rounded-full" style={{ boxShadow: '0 0 6px rgba(234,179,8,0.6)' }} />
                 <span className="text-xs text-white/70">Yellow Lines ({yellowLines})</span>
               </div>
               <span className="text-xs font-bold text-yellow-400">+{yellowLines}</span>
@@ -91,7 +134,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <div className="w-3 h-3 rounded-full bg-green-400" style={{ boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
                 <span className="text-xs text-white/70">Green Dots ({greenDots})</span>
               </div>
               <span className="text-xs font-bold text-green-400">+{greenDots * 11}</span>
@@ -99,7 +142,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-400" style={{ boxShadow: '0 0 6px rgba(234,179,8,0.6)' }} />
                 <span className="text-xs text-white/70">Yellow Dots ({yellowDots})</span>
               </div>
               <span className="text-xs font-bold text-yellow-400">+{yellowDots * 6}</span>

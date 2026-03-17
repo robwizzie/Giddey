@@ -68,81 +68,78 @@ export interface ScoreBreakdown {
   talent: number;
   lineChem: number;
   dotChem: number;
-  fullCourtBonus: number;
   totalChem: number;
   total: number;
   lines: ChemLine[];
   dots: ChemDot[];
-  hasFullCourt: boolean;
 }
 
-export interface DraftState {
-  round: number;
-  grid: GridSlot[];
-  options: PlayerCard[];
-  score: ScoreBreakdown;
-  isComplete: boolean;
-  selectedCards: PlayerCard[];
-  usedPlayerIds: Set<string>;
-}
-
-export const TIER_CONFIG: Record<Tier, { label: string; talent: number; color: string; glow: string; bgGradient: string }> = {
-  'dark-matter': {
-    label: 'Dark Matter',
-    talent: 15,
-    color: '#1a0a2e',
-    glow: 'rgba(138, 43, 226, 0.8)',
-    bgGradient: 'linear-gradient(135deg, #0d0221, #1a0533, #2d0a4e, #1a0533)',
-  },
-  'pink-diamond': {
-    label: 'Pink Diamond',
-    talent: 11,
-    color: '#ff69b4',
-    glow: 'rgba(255, 105, 180, 0.7)',
-    bgGradient: 'linear-gradient(135deg, #8b0a50, #c71585, #ff69b4, #c71585)',
-  },
-  'diamond': {
-    label: 'Diamond',
-    talent: 8,
-    color: '#00bfff',
-    glow: 'rgba(0, 191, 255, 0.7)',
-    bgGradient: 'linear-gradient(135deg, #0066aa, #00aadd, #00ddff, #00aadd)',
-  },
-  'amethyst': {
-    label: 'Amethyst',
-    talent: 5,
-    color: '#9b59b6',
-    glow: 'rgba(155, 89, 182, 0.7)',
-    bgGradient: 'linear-gradient(135deg, #6c3483, #8e44ad, #a569bd, #8e44ad)',
-  },
-  'ruby': {
-    label: 'Ruby',
-    talent: 3,
-    color: '#e74c3c',
-    glow: 'rgba(231, 76, 60, 0.7)',
-    bgGradient: 'linear-gradient(135deg, #922b21, #c0392b, #e74c3c, #c0392b)',
-  },
+export const TIER_CONFIG: Record<Tier, { label: string; talent: number; color: string; borderColor: string }> = {
+  'dark-matter': { label: 'Dark Matter', talent: 15, color: '#8b5cf6', borderColor: 'rgba(138,43,226,0.8)' },
+  'pink-diamond': { label: 'Pink Diamond', talent: 11, color: '#ec4899', borderColor: 'rgba(255,105,180,0.7)' },
+  'diamond': { label: 'Diamond', talent: 8, color: '#22d3ee', borderColor: 'rgba(0,191,255,0.7)' },
+  'amethyst': { label: 'Amethyst', talent: 5, color: '#a855f7', borderColor: 'rgba(155,89,182,0.7)' },
+  'ruby': { label: 'Ruby', talent: 3, color: '#ef4444', borderColor: 'rgba(231,76,60,0.7)' },
 };
 
+/*
+ * Grid Formation Layout (matches Griddy's football formation but for basketball)
+ *
+ *        [0:SG]    [1:SF]           ← Perimeter shooters
+ *   [2:UTIL] [3:PG]  [4:PG] [5:UTIL] ← Playmakers + flex
+ *   [6:SF]                  [7:SG]  ← Wings
+ *              [8:C]                ← Center (the bridge)
+ *
+ * 13 adjacencies, max chem = 13×2 + 9×11 = 125
+ */
 export const GRID_POSITIONS: GridPosition[] = [
-  'SG', 'PG', 'SF',
-  'UTIL', 'C', 'UTIL',
-  'SG', 'PF', 'SF',
+  'SG', 'SF',           // Row 0: top pair
+  'UTIL', 'PG', 'PG', 'UTIL', // Row 1: middle quad
+  'SF', 'SG',           // Row 2: lower pair
+  'C',                   // Row 3: bottom center
 ];
 
 export const GRID_LABELS: string[] = [
-  'SG', 'PG', 'SF',
-  'UTIL', 'C', 'UTIL',
-  'SG', 'PF', 'SF',
+  'SG', 'SF',
+  'UTIL', 'PG', 'PG', 'UTIL',
+  'SF', 'SG',
+  'C',
 ];
 
+// 13 adjacencies matching the formation connections
 export const ADJACENCIES: [number, number][] = [
-  [0, 1], [1, 2],
-  [3, 4], [4, 5],
-  [6, 7], [7, 8],
-  [0, 3], [3, 6],
-  [1, 4], [4, 7],
-  [2, 5], [5, 8],
+  [0, 2], [0, 3],       // SG top connects to UTIL-left and PG-left
+  [1, 4], [1, 5],       // SF top connects to PG-right and UTIL-right
+  [2, 3],               // UTIL-left to PG-left
+  [3, 4],               // PG-left to PG-right
+  [4, 5],               // PG-right to UTIL-right
+  [2, 6],               // UTIL-left down to SF-bottom
+  [5, 7],               // UTIL-right down to SG-bottom
+  [3, 8], [4, 8],       // Both PGs to Center
+  [6, 8], [7, 8],       // Both bottom wings to Center
+];
+
+// Pixel positions for each slot in the formation (within a 390×530 container)
+// Card dimensions: 82w × 108h
+export const CARD_W = 82;
+export const CARD_H = 108;
+export const GRID_CONTAINER_W = 390;
+export const GRID_CONTAINER_H = 530;
+
+export const SLOT_POSITIONS: { x: number; y: number }[] = [
+  // Row 0: top pair (centered)
+  { x: 110, y: 8 },    // 0: SG
+  { x: 200, y: 8 },    // 1: SF
+  // Row 1: middle quad (full width)
+  { x: 8, y: 138 },    // 2: UTIL
+  { x: 104, y: 138 },  // 3: PG
+  { x: 200, y: 138 },  // 4: PG
+  { x: 300, y: 138 },  // 5: UTIL
+  // Row 2: lower pair (far edges)
+  { x: 8, y: 275 },    // 6: SF
+  { x: 300, y: 275 },  // 7: SG
+  // Row 3: bottom center
+  { x: 154, y: 400 },  // 8: C
 ];
 
 export const DRAFT_ODDS: Record<number, Record<Tier, number>> = {

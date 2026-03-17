@@ -1,23 +1,50 @@
-import { PlayerCard, GridSlot, GridPosition, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, ScoreBreakdown, ADJACENCIES } from './types';
+import { PlayerCard, GridSlot, GridPosition, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, ScoreBreakdown, ADJACENCIES, Tier } from './types';
 
 /**
  * Chemistry Scoring System for Giddey
  *
  * LINE CHEMISTRY (between adjacent cards):
- *   Green Line (+2 Chem): Same team OR (same division + same draft year)
+ *   Green Line (+3 Chem): Same team OR (same division + same draft year)
  *   Yellow Line (+1 Chem): Same division OR same draft year
  *   Red Line (0 Chem): No matching traits
  *
  * DOT CHEMISTRY (per-player bonus based on accumulated line chem):
  *   Green Dot (+11 Chem): Player has 4+ line chem from adjacent connections
- *   Yellow Dot (+6 Chem): Player has 2-3 line chem from adjacent connections
- *   Red Dot (0 Chem): Player has 0-1 line chem
+ *   Yellow Dot (+6 Chem): Player has 2–3 line chem from adjacent connections
+ *   Red Dot (0 Chem): Player has 0–1 line chem
  *
- * MAX CHEMISTRY: 26 (lines) + 99 (dots) = 125
+ * MAX CHEMISTRY: 12 green lines × 3 + 9 green dots × 11 = 36 + 99 = 135
  *
- * TALENT: Sum of each player's (OVR - 75)
- *   100 OVR → 25 talent, 90 OVR → 15, 80 OVR → 5, 76 OVR → 1
+ * TALENT: Fixed points per tier (max 9 × 15 = 135)
+ *   Dark Matter   → 15
+ *   Galaxy Opal   → 13
+ *   Pink Diamond  → 11
+ *   Diamond       →  9
+ *   Amethyst      →  7
+ *   Ruby          →  5
+ *   Sapphire      →  4
+ *   Emerald       →  2
+ *   Gold          →  1
+ *
+ * MAX TOTAL: 135 (talent) + 135 (chem) = 270
  */
+
+const TIER_TALENT: Record<Tier, number> = {
+  'dark-matter':  15,
+  'galaxy-opal':  13,
+  'pink-diamond': 11,
+  'diamond':       9,
+  'amethyst':      7,
+  'ruby':          5,
+  'sapphire':      4,
+  'emerald':       2,
+  'gold':          1,
+};
+
+/** Returns the talent value for a card based on its tier */
+export function tierToTalent(tier: Tier): number {
+  return TIER_TALENT[tier] ?? 1;
+}
 
 function getLineChemistry(cardA: PlayerCard, cardB: PlayerCard): { level: ChemLineLevel; points: number; reasons: string[] } {
   const sameTeam = cardA.teamId === cardB.teamId;
@@ -30,7 +57,7 @@ function getLineChemistry(cardA: PlayerCard, cardB: PlayerCard): { level: ChemLi
   if (sameDraftYear) reasons.push('year');
 
   if (sameTeam || (sameDivision && sameDraftYear)) {
-    return { level: 'green', points: 2, reasons };
+    return { level: 'green', points: 3, reasons };
   }
 
   if (sameDivision || sameDraftYear) {
@@ -41,36 +68,25 @@ function getLineChemistry(cardA: PlayerCard, cardB: PlayerCard): { level: ChemLi
 }
 
 function getDotChemistry(lineChem: number): { level: ChemDotLevel; points: number } {
-  if (lineChem >= 4) {
-    return { level: 'green', points: 11 };
-  }
-  if (lineChem >= 2) {
-    return { level: 'yellow', points: 6 };
-  }
+  if (lineChem >= 4) return { level: 'green', points: 11 };
+  if (lineChem >= 2) return { level: 'yellow', points: 6 };
   return { level: 'red', points: 0 };
-}
-
-/** Convert OVR to talent points: OVR - 75 (100→25, 90→15, 80→5, 76→1) */
-export function ovrToTalent(ovr: number): number {
-  return Math.max(ovr - 75, 1);
 }
 
 export function calculateScore(grid: GridSlot[]): ScoreBreakdown {
   const filledSlots = grid.filter((s) => s.card !== null);
 
-  // Talent = sum of each player's (OVR - 75)
+  // Talent = tier-based fixed value per player
   const talent = filledSlots.reduce((sum, slot) => {
     if (!slot.card) return sum;
-    return sum + ovrToTalent(slot.card.overall);
+    return sum + tierToTalent(slot.card.tier);
   }, 0);
 
   // Calculate line chemistry
   const lines: ChemLine[] = [];
   const playerLineChem: Record<number, number> = {};
 
-  for (let i = 0; i < 9; i++) {
-    playerLineChem[i] = 0;
-  }
+  for (let i = 0; i < 9; i++) playerLineChem[i] = 0;
 
   for (const [from, to] of ADJACENCIES) {
     const cardA = grid[from]?.card;
@@ -101,25 +117,15 @@ export function calculateScore(grid: GridSlot[]): ScoreBreakdown {
   }
 
   const dotChem = dots.reduce((sum, d) => sum + d.points, 0);
-
   const totalChem = lineChem + dotChem;
   const total = talent + totalChem;
 
-  return {
-    talent,
-    lineChem,
-    dotChem,
-    totalChem,
-    total,
-    lines,
-    dots,
-  };
+  return { talent, lineChem, dotChem, totalChem, total, lines, dots };
 }
 
 /**
- * Find the optimal arrangement of drafted players to maximize chemistry score.
- * Uses brute-force permutation with position-constraint pruning.
- * With 9 slots and position restrictions, the search space is very manageable.
+ * Find the optimal arrangement of drafted players to maximise chemistry score.
+ * Brute-force permutation with position-constraint pruning.
  */
 export function findOptimalLineup(grid: GridSlot[]): { bestScore: ScoreBreakdown; bestGrid: GridSlot[] } {
   const cards = grid.filter(s => s.card !== null).map(s => s.card!);
@@ -136,13 +142,11 @@ export function findOptimalLineup(grid: GridSlot[]): { bestScore: ScoreBreakdown
     return slotPos === card.position;
   }
 
-  // Recursive permutation with pruning
   const used = new Array(cards.length).fill(false);
   const current: (PlayerCard | null)[] = new Array(9).fill(null);
 
   function solve(slotIdx: number) {
     if (slotIdx === 9) {
-      // Build temporary grid and score it
       const tempGrid: GridSlot[] = grid.map((s, i) => ({ ...s, card: current[i] }));
       const sc = calculateScore(tempGrid);
       if (sc.total > bestTotal) {
@@ -151,7 +155,6 @@ export function findOptimalLineup(grid: GridSlot[]): { bestScore: ScoreBreakdown
       }
       return;
     }
-
     for (let c = 0; c < cards.length; c++) {
       if (used[c]) continue;
       if (!canPlace(cards[c], slotPositions[slotIdx])) continue;

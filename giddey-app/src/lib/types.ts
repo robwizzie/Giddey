@@ -98,54 +98,136 @@ export const TIER_CONFIG: Record<Tier, { label: string; color: string; borderCol
  * 13 adjacencies, max chem = 13×2 + 9×11 = 125
  */
 export const GRID_POSITIONS: GridPosition[] = [
-  'SG', 'SF',           // Row 0: top pair
-  'UTIL', 'PG', 'PG', 'UTIL', // Row 1: middle quad
-  'SF', 'SG',           // Row 2: lower pair
+  'SG', 'PF',            // Row 0: top pair (SG left, PF right)
+  'UTIL', 'PG', 'PG', 'UTIL', // Row 1: middle quad (UTIL flanking PGs)
+  'SF', 'SG',            // Row 2: lower pair (SF left, SG right)
   'C',                   // Row 3: bottom center
 ];
 
 export const GRID_LABELS: string[] = [
-  'SG', 'SF',
+  'SG', 'PF',
   'UTIL', 'PG', 'PG', 'UTIL',
   'SF', 'SG',
   'C',
 ];
 
-// 13 adjacencies matching the formation connections
+// 15 adjacencies — PG-left and PG-right do NOT connect directly (like QBs in Griddy)
+// Each PG connects 4 ways: top perimeter, outer UTIL, bottom wing, Center
 export const ADJACENCIES: [number, number][] = [
-  [0, 2], [0, 3],       // SG top connects to UTIL-left and PG-left
-  [1, 4], [1, 5],       // SF top connects to PG-right and UTIL-right
-  [2, 3],               // UTIL-left to PG-left
-  [3, 4],               // PG-left to PG-right
-  [4, 5],               // PG-right to UTIL-right
-  [2, 6],               // UTIL-left down to SF-bottom
-  [5, 7],               // UTIL-right down to SG-bottom
-  [3, 8], [4, 8],       // Both PGs to Center
-  [6, 8], [7, 8],       // Both bottom wings to Center
+  [0, 1],               // SG-top ↔ SF-top (top pair connected)
+  [0, 2], [0, 3],       // SG-top → UTIL-left, PG-left
+  [1, 4], [1, 5],       // SF-top → PG-right, UTIL-right
+  [2, 3],               // UTIL-left ↔ PG-left
+  [4, 5],               // PG-right ↔ UTIL-right
+  [2, 6],               // UTIL-left → SF-bottom
+  [5, 7],               // UTIL-right → SG-bottom
+  [3, 6],               // PG-left ↔ SF-bottom
+  [4, 7],               // PG-right ↔ SG-bottom
+  [3, 8], [4, 8],       // Both PGs → Center
+  [6, 8], [7, 8],       // Both wings → Center
 ];
 
-// Pixel positions for each slot in the formation (within a 460×610 container)
-// Card dimensions: 90w × 118h
+// Legacy constants kept for any direct imports elsewhere
 export const CARD_W = 90;
-export const CARD_H = 118;
-export const GRID_CONTAINER_W = 490;
-export const GRID_CONTAINER_H = 640;
-
+export const CARD_H = 120;
+export const GRID_CONTAINER_W = 480;
+export const GRID_CONTAINER_H = 540;
 export const SLOT_POSITIONS: { x: number; y: number }[] = [
-  // Row 0: top pair (centered, inset from edges)
-  { x: 145, y: 28 },   // 0: SG
-  { x: 255, y: 28 },   // 1: SF
-  // Row 1: middle quad (evenly spaced with padding)
-  { x: 42, y: 175 },   // 2: UTIL
-  { x: 148, y: 175 },  // 3: PG
-  { x: 252, y: 175 },  // 4: PG
-  { x: 358, y: 175 },  // 5: UTIL
-  // Row 2: lower pair (wide but inset)
-  { x: 42, y: 325 },   // 6: SF
-  { x: 358, y: 325 },  // 7: SG
-  // Row 3: bottom center (with room for dot below)
-  { x: 200, y: 482 },  // 8: C
+  { x: 140, y: 16  }, { x: 250, y: 16  },
+  { x: 30,  y: 131 }, { x: 140, y: 131 }, { x: 250, y: 131 }, { x: 360, y: 131 },
+  { x: 30,  y: 246 }, { x: 360, y: 246 },
+  { x: 195, y: 361 },
 ];
+
+/**
+ * Dynamic grid layout — all values computed from viewport width.
+ * No hardcoded magic numbers. Everything proportional.
+ *
+ * Formation (same as Griddy):
+ *       [0:SG]    [1:SF]          ← inner pair, top row
+ *  [2:UTIL] [3:PG] [4:PG] [5:UTIL] ← full-width quad
+ *  [6:SF]              [7:SG]    ← outer pair, lower row
+ *            [8:C]               ← center, bottom row
+ */
+export interface GridLayout {
+  containerW: number;
+  containerH: number;
+  cardW: number;
+  cardH: number;
+  slotBelow: number;   // height below card reserved for label + dot
+  labelFont: number;   // px size for slot position labels
+  dotSize: number;     // px diameter of chemistry dots
+  slotPositions: { x: number; y: number }[];
+}
+
+export function computeGridLayout(viewportW: number): GridLayout {
+  // Court fills viewport width, capped at 680px for desktop
+  const containerW = Math.min(viewportW, 680);
+
+  // Card width: 4 cards fit across with equal gaps — slightly wider for readability
+  const cardW = Math.min(Math.round(containerW / 5.2), 115);
+  // Slightly squarer cards keep the 5-row court at ~Griddy's height:width ratio
+  const cardH = Math.round(cardW * 1.2);
+
+  // Label + dot space below each card — match Griddy's flat large dots + readable labels
+  const labelFont = Math.max(13, Math.round(cardW * 0.19));
+  const dotSize   = Math.max(16, Math.round(cardW * 0.22));
+  const slotBelow = 3 + dotSize + 4 + labelFont + 2; // dot first, then label below
+
+  // Percentage-based positions matching Griddy's formation proportions:
+  // outer (UTIL/wings) at 13%/87%, PGs centered at 38%/62%,
+  // top SG/SF pair at 25%/75% — between outer and PG, so PGs look centered
+  const col0   = Math.max(0, Math.round(containerW * 0.13 - cardW / 2)); // UTIL-left, wings-left
+  const colSG  = Math.round(containerW * 0.30 - cardW / 2);              // SG-top  (slot 0) — closer to center
+  const col1   = Math.round(containerW * 0.38 - cardW / 2);              // PG-left (slot 3)
+  const col2   = Math.round(containerW * 0.62 - cardW / 2);              // PG-right (slot 4)
+  const colSF  = Math.round(containerW * 0.70 - cardW / 2);              // SF-top  (slot 1) — closer to center
+  const col3   = Math.min(containerW - cardW, Math.round(containerW * 0.87 - cardW / 2)); // UTIL-right, wings-right
+  const colC   = Math.round((containerW - cardW) / 2);
+
+  // 5 distinct rows — PGs have their own row so they land at the half-court line
+  //   row0   → SG-top / SF-top
+  //   utilRow → UTIL-left / UTIL-right
+  //   pgRow  → PG-left / PG-right  ← sits at containerH/2 (half-court)
+  //   wingsRow → SF-bottom / SG-bottom
+  //   cRow   → Center
+  //
+  // With equal rowSpacing the PG center falls within ~1 slotBelow/2 of cy.
+  const topPad     = Math.round(cardW * 0.10);
+  const rowGap     = Math.max(2, Math.round(cardW * 0.02));
+  const rowSpacing = cardH + slotBelow + rowGap;
+
+  const row0     = topPad;
+  const utilRow  = topPad + rowSpacing;                          // UTIL
+  const pgRow    = topPad + rowSpacing * 2;                      // PG  ≈ half-court
+  const wingsRow = topPad + rowSpacing * 3;                      // wings
+  // Center sits 0.7 rowSpacing below wings — "slightly lower, slight diagonal to wings"
+  const cRow     = wingsRow + Math.round(rowSpacing * 0.7);
+
+  // Include slotBelow for the last row so the C dot is never clipped
+  const containerH = cRow + cardH + slotBelow + topPad;
+
+  return {
+    containerW,
+    containerH,
+    cardW,
+    cardH,
+    slotBelow,
+    labelFont,
+    dotSize,
+    slotPositions: [
+      { x: colSG, y: row0     }, // 0: SG-top
+      { x: colSF, y: row0     }, // 1: SF-top
+      { x: col0,  y: utilRow  }, // 2: UTIL-left
+      { x: col1,  y: pgRow    }, // 3: PG-left  ← at half-court line
+      { x: col2,  y: pgRow    }, // 4: PG-right ← at half-court line
+      { x: col3,  y: utilRow  }, // 5: UTIL-right
+      { x: col0,  y: wingsRow }, // 6: SF-bottom
+      { x: col3,  y: wingsRow }, // 7: SG-bottom
+      { x: colC,  y: cRow     }, // 8: C
+    ],
+  };
+}
 
 export const DRAFT_ODDS: Record<number, Record<Tier, number>> = {
   1: { 'dark-matter': 1, 'galaxy-opal': 5, 'pink-diamond': 55, 'diamond': 30, 'amethyst': 9, 'ruby': 0, 'sapphire': 0, 'emerald': 0, 'gold': 0 },

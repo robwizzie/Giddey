@@ -184,6 +184,17 @@ export const NBA_PLAYER_IDS: Record<string, number> = {
   taylor: 1641709,
   dwight_p: 203939,
   ausar: 1641710,
+
+  // 2024 Rookies
+  jared_mccain: 1642272,
+  risacher: 1642258,
+  sarr: 1642259,
+  sheppard: 1642263,
+  castle: 1642264,
+  holland: 1641842,
+  clingan: 1642270,
+  edey: 1641744,
+  knecht: 1642261,
 };
 
 export function getPlayerHeadshotUrl(playerId: string): string {

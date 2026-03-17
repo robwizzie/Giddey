@@ -13,10 +13,8 @@ import { PlayerCard, GridSlot, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, S
  *   Yellow Dot (+6 Chem): Player has 2-3 line chem from adjacent connections
  *   Red Dot (0 Chem): Player has 0-1 line chem
  *
- * FULL COURT BONUS:
- *   +2 Chem when ALL 9 players have at least a Yellow Dot (2+ line chem each)
- *
- * MAX CHEMISTRY: 24 (lines) + 99 (dots) + 2 (full court) = 125
+ * MAX CHEMISTRY: 26 (lines) + 99 (dots) = 125
+ * (13 adjacencies × 2 max each = 26, 9 dots × 11 max each = 99)
  *
  * TALENT: Sum of all 9 player tier values (Dark Matter=15, Pink Diamond=11, Diamond=8, Amethyst=5, Ruby=3)
  */
@@ -98,23 +96,16 @@ export function calculateScore(grid: GridSlot[]): ScoreBreakdown {
 
   const dotChem = dots.reduce((sum, d) => sum + d.points, 0);
 
-  // Full Court Bonus: +2 when all 9 players have at least yellow dot (2+ line chem)
-  const allFilled = filledSlots.length === 9;
-  const hasFullCourt = allFilled && dots.every((d) => d.level !== 'red');
-  const fullCourtBonus = hasFullCourt ? 2 : 0;
-
-  const totalChem = lineChem + dotChem + fullCourtBonus;
+  const totalChem = lineChem + dotChem;
   const total = talent + totalChem;
 
   return {
     talent,
     lineChem,
     dotChem,
-    fullCourtBonus,
     totalChem,
     total,
     lines,
     dots,
-    hasFullCourt,
   };
 }

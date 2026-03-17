@@ -1,7 +1,6 @@
 'use client';
 
-import { GridSlot, ScoreBreakdown, TIER_CONFIG } from '@/lib/types';
-import { calculateScore } from '@/lib/scoring';
+import { GridSlot, ScoreBreakdown } from '@/lib/types';
 import Header from './Header';
 import Grid from './Grid';
 import Link from 'next/link';
@@ -27,15 +26,6 @@ function getGrade(total: number): { grade: string; color: string } {
 export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScreenProps) {
   const { grade, color } = getGrade(score.total);
 
-  // Count tiers
-  const tierCounts: Record<string, number> = {};
-  grid.forEach((slot) => {
-    if (slot.card) {
-      const tier = slot.card.tier;
-      tierCounts[tier] = (tierCounts[tier] || 0) + 1;
-    }
-  });
-
   // Count chemistry connections
   const greenLines = score.lines.filter((l) => l.level === 'green').length;
   const yellowLines = score.lines.filter((l) => l.level === 'yellow').length;
@@ -60,7 +50,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
 
         {/* Score breakdown */}
         <div className="w-full bg-black/40 rounded-2xl border border-white/10 p-4 mb-5 animate-slide-up" style={{ animationDelay: '100ms' }}>
-          <div className="grid grid-cols-4 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <div className="text-2xl font-black text-orange-400">{score.talent}</div>
               <div className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Talent</div>
@@ -69,7 +59,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
               <div className="text-2xl font-black text-green-400">{score.totalChem}</div>
               <div className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Chemistry</div>
             </div>
-            <div className="col-span-2">
+            <div>
               <div className="text-3xl font-black text-white">{score.total}</div>
               <div className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Total Score</div>
             </div>
@@ -114,19 +104,6 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
               </div>
               <span className="text-xs font-bold text-yellow-400">+{yellowDots * 6}</span>
             </div>
-
-            {score.hasFullCourt && (
-              <>
-                <div className="w-full h-px bg-white/10 my-1" />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">🏀</span>
-                    <span className="text-xs text-green-400 font-semibold">Full Court Bonus</span>
-                  </div>
-                  <span className="text-xs font-bold text-green-400">+2</span>
-                </div>
-              </>
-            )}
           </div>
         </div>
 

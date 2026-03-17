@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { PlayerCard as PlayerCardType, GridSlot, ScoreBreakdown, TIER_CONFIG } from '@/lib/types';
+import { PlayerCard as PlayerCardType, GridSlot, ScoreBreakdown, DRAFT_ODDS, TIER_CONFIG } from '@/lib/types';
 import { createInitialGrid, generateOptions, placeCard, swapCards, getValidSlotsForCard } from '@/lib/draft';
 import { calculateScore } from '@/lib/scoring';
 import Header from '@/components/Header';
@@ -9,6 +9,100 @@ import Grid from '@/components/Grid';
 import DraftOptions from '@/components/DraftOptions';
 import ScoreDisplay from '@/components/ScoreDisplay';
 import ResultsScreen from '@/components/ResultsScreen';
+
+// --- Odds Modal ---
+function OddsModal({ onClose }: { onClose: () => void }) {
+  const tiers = ['dark-matter', 'pink-diamond', 'diamond', 'amethyst', 'ruby'] as const;
+  const tierLabels: Record<string, string> = {
+    'dark-matter': 'DM',
+    'pink-diamond': 'PD',
+    'diamond': 'DIA',
+    'amethyst': 'AME',
+    'ruby': 'RBY',
+  };
+  const tierColors: Record<string, string> = {
+    'dark-matter': '#a78bfa',
+    'pink-diamond': '#f472b6',
+    'diamond': '#22d3ee',
+    'amethyst': '#a78bfa',
+    'ruby': '#f87171',
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-[#111827] rounded-2xl border border-white/10 p-5 max-w-sm w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Draft Odds</h2>
+          <button onClick={onClose} className="text-white/40 hover:text-white text-lg">&times;</button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-[10px]">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="py-2 text-left text-white/50 font-semibold">RND</th>
+                {tiers.map((t) => (
+                  <th key={t} className="py-2 text-center font-bold" style={{ color: tierColors[t] }}>
+                    {tierLabels[t]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 9 }, (_, i) => i + 1).map((round) => (
+                <tr key={round} className="border-b border-white/5">
+                  <td className="py-1.5 text-white/70 font-semibold">{round}</td>
+                  {tiers.map((t) => (
+                    <td key={t} className="py-1.5 text-center text-white/60">
+                      {DRAFT_ODDS[round][t]}%
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Achievements Modal ---
+function AchievementsModal({ onClose }: { onClose: () => void }) {
+  const achievements = [
+    { name: 'Green Machine', desc: 'Get 10+ green chemistry lines', icon: '🟢' },
+    { name: 'All-Star Lineup', desc: 'Draft 3+ Dark Matter cards', icon: '⭐' },
+    { name: 'Division Rivals', desc: 'Have 4+ players from the same division', icon: '🏆' },
+    { name: 'Draft Class', desc: 'Have 3+ players from the same draft year', icon: '📋' },
+    { name: 'Full Chemistry', desc: 'Achieve 100+ chemistry score', icon: '🔥' },
+    { name: 'Perfect Dots', desc: 'All 9 players have green chemistry dots', icon: '💎' },
+    { name: 'Hometown Heroes', desc: 'Have 3+ players from the same team', icon: '🏠' },
+    { name: 'Rising Stars', desc: 'Draft 5+ Ruby or Amethyst cards and score 80+', icon: '🌟' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-[#111827] rounded-2xl border border-white/10 p-5 max-w-sm w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Achievements</h2>
+          <button onClick={onClose} className="text-white/40 hover:text-white text-lg">&times;</button>
+        </div>
+
+        <div className="space-y-3">
+          {achievements.map((a) => (
+            <div key={a.name} className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
+              <span className="text-xl">{a.icon}</span>
+              <div>
+                <div className="text-xs font-bold text-white">{a.name}</div>
+                <div className="text-[10px] text-white/50">{a.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DraftPage() {
   const [grid, setGrid] = useState<GridSlot[]>(createInitialGrid());
@@ -21,6 +115,9 @@ export default function DraftPage() {
   const [showResults, setShowResults] = useState(false);
   const [validSlots, setValidSlots] = useState<number[]>([]);
   const [swapMode, setSwapMode] = useState<number | null>(null);
+  const [cardPlacedThisRound, setCardPlacedThisRound] = useState(false);
+  const [showOdds, setShowOdds] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
 
   // Generate initial options
   useEffect(() => {
@@ -35,6 +132,7 @@ export default function DraftPage() {
   }, [grid]);
 
   const handleSelectOption = useCallback((index: number) => {
+    if (cardPlacedThisRound) return; // Already placed a card this round
     setSelectedOptionIndex(index);
     const card = options[index];
     if (card) {
@@ -47,7 +145,7 @@ export default function DraftPage() {
     }
     setSwapMode(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options, grid]);
+  }, [options, grid, cardPlacedThisRound]);
 
   const handlePlaceCard = useCallback((slotIndex: number, card?: PlayerCardType) => {
     const cardToPlace = card || (selectedOptionIndex !== null ? options[selectedOptionIndex] : null);
@@ -62,20 +160,29 @@ export default function DraftPage() {
 
     setSelectedOptionIndex(null);
     setValidSlots([]);
+    setCardPlacedThisRound(true);
 
-    const nextRound = round + 1;
-    if (nextRound > 9) {
-      // Draft is complete — but do NOT auto-submit!
-      // User can still rearrange cards before submitting
+    // Check if this is the last round
+    if (round >= 9) {
       setDraftComplete(true);
       setOptions([]);
-    } else {
-      setRound(nextRound);
-      const newOpts = generateOptions(nextRound, newGrid, newUsed);
-      setOptions(newOpts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid, selectedOptionIndex, options, round, usedPlayerIds]);
+
+  const handleNextRound = useCallback(() => {
+    if (!cardPlacedThisRound) return;
+    const nextRound = round + 1;
+    if (nextRound > 9) {
+      setDraftComplete(true);
+      setOptions([]);
+      return;
+    }
+    setRound(nextRound);
+    setCardPlacedThisRound(false);
+    const newOpts = generateOptions(nextRound, grid, usedPlayerIds);
+    setOptions(newOpts);
+  }, [cardPlacedThisRound, round, grid, usedPlayerIds]);
 
   const handleSlotClick = useCallback((index: number) => {
     // In swap mode — swap two cards
@@ -97,23 +204,38 @@ export default function DraftPage() {
   }, [swapMode, selectedOptionIndex, validSlots, grid, handlePlaceCard]);
 
   const handleCardClick = useCallback((index: number) => {
-    if (selectedOptionIndex !== null) return; // Selecting an option card — ignore grid card clicks
+    if (selectedOptionIndex !== null) return;
 
     if (swapMode === index) {
-      // Deselect
       setSwapMode(null);
     } else if (swapMode !== null) {
-      // Attempt swap
       const result = swapCards(grid, swapMode, index);
       if (result) {
         setGrid(result);
       }
       setSwapMode(null);
     } else {
-      // Enter swap mode
       setSwapMode(index);
     }
   }, [selectedOptionIndex, swapMode, grid]);
+
+  // Handle drag-and-drop from options to grid
+  const handleDropOnSlot = useCallback((slotIndex: number) => {
+    if (selectedOptionIndex !== null && validSlots.includes(slotIndex)) {
+      handlePlaceCard(slotIndex);
+    }
+  }, [selectedOptionIndex, validSlots, handlePlaceCard]);
+
+  const handleDragStartOption = useCallback((index: number) => {
+    if (cardPlacedThisRound) return;
+    setSelectedOptionIndex(index);
+    const card = options[index];
+    if (card) {
+      const slots = getValidSlotsForCard(grid, card);
+      setValidSlots(slots);
+    }
+    setSwapMode(null);
+  }, [options, grid, cardPlacedThisRound]);
 
   const handleSubmit = useCallback(() => {
     setShowResults(true);
@@ -129,6 +251,7 @@ export default function DraftPage() {
     setSwapMode(null);
     setDraftComplete(false);
     setShowResults(false);
+    setCardPlacedThisRound(false);
     const opts = generateOptions(1, newGrid, new Set());
     setOptions(opts);
   }, []);
@@ -141,26 +264,43 @@ export default function DraftPage() {
     <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #0a0e17 0%, #0d1117 100%)' }}>
       <Header />
 
-      <main className="flex-1 flex flex-col items-center px-4 py-3 max-w-md mx-auto w-full">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-3 w-full">
         {/* Score display */}
         <div className="mb-3 animate-fade-in">
           <ScoreDisplay score={score} />
         </div>
 
-        {/* Round progress bar */}
-        <div className="flex items-center gap-1.5 mb-2">
-          {Array.from({ length: 9 }, (_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i < (draftComplete ? 9 : round - 1)
-                  ? 'w-7 bg-orange-500'
-                  : i === round - 1 && !draftComplete
-                  ? 'w-7 bg-orange-500/40'
-                  : 'w-5 bg-white/10'
-              }`}
-            />
-          ))}
+        {/* Round info + Achvs/Odds buttons */}
+        <div className="flex items-center gap-3 mb-3 w-full max-w-md justify-center">
+          <button
+            onClick={() => setShowAchievements(true)}
+            className="text-[10px] font-bold text-white/50 hover:text-white/80 uppercase tracking-wider bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Achvs.
+          </button>
+
+          {/* Round progress */}
+          <div className="flex items-center gap-1.5">
+            {Array.from({ length: 9 }, (_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i < (draftComplete ? 9 : round - (cardPlacedThisRound ? 0 : 1))
+                    ? 'w-6 bg-orange-500'
+                    : i === round - 1 && !draftComplete && !cardPlacedThisRound
+                    ? 'w-6 bg-orange-500/40'
+                    : 'w-4 bg-white/10'
+                }`}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={() => setShowOdds(true)}
+            className="text-[10px] font-bold text-white/50 hover:text-white/80 uppercase tracking-wider bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Odds
+          </button>
         </div>
 
         {/* Swap mode banner */}
@@ -179,7 +319,7 @@ export default function DraftPage() {
           </div>
         )}
 
-        {/* Grid on basketball court */}
+        {/* Grid */}
         <div className="mb-3 flex justify-center">
           <Grid
             grid={grid}
@@ -190,24 +330,47 @@ export default function DraftPage() {
             onCardClick={handleCardClick}
             swapSource={swapMode}
             isComplete={draftComplete}
+            onDropOnSlot={handleDropOnSlot}
           />
         </div>
 
-        {/* Draft Options (during drafting) */}
+        {/* Draft Options + Next Round (during drafting) */}
         {!draftComplete && options.length > 0 && (
-          <div className="w-full animate-slide-up" key={`round-${round}`}>
-            <DraftOptions
-              options={options}
-              selectedIndex={selectedOptionIndex}
-              onSelect={handleSelectOption}
-              round={round}
-            />
+          <div className="w-full max-w-md animate-slide-up" key={`round-${round}`}>
+            {!cardPlacedThisRound ? (
+              <>
+                <div className="text-center mb-3">
+                  <span className="text-[11px] uppercase tracking-widest text-white/40 font-bold">
+                    Round {round} of 9 &mdash; Select a player
+                  </span>
+                </div>
+                <DraftOptions
+                  options={options}
+                  selectedIndex={selectedOptionIndex}
+                  onSelect={handleSelectOption}
+                  round={round}
+                  onDragStart={handleDragStartOption}
+                />
+              </>
+            ) : (
+              <div className="text-center space-y-3">
+                <p className="text-xs text-white/40">
+                  Card placed! Tap cards to rearrange, then continue.
+                </p>
+                <button
+                  onClick={handleNextRound}
+                  className="btn-primary text-white text-sm font-bold px-8 py-3 rounded-xl uppercase tracking-wider"
+                >
+                  {round >= 9 ? 'Finish Draft' : 'Next Round'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Post-draft: Rearrange + Submit */}
         {draftComplete && (
-          <div className="w-full text-center animate-slide-up space-y-3">
+          <div className="w-full text-center animate-slide-up space-y-3 max-w-md">
             <div>
               <p className="text-sm font-bold text-white/80">Draft Complete!</p>
               <p className="text-xs text-white/40 mt-0.5">
@@ -224,6 +387,10 @@ export default function DraftPage() {
           </div>
         )}
       </main>
+
+      {/* Modals */}
+      {showOdds && <OddsModal onClose={() => setShowOdds(false)} />}
+      {showAchievements && <AchievementsModal onClose={() => setShowAchievements(false)} />}
     </div>
   );
 }

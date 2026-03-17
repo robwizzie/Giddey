@@ -16,7 +16,7 @@ export default function DraftOptions({ options, selectedIndex, onSelect, round, 
 
   return (
     <div className="w-full">
-      <div className="flex justify-center gap-3">
+      <div className="flex justify-center gap-2.5">
         {options.map((card, index) => {
           const isSelected = selectedIndex === index;
 

@@ -1,4 +1,4 @@
-import { PlayerCard, GridSlot, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, ScoreBreakdown, ADJACENCIES, TIER_CONFIG } from './types';
+import { PlayerCard, GridSlot, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, ScoreBreakdown, ADJACENCIES } from './types';
 
 /**
  * Chemistry Scoring System for Giddey
@@ -14,9 +14,10 @@ import { PlayerCard, GridSlot, ChemLine, ChemDot, ChemLineLevel, ChemDotLevel, S
  *   Red Dot (0 Chem): Player has 0-1 line chem
  *
  * MAX CHEMISTRY: 26 (lines) + 99 (dots) = 125
- * (13 adjacencies × 2 max each = 26, 9 dots × 11 max each = 99)
  *
- * TALENT: Sum of all 9 player tier values (Dark Matter=15, Pink Diamond=11, Diamond=8, Amethyst=5, Ruby=3)
+ * TALENT: Sum of each player's (OVR - 79)
+ *   99 OVR → 20 talent, 95 OVR → 16, 90 OVR → 11, 85 OVR → 6, 80 OVR → 1
+ *   Range: 9 (all 80s) to 180 (all 99s), realistic ~60-110
  */
 
 function getLineChemistry(cardA: PlayerCard, cardB: PlayerCard): { level: ChemLineLevel; points: number } {
@@ -24,17 +25,14 @@ function getLineChemistry(cardA: PlayerCard, cardB: PlayerCard): { level: ChemLi
   const sameDivision = cardA.team.division === cardB.team.division;
   const sameDraftYear = cardA.draftYear === cardB.draftYear;
 
-  // Green Line (+2): Same team OR (same division + same draft year)
   if (sameTeam || (sameDivision && sameDraftYear)) {
     return { level: 'green', points: 2 };
   }
 
-  // Yellow Line (+1): Same division OR same draft year
   if (sameDivision || sameDraftYear) {
     return { level: 'yellow', points: 1 };
   }
 
-  // Red Line (0): No matching traits
   return { level: 'red', points: 0 };
 }
 
@@ -48,20 +46,24 @@ function getDotChemistry(lineChem: number): { level: ChemDotLevel; points: numbe
   return { level: 'red', points: 0 };
 }
 
+/** Convert OVR to talent points: OVR - 79 (80→1, 99→20) */
+export function ovrToTalent(ovr: number): number {
+  return Math.max(ovr - 79, 1);
+}
+
 export function calculateScore(grid: GridSlot[]): ScoreBreakdown {
   const filledSlots = grid.filter((s) => s.card !== null);
 
-  // Calculate talent
+  // Talent = sum of each player's (OVR - 79)
   const talent = filledSlots.reduce((sum, slot) => {
     if (!slot.card) return sum;
-    return sum + TIER_CONFIG[slot.card.tier].talent;
+    return sum + ovrToTalent(slot.card.overall);
   }, 0);
 
   // Calculate line chemistry
   const lines: ChemLine[] = [];
   const playerLineChem: Record<number, number> = {};
 
-  // Initialize all slots
   for (let i = 0; i < 9; i++) {
     playerLineChem[i] = 0;
   }

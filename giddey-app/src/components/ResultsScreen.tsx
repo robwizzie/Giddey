@@ -12,14 +12,14 @@ interface ResultsScreenProps {
 }
 
 function getGrade(total: number): { grade: string; color: string } {
-  if (total >= 200) return { grade: 'S+', color: '#ff00ff' };
-  if (total >= 180) return { grade: 'S', color: '#8b5cf6' };
-  if (total >= 160) return { grade: 'A+', color: '#22c55e' };
-  if (total >= 140) return { grade: 'A', color: '#22c55e' };
-  if (total >= 120) return { grade: 'B+', color: '#eab308' };
-  if (total >= 100) return { grade: 'B', color: '#eab308' };
-  if (total >= 80) return { grade: 'C+', color: '#f97316' };
-  if (total >= 60) return { grade: 'C', color: '#f97316' };
+  if (total >= 260) return { grade: 'S+', color: '#ff00ff' };
+  if (total >= 230) return { grade: 'S', color: '#8b5cf6' };
+  if (total >= 200) return { grade: 'A+', color: '#22c55e' };
+  if (total >= 175) return { grade: 'A', color: '#22c55e' };
+  if (total >= 150) return { grade: 'B+', color: '#eab308' };
+  if (total >= 130) return { grade: 'B', color: '#eab308' };
+  if (total >= 110) return { grade: 'C+', color: '#f97316' };
+  if (total >= 90) return { grade: 'C', color: '#f97316' };
   return { grade: 'D', color: '#ef4444' };
 }
 

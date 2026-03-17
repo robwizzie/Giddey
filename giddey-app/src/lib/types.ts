@@ -128,23 +128,23 @@ export const ADJACENCIES: [number, number][] = [
 // Card dimensions: 90w × 118h
 export const CARD_W = 90;
 export const CARD_H = 118;
-export const GRID_CONTAINER_W = 460;
-export const GRID_CONTAINER_H = 610;
+export const GRID_CONTAINER_W = 490;
+export const GRID_CONTAINER_H = 640;
 
 export const SLOT_POSITIONS: { x: number; y: number }[] = [
   // Row 0: top pair (centered, inset from edges)
-  { x: 130, y: 18 },   // 0: SG
-  { x: 240, y: 18 },   // 1: SF
+  { x: 145, y: 28 },   // 0: SG
+  { x: 255, y: 28 },   // 1: SF
   // Row 1: middle quad (evenly spaced with padding)
-  { x: 32, y: 160 },   // 2: UTIL
-  { x: 134, y: 160 },  // 3: PG
-  { x: 236, y: 160 },  // 4: PG
-  { x: 338, y: 160 },  // 5: UTIL
+  { x: 42, y: 175 },   // 2: UTIL
+  { x: 148, y: 175 },  // 3: PG
+  { x: 252, y: 175 },  // 4: PG
+  { x: 358, y: 175 },  // 5: UTIL
   // Row 2: lower pair (wide but inset)
-  { x: 32, y: 305 },   // 6: SF
-  { x: 338, y: 305 },  // 7: SG
+  { x: 42, y: 325 },   // 6: SF
+  { x: 358, y: 325 },  // 7: SG
   // Row 3: bottom center (with room for dot below)
-  { x: 185, y: 462 },  // 8: C
+  { x: 200, y: 482 },  // 8: C
 ];
 
 export const DRAFT_ODDS: Record<number, Record<Tier, number>> = {

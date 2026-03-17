@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { GridSlot, ChemLine, ChemDot, SLOT_POSITIONS, CARD_W, CARD_H, GRID_CONTAINER_W, GRID_CONTAINER_H } from '@/lib/types';
+import { GridSlot, ChemLine, ChemDot, SLOT_POSITIONS, CARD_W, CARD_H, GRID_CONTAINER_W, GRID_CONTAINER_H, ADJACENCIES } from '@/lib/types';
 import PlayerCard from './PlayerCard';
 
 interface GridProps {
@@ -12,6 +12,7 @@ interface GridProps {
   onSlotClick: (index: number) => void;
   onCardClick?: (index: number) => void;
   swapSource?: number | null;
+  swapTargets?: number[];
   isComplete?: boolean;
   onDropOnSlot?: (slotIndex: number) => void;
   onDragSwap?: (fromIndex: number, toIndex: number) => void;
@@ -24,19 +25,6 @@ function getCellCenter(index: number) {
     y: pos.y + CARD_H / 2,
   };
 }
-
-// Short labels for chemistry reasons
-const reasonLabels: Record<string, string> = {
-  team: 'TEAM',
-  division: 'DIV',
-  year: 'YR',
-};
-
-const reasonColors: Record<string, string> = {
-  green: '#22c55e',
-  yellow: '#eab308',
-  red: '#ef4444',
-};
 
 function CourtLines() {
   const cx = GRID_CONTAINER_W / 2;
@@ -63,50 +51,6 @@ function CourtLines() {
   );
 }
 
-function ChemLabel({ line, from, to }: { line: ChemLine; from: { x: number; y: number }; to: { x: number; y: number } }) {
-  if (line.reasons.length === 0) return null;
-
-  const mx = (from.x + to.x) / 2;
-  const my = (from.y + to.y) / 2;
-  const label = line.reasons.map(r => reasonLabels[r] || r).join(' + ');
-  const color = reasonColors[line.level];
-
-  // Calculate label width based on text length
-  const labelWidth = Math.max(label.length * 5.5 + 10, 30);
-  const labelHeight = 14;
-
-  return (
-    <g>
-      {/* Background pill */}
-      <rect
-        x={mx - labelWidth / 2}
-        y={my - labelHeight / 2}
-        width={labelWidth}
-        height={labelHeight}
-        rx={7}
-        fill="rgba(0,0,0,0.75)"
-        stroke={color}
-        strokeWidth="1"
-        strokeOpacity={0.6}
-      />
-      {/* Label text */}
-      <text
-        x={mx}
-        y={my + 0.5}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill={color}
-        fontSize="7.5"
-        fontWeight="800"
-        fontFamily="-apple-system, BlinkMacSystemFont, sans-serif"
-        letterSpacing="0.5"
-      >
-        {label}
-      </text>
-    </g>
-  );
-}
-
 export default function Grid({
   grid,
   lines,
@@ -115,6 +59,7 @@ export default function Grid({
   onSlotClick,
   onCardClick,
   swapSource,
+  swapTargets = [],
   isComplete = false,
   onDropOnSlot,
   onDragSwap,
@@ -172,6 +117,29 @@ export default function Grid({
     setDragOverTarget(null);
   };
 
+  // Compute matching traits per card slot
+  const matchingTraitsMap: Record<number, Set<string>> = {};
+  for (let i = 0; i < 9; i++) {
+    matchingTraitsMap[i] = new Set<string>();
+  }
+  for (const [a, b] of ADJACENCIES) {
+    const cardA = grid[a]?.card;
+    const cardB = grid[b]?.card;
+    if (!cardA || !cardB) continue;
+    if (cardA.teamId === cardB.teamId) {
+      matchingTraitsMap[a].add('team');
+      matchingTraitsMap[b].add('team');
+    }
+    if (cardA.team.division === cardB.team.division) {
+      matchingTraitsMap[a].add('division');
+      matchingTraitsMap[b].add('division');
+    }
+    if (cardA.draftYear === cardB.draftYear) {
+      matchingTraitsMap[a].add('year');
+      matchingTraitsMap[b].add('year');
+    }
+  }
+
   return (
     <div
       className="court-container relative"
@@ -197,17 +165,15 @@ export default function Grid({
           const to = getCellCenter(line.to);
 
           return (
-            <g key={i}>
-              <line
-                x1={from.x} y1={from.y}
-                x2={to.x} y2={to.y}
-                className={`chem-line-${line.level}`}
-                strokeWidth={line.level === 'green' ? 5 : line.level === 'yellow' ? 4 : 2.5}
-                strokeOpacity={line.level === 'red' ? 0.35 : 0.9}
-                strokeLinecap="round"
-              />
-              <ChemLabel line={line} from={from} to={to} />
-            </g>
+            <line
+              key={i}
+              x1={from.x} y1={from.y}
+              x2={to.x} y2={to.y}
+              className={`chem-line-${line.level}`}
+              strokeWidth={line.level === 'green' ? 4 : line.level === 'yellow' ? 3.5 : 1.5}
+              strokeOpacity={line.level === 'red' ? 0.2 : 0.6}
+              strokeLinecap="round"
+            />
           );
         })}
       </svg>
@@ -218,7 +184,8 @@ export default function Grid({
         const dot = dots.find((d) => d.slotIndex === index);
         const isValid = validSlots.includes(index);
         const isSwapSource = swapSource === index;
-        const isSwapTarget = swapSource !== null && swapSource !== index && slot.card !== null;
+        const isValidSwapTarget = swapTargets.includes(index);
+        const isSwapInactive = swapSource !== null && !isSwapSource && !isValidSwapTarget && slot.card !== null;
         const isDragSource = dragSource === index;
         const isDragOverThis = dragOverTarget === index;
 
@@ -230,19 +197,13 @@ export default function Grid({
               left: pos.x,
               top: pos.y,
               width: CARD_W,
-              height: CARD_H + 20,
+              height: CARD_H + 24,
               zIndex: isDragSource ? 30 : isSwapSource ? 30 : 10,
             }}
           >
             {slot.card ? (
               <div
-                className={`
-                  grid-slot-filled flex flex-col items-center
-                  ${isSwapSource ? 'swap-source' : ''}
-                  ${isSwapTarget ? 'swap-target' : ''}
-                  ${isDragSource ? 'dragging-source' : ''}
-                  ${isDragOverThis ? 'drag-swap-target' : ''}
-                `}
+                className="flex flex-col items-center"
                 onClick={() => {
                   if (onCardClick) onCardClick(index);
                   else onSlotClick(index);
@@ -251,16 +212,30 @@ export default function Grid({
                 onDragLeave={handleCardDragLeave}
                 onDrop={(e) => handleDrop(e, index)}
               >
-                <PlayerCard
-                  card={slot.card}
-                  size="grid"
-                  showDot={true}
-                  dotLevel={dot?.level || 'red'}
-                  className={isDragSource ? '' : isSwapSource ? '' : 'animate-card-place'}
-                  draggable={true}
-                  onDragStart={(e) => handleGridCardDragStart(e, index)}
-                  onDragEnd={handleGridCardDragEnd}
-                />
+                {/* Card wrapper — swap/drag styles only around the card itself */}
+                <div
+                  className={`
+                    grid-slot-filled rounded-lg
+                    ${isSwapSource ? 'swap-source' : ''}
+                    ${isValidSwapTarget ? 'swap-target' : ''}
+                    ${isSwapInactive ? 'swap-inactive' : ''}
+                    ${isDragSource ? 'dragging-source' : ''}
+                    ${isDragOverThis ? 'drag-swap-target' : ''}
+                  `}
+                >
+                  <PlayerCard
+                    card={slot.card}
+                    size="grid"
+                    showDot={false}
+                    matchingTraits={matchingTraitsMap[index]}
+                    className={isDragSource ? '' : isSwapSource ? '' : 'animate-card-place'}
+                    draggable={true}
+                    onDragStart={(e) => handleGridCardDragStart(e, index)}
+                    onDragEnd={handleGridCardDragEnd}
+                  />
+                </div>
+                {/* Dot sits outside the swap highlight */}
+                <div className={`w-3.5 h-3.5 rounded-full chem-dot-${dot?.level || 'red'} mt-0.5`} />
               </div>
             ) : (
               <div
@@ -273,11 +248,13 @@ export default function Grid({
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, index)}
               >
-                <span className="text-[13px] font-black text-white/30 uppercase tracking-wider">
+                <span className={`text-[13px] font-black uppercase tracking-wider ${isValid ? 'text-green-400' : 'text-white/30'}`}>
                   {slot.label}
                 </span>
                 {isValid && (
-                  <span className="text-[9px] text-green-400/80 mt-1 font-semibold">Drop here</span>
+                  <svg width="16" height="16" viewBox="0 0 16 16" className="mt-1 opacity-80">
+                    <path d="M8 2 L8 11 M4 8 L8 12 L12 8" stroke="#4ade80" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 )}
               </div>
             )}

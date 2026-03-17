@@ -110,6 +110,23 @@ export function placeCard(grid: GridSlot[], slotIndex: number, card: PlayerCard)
   );
 }
 
+/** Returns indices of filled slots that can legally swap with the card at fromIndex */
+export function getValidSwapTargets(grid: GridSlot[], fromIndex: number): number[] {
+  const fromSlot = grid[fromIndex];
+  const fromCard = fromSlot.card;
+  if (!fromCard) return [];
+
+  return grid
+    .map((slot, i) => {
+      if (i === fromIndex || !slot.card) return -1;
+      // Check both directions of the swap
+      if (!canPlaceInSlot({ ...slot, card: null }, fromCard.position)) return -1;
+      if (!canPlaceInSlot({ ...fromSlot, card: null }, slot.card.position)) return -1;
+      return i;
+    })
+    .filter(i => i !== -1);
+}
+
 export function swapCards(grid: GridSlot[], fromIndex: number, toIndex: number): GridSlot[] | null {
   const fromSlot = grid[fromIndex];
   const toSlot = grid[toIndex];

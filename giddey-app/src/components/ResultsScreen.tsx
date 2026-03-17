@@ -131,12 +131,13 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
         </div>
 
         {/* Final grid */}
-        <div className="court-bg rounded-2xl p-4 mb-5 animate-slide-up" style={{ animationDelay: '300ms' }}>
+        <div className="mb-5 flex justify-center animate-slide-up" style={{ animationDelay: '300ms' }}>
           <Grid
             grid={grid}
             lines={score.lines}
             dots={score.dots}
             onSlotClick={() => {}}
+            isComplete={true}
           />
         </div>
 

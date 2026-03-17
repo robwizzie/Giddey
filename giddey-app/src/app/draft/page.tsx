@@ -6,7 +6,6 @@ import { createInitialGrid, generateOptions, placeCard, swapCards, getValidSlots
 import { calculateScore } from '@/lib/scoring';
 import Header from '@/components/Header';
 import Grid from '@/components/Grid';
-import PlayerCard from '@/components/PlayerCard';
 import DraftOptions from '@/components/DraftOptions';
 import ScoreDisplay from '@/components/ScoreDisplay';
 import ResultsScreen from '@/components/ResultsScreen';
@@ -18,10 +17,10 @@ export default function DraftPage() {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
   const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set());
   const [score, setScore] = useState<ScoreBreakdown>(calculateScore(createInitialGrid()));
-  const [isComplete, setIsComplete] = useState(false);
+  const [draftComplete, setDraftComplete] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const [validSlots, setValidSlots] = useState<number[]>([]);
   const [swapMode, setSwapMode] = useState<number | null>(null);
-  const [showResults, setShowResults] = useState(false);
 
   // Generate initial options
   useEffect(() => {
@@ -66,10 +65,10 @@ export default function DraftPage() {
 
     const nextRound = round + 1;
     if (nextRound > 9) {
-      setIsComplete(true);
+      // Draft is complete — but do NOT auto-submit!
+      // User can still rearrange cards before submitting
+      setDraftComplete(true);
       setOptions([]);
-      // Small delay before showing results
-      setTimeout(() => setShowResults(true), 800);
     } else {
       setRound(nextRound);
       const newOpts = generateOptions(nextRound, newGrid, newUsed);
@@ -79,8 +78,8 @@ export default function DraftPage() {
   }, [grid, selectedOptionIndex, options, round, usedPlayerIds]);
 
   const handleSlotClick = useCallback((index: number) => {
+    // In swap mode — swap two cards
     if (swapMode !== null) {
-      // Try to swap
       if (swapMode !== index) {
         const result = swapCards(grid, swapMode, index);
         if (result) {
@@ -91,30 +90,34 @@ export default function DraftPage() {
       return;
     }
 
+    // Placing a drafted card
     if (selectedOptionIndex !== null && validSlots.includes(index)) {
       handlePlaceCard(index);
     }
   }, [swapMode, selectedOptionIndex, validSlots, grid, handlePlaceCard]);
 
   const handleCardClick = useCallback((index: number) => {
-    if (selectedOptionIndex !== null) {
-      // If selecting an option, ignore card clicks
-      return;
-    }
-    // Enter swap mode
+    if (selectedOptionIndex !== null) return; // Selecting an option card — ignore grid card clicks
+
     if (swapMode === index) {
+      // Deselect
       setSwapMode(null);
     } else if (swapMode !== null) {
-      // Try to swap
+      // Attempt swap
       const result = swapCards(grid, swapMode, index);
       if (result) {
         setGrid(result);
       }
       setSwapMode(null);
     } else {
+      // Enter swap mode
       setSwapMode(index);
     }
   }, [selectedOptionIndex, swapMode, grid]);
+
+  const handleSubmit = useCallback(() => {
+    setShowResults(true);
+  }, []);
 
   const handlePlayAgain = useCallback(() => {
     const newGrid = createInitialGrid();
@@ -124,7 +127,7 @@ export default function DraftPage() {
     setSelectedOptionIndex(null);
     setValidSlots([]);
     setSwapMode(null);
-    setIsComplete(false);
+    setDraftComplete(false);
     setShowResults(false);
     const opts = generateOptions(1, newGrid, new Set());
     setOptions(opts);
@@ -138,34 +141,37 @@ export default function DraftPage() {
     <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #0a0e17 0%, #0d1117 100%)' }}>
       <Header />
 
-      <main className="flex-1 flex flex-col items-center px-4 py-4 max-w-lg mx-auto w-full">
-        {/* Score */}
-        <div className="mb-4 animate-fade-in">
+      <main className="flex-1 flex flex-col items-center px-4 py-3 max-w-md mx-auto w-full">
+        {/* Score display */}
+        <div className="mb-3 animate-fade-in">
           <ScoreDisplay score={score} />
         </div>
 
-        {/* Round indicator */}
-        <div className="flex items-center gap-1.5 mb-3">
+        {/* Round progress bar */}
+        <div className="flex items-center gap-1.5 mb-2">
           {Array.from({ length: 9 }, (_, i) => (
             <div
               key={i}
-              className={`w-6 h-1.5 rounded-full transition-all ${
-                i < round - 1
-                  ? 'bg-orange-500'
-                  : i === round - 1 && !isComplete
-                  ? 'bg-orange-500/50'
-                  : 'bg-white/10'
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i < (draftComplete ? 9 : round - 1)
+                  ? 'w-7 bg-orange-500'
+                  : i === round - 1 && !draftComplete
+                  ? 'w-7 bg-orange-500/40'
+                  : 'w-5 bg-white/10'
               }`}
             />
           ))}
         </div>
 
-        {/* Swap mode indicator */}
+        {/* Swap mode banner */}
         {swapMode !== null && (
-          <div className="mb-2 text-xs text-yellow-400 font-semibold animate-fade-in">
-            Tap another card to swap positions
+          <div className="mb-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-1.5 flex items-center gap-2 animate-fade-in">
+            <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+            <span className="text-[11px] text-yellow-300 font-semibold">
+              Tap another card to swap
+            </span>
             <button
-              className="ml-2 text-white/40 hover:text-white/70"
+              className="text-[10px] text-white/40 hover:text-white/70 ml-auto font-semibold uppercase"
               onClick={() => setSwapMode(null)}
             >
               Cancel
@@ -173,8 +179,8 @@ export default function DraftPage() {
           </div>
         )}
 
-        {/* Grid */}
-        <div className="court-bg rounded-2xl p-4 mb-4">
+        {/* Grid on basketball court */}
+        <div className="mb-3 flex justify-center">
           <Grid
             grid={grid}
             lines={score.lines}
@@ -182,13 +188,14 @@ export default function DraftPage() {
             validSlots={validSlots}
             onSlotClick={handleSlotClick}
             onCardClick={handleCardClick}
-            dragSource={swapMode}
+            swapSource={swapMode}
+            isComplete={draftComplete}
           />
         </div>
 
-        {/* Draft Options */}
-        {!isComplete && (
-          <div className="w-full animate-slide-up">
+        {/* Draft Options (during drafting) */}
+        {!draftComplete && options.length > 0 && (
+          <div className="w-full animate-slide-up" key={`round-${round}`}>
             <DraftOptions
               options={options}
               selectedIndex={selectedOptionIndex}
@@ -198,11 +205,22 @@ export default function DraftPage() {
           </div>
         )}
 
-        {/* Completion message */}
-        {isComplete && !showResults && (
-          <div className="text-center animate-fade-in">
-            <p className="text-lg font-bold text-green-400">Draft Complete!</p>
-            <p className="text-sm text-white/50">Calculating results...</p>
+        {/* Post-draft: Rearrange + Submit */}
+        {draftComplete && (
+          <div className="w-full text-center animate-slide-up space-y-3">
+            <div>
+              <p className="text-sm font-bold text-white/80">Draft Complete!</p>
+              <p className="text-xs text-white/40 mt-0.5">
+                Tap cards to swap positions and maximize your chemistry before submitting.
+              </p>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              className="btn-green text-white text-sm font-bold px-8 py-3 rounded-xl uppercase tracking-wider w-full max-w-[240px]"
+            >
+              Submit Lineup
+            </button>
           </div>
         )}
       </main>

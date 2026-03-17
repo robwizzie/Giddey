@@ -1,6 +1,6 @@
 'use client';
 
-import { PlayerCard as PlayerCardType, ChemDotLevel, TIER_CONFIG } from '@/lib/types';
+import { PlayerCard as PlayerCardType, ChemDotLevel } from '@/lib/types';
 import { getPlayerHeadshotUrl, getTeamLogoUrl } from '@/lib/images';
 
 interface PlayerCardProps {
@@ -24,33 +24,31 @@ const tierClassMap: Record<string, string> = {
   'ruby': 'tier-ruby',
 };
 
-// Gem colors matching 2K tiers
-const gemColors: Record<string, { bg: string; border: string; text: string }> = {
-  'dark-matter': { bg: '#6d28d9', border: '#a78bfa', text: '#fff' },
-  'pink-diamond': { bg: '#db2777', border: '#f9a8d4', text: '#fff' },
-  'diamond': { bg: '#0891b2', border: '#67e8f9', text: '#fff' },
-  'amethyst': { bg: '#7c3aed', border: '#c4b5fd', text: '#fff' },
-  'ruby': { bg: '#dc2626', border: '#fca5a5', text: '#fff' },
+// Gem badge colors per tier
+const gemColors: Record<string, { bg: string; border: string }> = {
+  'dark-matter': { bg: '#7c3aed', border: '#a78bfa' },
+  'pink-diamond': { bg: '#db2777', border: '#f9a8d4' },
+  'diamond': { bg: '#0891b2', border: '#67e8f9' },
+  'amethyst': { bg: '#7c3aed', border: '#c4b5fd' },
+  'ruby': { bg: '#dc2626', border: '#fca5a5' },
 };
 
 const sizeConfig = {
-  grid: { w: 90, h: 118, gemSize: 24, gemFont: 11, posFont: 7, nameFont: 9, detailFont: 6.5, imgH: 60, teamLogoSize: 18 },
-  option: { w: 108, h: 142, gemSize: 30, gemFont: 14, posFont: 8, nameFont: 11, detailFont: 7.5, imgH: 72, teamLogoSize: 22 },
-  result: { w: 90, h: 118, gemSize: 24, gemFont: 11, posFont: 7, nameFont: 9, detailFont: 6.5, imgH: 60, teamLogoSize: 18 },
+  grid: { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7.5, posFont: 7 },
+  option: { w: 112, h: 150, gemSize: 28, imgH: 72, nameFont: 12, infoFont: 9, posFont: 8 },
+  result: { w: 90, h: 118, gemSize: 22, imgH: 56, nameFont: 10, infoFont: 7.5, posFont: 7 },
 };
 
-// SVG gem/diamond shape for the overall rating badge
 function GemBadge({ ovr, size, tier }: { ovr: number; size: number; tier: string }) {
   const colors = gemColors[tier];
-  const fontSize = sizeConfig.grid.gemFont;
   const s = size;
-  // Diamond/gem polygon points
-  const points = `${s/2},0 ${s},${s*0.35} ${s/2},${s} 0,${s*0.35}`;
+  // Diamond shape
+  const points = `${s / 2},1 ${s - 1},${s * 0.38} ${s / 2},${s - 1} 1,${s * 0.38}`;
 
   return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} className="gem-badge">
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} className="shrink-0">
       <defs>
-        <linearGradient id={`gem-${tier}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={`gem-${tier}-${s}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={colors.border} />
           <stop offset="50%" stopColor={colors.bg} />
           <stop offset="100%" stopColor={colors.border} />
@@ -58,20 +56,19 @@ function GemBadge({ ovr, size, tier }: { ovr: number; size: number; tier: string
       </defs>
       <polygon
         points={points}
-        fill={`url(#gem-${tier})`}
+        fill={`url(#gem-${tier}-${s})`}
         stroke={colors.border}
-        strokeWidth="1.5"
+        strokeWidth="1"
       />
       <text
-        x={s/2}
-        y={s*0.52}
+        x={s / 2}
+        y={s * 0.48}
         textAnchor="middle"
         dominantBaseline="middle"
-        fill={colors.text}
+        fill="#fff"
         fontWeight="900"
-        fontSize={s * 0.42}
-        fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+        fontSize={s * 0.4}
+        fontFamily="-apple-system, sans-serif"
       >
         {ovr}
       </text>
@@ -97,14 +94,15 @@ export default function PlayerCard({
   const teamLogoUrl = getTeamLogoUrl(card.team.abbreviation);
   const isSmall = size === 'grid' || size === 'result';
 
-  // Truncate long names
-  const maxLen = isSmall ? 10 : 12;
-  const lastName = card.lastName.length > maxLen ? card.lastName.substring(0, maxLen - 1) + '.' : card.lastName;
+  const maxLen = isSmall ? 10 : 13;
+  const lastName = card.lastName.length > maxLen
+    ? card.lastName.substring(0, maxLen - 1) + '.'
+    : card.lastName;
 
   return (
     <div className="flex flex-col items-center shrink-0">
       <div
-        className={`${tierClass} card-2k rounded-lg flex flex-col relative overflow-hidden cursor-pointer select-none shrink-0 ${className}`}
+        className={`${tierClass} card-2k rounded-lg relative overflow-hidden cursor-pointer select-none shrink-0 flex flex-col ${className}`}
         style={{
           width: s.w,
           height: s.h,
@@ -115,82 +113,87 @@ export default function PlayerCard({
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-        {/* Dark Matter shimmer overlay */}
+        {/* Dark Matter shimmer */}
         {card.tier === 'dark-matter' && (
           <div className="absolute inset-0 dark-matter-shimmer pointer-events-none z-20" />
         )}
 
-        {/* Team logo watermark (large, centered, behind everything) */}
+        {/* Subtle team logo watermark behind everything */}
         {teamLogoUrl && (
-          <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none" style={{ opacity: 0.1, top: '-5%' }}>
+          <div
+            className="absolute z-0 pointer-events-none"
+            style={{
+              top: '5%',
+              left: '15%',
+              right: '15%',
+              bottom: '25%',
+              opacity: 0.08,
+            }}
+          >
             <img
               src={teamLogoUrl}
               alt=""
-              style={{ width: '90%', height: '90%', objectFit: 'contain' }}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               draggable={false}
             />
           </div>
         )}
 
-        {/* Tier gradient overlay */}
+        {/* Darkening gradient for bottom text */}
         <div
           className="absolute inset-0 z-[1] pointer-events-none"
           style={{
-            background: `linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.5) 100%)`,
+            background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%)',
           }}
         />
 
-        {/* Top section: OVR gem + position + team logo */}
-        <div className="relative z-10 flex items-start justify-between w-full" style={{ padding: isSmall ? 3 : 4 }}>
-          {/* OVR Gem Badge */}
-          <div style={{ marginTop: -1, marginLeft: -1 }}>
-            <GemBadge ovr={card.overall} size={s.gemSize} tier={card.tier} />
-          </div>
+        {/* === TOP BAR: OVR gem + Position === */}
+        <div
+          className="relative z-10 flex items-start justify-between"
+          style={{ padding: isSmall ? '3px 4px 0' : '4px 5px 0' }}
+        >
+          <GemBadge ovr={card.overall} size={s.gemSize} tier={card.tier} />
 
-          {/* Team logo (top right) */}
-          {teamLogoUrl && (
-            <div
-              className="rounded-sm overflow-hidden flex items-center justify-center"
+          {/* Position + Team logo cluster */}
+          <div className="flex items-center gap-1">
+            <span
+              className="font-black text-white/90 uppercase"
               style={{
-                width: s.teamLogoSize,
-                height: s.teamLogoSize,
-                background: 'rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(4px)',
+                fontSize: s.posFont,
+                textShadow: '0 1px 2px rgba(0,0,0,0.6)',
               }}
             >
-              <img
-                src={teamLogoUrl}
-                alt={card.team.abbreviation}
-                style={{ width: '85%', height: '85%', objectFit: 'contain' }}
-                draggable={false}
-              />
-            </div>
-          )}
+              {card.position}
+            </span>
+            {teamLogoUrl && (
+              <div
+                className="rounded-sm overflow-hidden"
+                style={{
+                  width: isSmall ? 14 : 18,
+                  height: isSmall ? 14 : 18,
+                  background: 'rgba(255,255,255,0.15)',
+                }}
+              >
+                <img
+                  src={teamLogoUrl}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  draggable={false}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Position text below gem */}
-        <div
-          className="absolute z-10 font-black uppercase text-white/80"
-          style={{
-            top: isSmall ? s.gemSize + 2 : s.gemSize + 3,
-            left: isSmall ? 5 : 6,
-            fontSize: s.posFont,
-            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-            letterSpacing: '0.5px',
-          }}
-        >
-          {card.position}
-        </div>
-
-        {/* Player headshot (centered, fills most of card) */}
-        <div className="relative z-[2] flex-1 flex items-end justify-center w-full">
+        {/* === PLAYER HEADSHOT === */}
+        <div className="relative z-[2] flex-1 flex items-end justify-center">
           <img
             src={headshotUrl}
             alt={`${card.firstName} ${card.lastName}`}
             className="w-auto object-contain"
             style={{
               height: s.imgH,
-              filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
             }}
             draggable={false}
             onError={(e) => {
@@ -199,43 +202,56 @@ export default function PlayerCard({
           />
         </div>
 
-        {/* Bottom name bar */}
+        {/* === BOTTOM INFO BAR === */}
         <div
-          className="w-full z-10 text-center"
+          className="relative z-10 w-full"
           style={{
-            padding: isSmall ? '2px 4px 3px' : '3px 5px 4px',
-            background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.75) 30%)',
+            padding: isSmall ? '3px 5px 4px' : '4px 6px 5px',
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(2px)',
           }}
         >
-          {/* Player last name — 2K style, bold and prominent */}
+          {/* Player name */}
           <div
-            className="font-black text-white uppercase truncate leading-none"
+            className="font-black text-white uppercase truncate leading-none text-center"
             style={{
               fontSize: s.nameFont,
-              textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-              letterSpacing: '0.3px',
+              letterSpacing: '0.5px',
             }}
           >
             {lastName}
           </div>
 
-          {/* Team + Division + Year */}
+          {/* Chemistry info: Team • Division • Year — clearly separated */}
           <div
-            className="font-bold text-white/60 uppercase leading-none truncate"
+            className="flex items-center justify-center gap-0 leading-none text-center"
             style={{
-              fontSize: s.detailFont,
-              marginTop: 1,
-              letterSpacing: '0.3px',
+              marginTop: isSmall ? 2 : 3,
+              fontSize: s.infoFont,
             }}
           >
-            {card.team.abbreviation} &middot; {card.team.division} &middot; {card.draftYear}
+            {/* Team abbreviation with team color accent */}
+            <span
+              className="font-bold"
+              style={{ color: card.team.primaryColor, textShadow: '0 0 4px rgba(0,0,0,0.8)' }}
+            >
+              {card.team.abbreviation}
+            </span>
+            <span className="text-white/30 mx-[3px] font-light">&bull;</span>
+            <span className="font-semibold text-white/75">
+              {card.team.division}
+            </span>
+            <span className="text-white/30 mx-[3px] font-light">&bull;</span>
+            <span className="font-semibold text-white/75">
+              {card.draftYear}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Chemistry Dot */}
       {showDot && (
-        <div className={`w-3.5 h-3.5 rounded-full chem-dot-${dotLevel} mt-1`} />
+        <div className={`w-3 h-3 rounded-full chem-dot-${dotLevel} mt-1`} />
       )}
     </div>
   );

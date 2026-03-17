@@ -2,14 +2,14 @@
 
 import Header from '@/components/Header';
 import Link from 'next/link';
-import { TIER_CONFIG, Tier, DRAFT_ODDS } from '@/lib/types';
+import { Tier, DRAFT_ODDS } from '@/lib/types';
 
-const tiers: { tier: Tier; label: string; talent: number }[] = [
-  { tier: 'dark-matter', label: 'Dark Matter', talent: 15 },
-  { tier: 'pink-diamond', label: 'Pink Diamond', talent: 11 },
-  { tier: 'diamond', label: 'Diamond', talent: 8 },
-  { tier: 'amethyst', label: 'Amethyst', talent: 5 },
-  { tier: 'ruby', label: 'Ruby', talent: 3 },
+const tiers: { tier: Tier; label: string; ovrRange: string }[] = [
+  { tier: 'dark-matter', label: 'Dark Matter', ovrRange: '99' },
+  { tier: 'pink-diamond', label: 'Pink Diamond', ovrRange: '95-98' },
+  { tier: 'diamond', label: 'Diamond', ovrRange: '90-94' },
+  { tier: 'amethyst', label: 'Amethyst', ovrRange: '85-89' },
+  { tier: 'ruby', label: 'Ruby', ovrRange: '80-84' },
 ];
 
 const tierColors: Record<string, string> = {
@@ -26,7 +26,6 @@ export default function HowToPlayPage() {
       <Header />
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
-        {/* Tabs */}
         <div className="flex border-b border-white/10 mb-6">
           <div className="flex-1 text-center pb-2 border-b-2 border-orange-500">
             <span className="text-sm font-bold text-white">How To Play</span>
@@ -40,13 +39,12 @@ export default function HowToPlayPage() {
             Giddey is a daily basketball draft puzzle where your goal is to draft the highest graded team possible. Your draft grade is based on two scores: <strong className="text-white">Talent</strong> and <strong className="text-white">Chem</strong>.
           </p>
 
-          {/* Draft Grade example */}
           <div className="bg-black/40 rounded-xl p-4 mt-4 border border-white/10">
             <div className="flex items-center justify-between">
               <span className="text-sm font-black uppercase tracking-wider text-white/80">Draft Grade</span>
               <div className="flex gap-3">
                 <div className="text-center">
-                  <div className="text-lg font-black text-orange-400">50</div>
+                  <div className="text-lg font-black text-orange-400">85</div>
                   <div className="text-[9px] text-white/40 uppercase">Talent</div>
                 </div>
                 <div className="text-center">
@@ -54,7 +52,7 @@ export default function HowToPlayPage() {
                   <div className="text-[9px] text-white/40 uppercase">Chem</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-black text-white">120</div>
+                  <div className="text-lg font-black text-white">155</div>
                   <div className="text-[9px] text-white/40 uppercase">Total</div>
                 </div>
               </div>
@@ -66,28 +64,24 @@ export default function HowToPlayPage() {
         <div className="mb-8">
           <h2 className="text-xl font-black text-orange-500 uppercase tracking-wider mb-3">Talent</h2>
           <p className="text-sm text-white/70 leading-relaxed mb-4">
-            Player cards increase your team&apos;s talent grade. Draft one player card each round from three randomly generated options. Cards are ranked into <strong className="text-white">five tiers</strong> based on their value and rarity:
+            Each player has an <strong className="text-white">Overall Rating (OVR)</strong> shown on their card. Higher OVR players contribute more to your talent score. Talent per player = <strong className="text-white">OVR - 79</strong> (so a 99 OVR adds 20, an 80 OVR adds 1).
           </p>
 
           <div className="bg-black/40 rounded-xl p-4 border border-white/10">
             <div className="grid grid-cols-5 gap-2">
-              {tiers.map(({ tier, label, talent }) => (
+              {tiers.map(({ tier, label, ovrRange }) => (
                 <div key={tier} className="flex flex-col items-center gap-2">
-                  <span className="text-xs font-bold" style={{ color: tierColors[tier] }}>
-                    {tier === 'dark-matter' ? '✦ ' : ''}{label.split(' ').map(w => w[0]).join('')}
-                  </span>
-                  <span className="text-sm font-black" style={{ color: tierColors[tier] }}>
-                    +{talent}
+                  <span className="text-[10px] font-bold" style={{ color: tierColors[tier] }}>
+                    {label.split(' ').map(w => w[0]).join('')}
                   </span>
                   <div className={`w-10 h-12 rounded-lg tier-${tier}`} />
+                  <span className="text-[10px] font-bold text-white/60">
+                    {ovrRange}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
-
-          <p className="text-xs text-white/50 mt-3 leading-relaxed">
-            ✦ Dark Matter cards are a rare version of Pink Diamond and Diamond cards. The top players in the NBA will have a Dark Matter card and a standard Pink Diamond or Diamond card.
-          </p>
         </div>
 
         {/* Chemistry */}
@@ -103,10 +97,7 @@ export default function HowToPlayPage() {
                 <div className="w-5 h-1 rounded bg-green-500" />
                 <span className="text-xs font-bold text-green-400">Green Line</span>
               </div>
-              <div>
-                <span className="text-xs font-bold text-green-400">(+2 Chem)</span>
-                <p className="text-xs text-white/60 mt-0.5">Same team <strong className="text-white/80">OR</strong> same division + draft year</p>
-              </div>
+              <p className="text-xs text-white/60">Same team <strong className="text-white/80">OR</strong> same division + draft year</p>
             </div>
 
             <div className="flex items-start gap-3">
@@ -114,10 +105,7 @@ export default function HowToPlayPage() {
                 <div className="w-5 h-1 rounded bg-yellow-500" />
                 <span className="text-xs font-bold text-yellow-400">Yellow Line</span>
               </div>
-              <div>
-                <span className="text-xs font-bold text-yellow-400">(+1 Chem)</span>
-                <p className="text-xs text-white/60 mt-0.5">Same division <strong className="text-white/80">OR</strong> same draft year</p>
-              </div>
+              <p className="text-xs text-white/60">Same division <strong className="text-white/80">OR</strong> same draft year</p>
             </div>
 
             <div className="flex items-start gap-3">
@@ -125,16 +113,12 @@ export default function HowToPlayPage() {
                 <div className="w-5 h-1 rounded bg-red-500" />
                 <span className="text-xs font-bold text-red-400">Red Line</span>
               </div>
-              <div>
-                <span className="text-xs font-bold text-red-400">(0 Chem)</span>
-                <p className="text-xs text-white/60 mt-0.5">No matching traits</p>
-              </div>
+              <p className="text-xs text-white/60">No matching traits</p>
             </div>
           </div>
 
-          {/* Dot bonuses */}
           <p className="text-sm text-white/70 leading-relaxed mt-4 mb-3">
-            As a player creates connections, <strong className="text-white">the dot under their player card</strong> will change colors to represent additional boosts to your chem grade:
+            As a player creates connections, <strong className="text-white">the dot under their card</strong> changes colors for bonus chem:
           </p>
 
           <div className="bg-black/40 rounded-xl p-4 border border-white/10 space-y-3">
@@ -143,10 +127,7 @@ export default function HowToPlayPage() {
                 <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
                 <span className="text-xs font-bold text-green-400">Green Dot</span>
               </div>
-              <div>
-                <span className="text-xs font-bold text-green-400">(+11 Chem)</span>
-                <p className="text-xs text-white/60 mt-0.5">Bonus given to players with 4+ Chem</p>
-              </div>
+              <p className="text-xs text-white/60">+11 Chem — Player has 4+ line chem</p>
             </div>
 
             <div className="flex items-start gap-3">
@@ -154,10 +135,7 @@ export default function HowToPlayPage() {
                 <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]" />
                 <span className="text-xs font-bold text-yellow-400">Yellow Dot</span>
               </div>
-              <div>
-                <span className="text-xs font-bold text-yellow-400">(+6 Chem)</span>
-                <p className="text-xs text-white/60 mt-0.5">Bonus given to players with 2+ Chem</p>
-              </div>
+              <p className="text-xs text-white/60">+6 Chem — Player has 2+ line chem</p>
             </div>
 
             <div className="flex items-start gap-3">
@@ -165,49 +143,29 @@ export default function HowToPlayPage() {
                 <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />
                 <span className="text-xs font-bold text-red-400">Red Dot</span>
               </div>
-              <div>
-                <span className="text-xs font-bold text-red-400">(0 Chem)</span>
-                <p className="text-xs text-white/60 mt-0.5">No bonus</p>
-              </div>
+              <p className="text-xs text-white/60">No bonus</p>
             </div>
           </div>
 
-          {/* Full Court Bonus */}
-          <div className="bg-green-900/20 rounded-xl p-4 border border-green-500/20 mt-4">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm">🏀</span>
-              <span className="text-xs font-bold text-green-400">Full Court Bonus (+2 Chem)</span>
-            </div>
-            <p className="text-xs text-white/60">
-              Awarded when ALL 9 players have at least a Yellow Dot. Max chemistry = 125.
-            </p>
-          </div>
+          <p className="text-xs text-white/50 mt-3">
+            Max chemistry = 125 (13 connections × 2 + 9 dots × 11)
+          </p>
         </div>
 
         {/* Grid Layout */}
         <div className="mb-8">
           <h2 className="text-xl font-black text-orange-500 uppercase tracking-wider mb-3">The Grid</h2>
           <p className="text-sm text-white/70 leading-relaxed mb-4">
-            Your lineup is arranged in a 3×3 grid with specific basketball positions. The <strong className="text-white">Center (C)</strong> sits at the heart of the grid, connecting to 4 adjacent players — making it the most important piece of the puzzle.
+            Your lineup is arranged in a formation with 13 connections between 9 positions. The <strong className="text-white">Center (C)</strong> connects to 4 adjacent players — making it the most important piece of the puzzle.
           </p>
 
           <div className="bg-black/40 rounded-xl p-4 border border-white/10">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              {['SG', 'PG', 'SF', 'UTIL', 'C', 'UTIL', 'SG', 'PF', 'SF'].map((pos, i) => (
-                <div
-                  key={i}
-                  className={`py-3 rounded-lg text-xs font-bold ${
-                    pos === 'C'
-                      ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                      : pos === 'UTIL'
-                      ? 'bg-green-500/10 text-green-400/70 border border-green-500/20'
-                      : 'bg-white/5 text-white/50 border border-white/10'
-                  }`}
-                >
-                  {pos}
-                </div>
-              ))}
-            </div>
+            <pre className="text-xs text-white/60 font-mono text-center leading-relaxed">
+{`     [SG]  [SF]
+ [UTIL][PG][PG][UTIL]
+ [SF]            [SG]
+        [C]`}
+            </pre>
           </div>
         </div>
 
@@ -226,21 +184,14 @@ export default function HowToPlayPage() {
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
               <p className="text-sm text-white/70">
-                You will only be dealt player cards for <strong className="text-white">open positions</strong> on your grid (e.g. if your only open slot is C, you&apos;ll only be shown Center cards).
+                You can <strong className="text-white">drag cards</strong> on the grid to swap positions at any point. Rearrange to maximize chem!
               </p>
             </div>
 
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
               <p className="text-sm text-white/70">
-                The <strong className="text-white">UTIL (Utility)</strong> spots are open to <strong className="text-white">PG, SG, SF, PF, C</strong> — any position.
-              </p>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
-              <p className="text-sm text-white/70">
-                You can <strong className="text-white">move player cards</strong> around the grid at any point during a draft. Try re-arranging your cards to maximize your chem grade.
+                The <strong className="text-white">UTIL (Utility)</strong> spots accept any position.
               </p>
             </div>
           </div>
@@ -254,7 +205,6 @@ export default function HowToPlayPage() {
           </p>
 
           <div className="bg-black/40 rounded-xl border border-white/10 overflow-hidden">
-            {/* Header */}
             <div className="grid grid-cols-6 gap-0 p-2 border-b border-white/10">
               <div className="text-[10px] font-bold text-white/60 text-center">Round</div>
               {tiers.map(({ tier, label }) => (
@@ -264,7 +214,6 @@ export default function HowToPlayPage() {
               ))}
             </div>
 
-            {/* Rows */}
             {Array.from({ length: 9 }, (_, i) => i + 1).map((round) => (
               <div
                 key={round}
@@ -288,7 +237,6 @@ export default function HowToPlayPage() {
           </div>
         </div>
 
-        {/* CTA */}
         <div className="text-center pb-8">
           <Link
             href="/draft"

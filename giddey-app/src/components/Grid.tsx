@@ -134,7 +134,7 @@ export default function Grid({
               left: pos.x,
               top: pos.y,
               width: CARD_W,
-              height: CARD_H + 14,
+              height: CARD_H + 20,
               zIndex: isSwapSource ? 30 : 10,
             }}
             onDragOver={isValid ? handleDragOver : undefined}
@@ -171,7 +171,7 @@ export default function Grid({
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, index)}
               >
-                <span className="text-[11px] font-black text-white/25 uppercase tracking-wider">
+                <span className="text-[13px] font-black text-white/30 uppercase tracking-wider">
                   {slot.label}
                 </span>
                 {isValid && (

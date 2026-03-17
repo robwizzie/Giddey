@@ -47,11 +47,11 @@ function CourtLines() {
         stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
 
       {/* Top key */}
-      <rect x={cx - 60} y="8" width="120" height="90" rx="3"
+      <rect x={cx - 65} y="8" width="130" height="100" rx="3"
         fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
 
       {/* Bottom key */}
-      <rect x={cx - 60} y={GRID_CONTAINER_H - 98} width="120" height="90" rx="3"
+      <rect x={cx - 65} y={GRID_CONTAINER_H - 108} width="130" height="100" rx="3"
         fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
     </svg>
   );

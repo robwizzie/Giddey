@@ -119,27 +119,27 @@ export const ADJACENCIES: [number, number][] = [
   [6, 8], [7, 8],       // Both bottom wings to Center
 ];
 
-// Pixel positions for each slot in the formation (within a 440×580 container)
+// Pixel positions for each slot in the formation (within a 460×610 container)
 // Card dimensions: 90w × 118h
 export const CARD_W = 90;
 export const CARD_H = 118;
-export const GRID_CONTAINER_W = 440;
-export const GRID_CONTAINER_H = 580;
+export const GRID_CONTAINER_W = 460;
+export const GRID_CONTAINER_H = 610;
 
 export const SLOT_POSITIONS: { x: number; y: number }[] = [
-  // Row 0: top pair (centered)
-  { x: 118, y: 12 },   // 0: SG
-  { x: 232, y: 12 },   // 1: SF
-  // Row 1: middle quad (full width)
-  { x: 25, y: 150 },   // 2: UTIL
-  { x: 125, y: 150 },  // 3: PG
-  { x: 225, y: 150 },  // 4: PG
-  { x: 325, y: 150 },  // 5: UTIL
-  // Row 2: lower pair (wide spread)
-  { x: 25, y: 290 },   // 6: SF
-  { x: 325, y: 290 },  // 7: SG
-  // Row 3: bottom center
-  { x: 175, y: 445 },  // 8: C
+  // Row 0: top pair (centered, inset from edges)
+  { x: 130, y: 18 },   // 0: SG
+  { x: 240, y: 18 },   // 1: SF
+  // Row 1: middle quad (evenly spaced with padding)
+  { x: 32, y: 160 },   // 2: UTIL
+  { x: 134, y: 160 },  // 3: PG
+  { x: 236, y: 160 },  // 4: PG
+  { x: 338, y: 160 },  // 5: UTIL
+  // Row 2: lower pair (wide but inset)
+  { x: 32, y: 305 },   // 6: SF
+  { x: 338, y: 305 },  // 7: SG
+  // Row 3: bottom center (with room for dot below)
+  { x: 185, y: 462 },  // 8: C
 ];
 
 export const DRAFT_ODDS: Record<number, Record<Tier, number>> = {

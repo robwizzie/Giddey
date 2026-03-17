@@ -37,7 +37,6 @@ html, body {
   box-shadow: 0 4px 30px rgba(0,0,0,0.4);
 }
 
-/* Court wood grain texture */
 .court-container::before {
   content: '';
   position: absolute;
@@ -60,60 +59,75 @@ html, body {
 }
 
 /* ================================
-   CARD TIER GLOWS (2K MyTeam inspired)
+   2K MYTEAM CARD BASE
+   ================================ */
+.card-2k {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-2k:hover {
+  transform: scale(1.02);
+}
+
+.card-2k:active {
+  transform: scale(0.98);
+}
+
+/* ================================
+   CARD TIER STYLES (2K MyTeam)
    ================================ */
 .tier-dark-matter {
-  background: linear-gradient(145deg, #0d0221 0%, #1a0533 30%, #2d0a4e 60%, #150330 100%);
+  background: linear-gradient(160deg, #0d0221 0%, #1a0533 25%, #2d0a4e 50%, #1a0533 75%, #0d0221 100%);
   box-shadow:
-    0 0 20px rgba(138, 43, 226, 0.6),
-    0 0 40px rgba(138, 43, 226, 0.3),
+    0 0 15px rgba(138, 43, 226, 0.5),
+    0 0 30px rgba(138, 43, 226, 0.2),
     inset 0 1px 0 rgba(255,255,255,0.1);
-  border: 2px solid rgba(138, 43, 226, 0.8);
-  animation: darkMatterPulse 2s ease-in-out infinite;
+  border: 2px solid rgba(138, 43, 226, 0.7);
+  animation: darkMatterPulse 2.5s ease-in-out infinite;
 }
 
 .tier-pink-diamond {
-  background: linear-gradient(145deg, #4a0e2e 0%, #8b1a5a 40%, #c71585 70%, #8b1a5a 100%);
+  background: linear-gradient(160deg, #3d0a24 0%, #8b1a5a 30%, #c71585 60%, #8b1a5a 100%);
   box-shadow:
-    0 0 15px rgba(255, 105, 180, 0.5),
-    0 0 30px rgba(255, 105, 180, 0.2),
+    0 0 12px rgba(255, 105, 180, 0.4),
+    0 0 25px rgba(255, 105, 180, 0.15),
     inset 0 1px 0 rgba(255,255,255,0.1);
-  border: 2px solid rgba(255, 105, 180, 0.7);
+  border: 2px solid rgba(255, 105, 180, 0.6);
 }
 
 .tier-diamond {
-  background: linear-gradient(145deg, #003355 0%, #0077aa 40%, #00aadd 70%, #0077aa 100%);
+  background: linear-gradient(160deg, #002840 0%, #006090 30%, #0095cc 60%, #006090 100%);
   box-shadow:
-    0 0 15px rgba(0, 191, 255, 0.5),
-    0 0 30px rgba(0, 191, 255, 0.2),
+    0 0 12px rgba(0, 191, 255, 0.4),
+    0 0 25px rgba(0, 191, 255, 0.15),
     inset 0 1px 0 rgba(255,255,255,0.15);
-  border: 2px solid rgba(0, 191, 255, 0.7);
+  border: 2px solid rgba(0, 191, 255, 0.6);
 }
 
 .tier-amethyst {
-  background: linear-gradient(145deg, #3d1f56 0%, #6c3483 40%, #8e44ad 70%, #6c3483 100%);
+  background: linear-gradient(160deg, #2d1545 0%, #5c2d82 30%, #7e3ba8 60%, #5c2d82 100%);
   box-shadow:
-    0 0 12px rgba(155, 89, 182, 0.5),
-    0 0 25px rgba(155, 89, 182, 0.2),
+    0 0 10px rgba(155, 89, 182, 0.4),
+    0 0 20px rgba(155, 89, 182, 0.15),
     inset 0 1px 0 rgba(255,255,255,0.1);
-  border: 2px solid rgba(155, 89, 182, 0.7);
+  border: 2px solid rgba(155, 89, 182, 0.6);
 }
 
 .tier-ruby {
-  background: linear-gradient(145deg, #5a1a1a 0%, #922b21 40%, #c0392b 70%, #922b21 100%);
+  background: linear-gradient(160deg, #4a1515 0%, #7a2020 30%, #a52a2a 60%, #7a2020 100%);
   box-shadow:
-    0 0 12px rgba(231, 76, 60, 0.5),
-    0 0 25px rgba(231, 76, 60, 0.2),
+    0 0 10px rgba(231, 76, 60, 0.4),
+    0 0 20px rgba(231, 76, 60, 0.15),
     inset 0 1px 0 rgba(255,255,255,0.1);
-  border: 2px solid rgba(231, 76, 60, 0.7);
+  border: 2px solid rgba(231, 76, 60, 0.6);
 }
 
 @keyframes darkMatterPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 20px rgba(138, 43, 226, 0.2);
+    box-shadow: 0 0 15px rgba(138, 43, 226, 0.5), 0 0 30px rgba(138, 43, 226, 0.2), inset 0 0 15px rgba(138, 43, 226, 0.15);
   }
   50% {
-    box-shadow: 0 0 30px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.4), inset 0 0 30px rgba(138, 43, 226, 0.3);
+    box-shadow: 0 0 25px rgba(138, 43, 226, 0.7), 0 0 50px rgba(138, 43, 226, 0.3), inset 0 0 25px rgba(138, 43, 226, 0.2);
   }
 }
 
@@ -133,7 +147,7 @@ html, body {
 
 @keyframes cardPlace {
   0% { transform: scale(0.3); opacity: 0; }
-  60% { transform: scale(1.08); opacity: 1; }
+  60% { transform: scale(1.06); opacity: 1; }
   100% { transform: scale(1); }
 }
 
@@ -163,12 +177,23 @@ html, body {
   50% { box-shadow: 0 0 0 5px rgba(234, 179, 8, 0.8), 0 0 20px rgba(234, 179, 8, 0.3); }
 }
 
+@keyframes dragTargetPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.8), 0 0 15px rgba(34, 197, 94, 0.3);
+    transform: scale(1.05);
+  }
+}
+
 .animate-card-enter {
   animation: cardEntrance 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .animate-card-place {
-  animation: cardPlace 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: cardPlace 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .animate-score-pop {
@@ -261,7 +286,7 @@ html, body {
 .grid-slot-empty {
   border: 2px dashed rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.25);
-  border-radius: 12px;
+  border-radius: 8px;
   transition: all 0.25s ease;
   cursor: default;
 }
@@ -280,23 +305,35 @@ html, body {
 .grid-slot-filled {
   border: none;
   background: transparent;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  border-radius: 8px;
+  cursor: grab;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
-.grid-slot-filled:hover {
-  transform: scale(1.03);
+.grid-slot-filled:active {
+  cursor: grabbing;
 }
 
 .grid-slot-filled.swap-source {
   animation: swapHighlight 1s ease-in-out infinite;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .grid-slot-filled.swap-target {
   box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.5);
-  border-radius: 12px;
+  border-radius: 8px;
+}
+
+/* Drag source — ghost effect */
+.grid-slot-filled.dragging-source {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+/* Drag swap target — green glow */
+.grid-slot-filled.drag-swap-target {
+  animation: dragTargetPulse 0.8s ease-in-out infinite;
+  border-radius: 8px;
 }
 
 @keyframes pulse {
@@ -308,16 +345,17 @@ html, body {
    OPTION CARDS
    ================================ */
 .option-card {
-  cursor: pointer;
+  cursor: grab;
   transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .option-card:hover {
-  transform: translateY(-6px) scale(1.04);
+  transform: translateY(-8px) scale(1.05);
 }
 
 .option-card:active {
-  transform: translateY(-2px) scale(1.01);
+  cursor: grabbing;
+  transform: translateY(-4px) scale(1.02);
 }
 
 /* ================================
@@ -338,20 +376,10 @@ html, body {
 /* ================================
    DRAG AND DROP
    ================================ */
-.option-card[draggable="true"] {
-  cursor: grab;
-}
-
-.option-card[draggable="true"]:active {
-  cursor: grabbing;
-}
-
-/* Drag over visual feedback on valid slots */
-.grid-slot-empty.valid-target:hover,
-.grid-slot-empty.valid-target.drag-over {
+.grid-slot-empty.valid-target:hover {
   border-color: rgba(34, 197, 94, 1);
   background: rgba(34, 197, 94, 0.2);
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 /* ================================

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { GridSlot, ChemLine, ChemDot, SLOT_POSITIONS, CARD_W, CARD_H, GRID_CONTAINER_W, GRID_CONTAINER_H } from '@/lib/types';
 import PlayerCard from './PlayerCard';
 
@@ -13,6 +14,7 @@ interface GridProps {
   swapSource?: number | null;
   isComplete?: boolean;
   onDropOnSlot?: (slotIndex: number) => void;
+  onDragSwap?: (fromIndex: number, toIndex: number) => void;
 }
 
 function getCellCenter(index: number) {
@@ -32,25 +34,16 @@ function CourtLines() {
       viewBox={`0 0 ${GRID_CONTAINER_W} ${GRID_CONTAINER_H}`}
       style={{ width: '100%', height: '100%' }}
     >
-      {/* Court boundary */}
       <rect x="8" y="8" width={GRID_CONTAINER_W - 16} height={GRID_CONTAINER_H - 16} rx="6"
         fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2" />
-
-      {/* Center circle */}
       <circle cx={cx} cy={cy} r="50"
         fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
       <circle cx={cx} cy={cy} r="4"
         fill="rgba(255,255,255,0.06)" />
-
-      {/* Half court line */}
       <line x1="8" y1={cy} x2={GRID_CONTAINER_W - 8} y2={cy}
         stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
-
-      {/* Top key */}
       <rect x={cx - 65} y="8" width="130" height="100" rx="3"
         fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-
-      {/* Bottom key */}
       <rect x={cx - 65} y={GRID_CONTAINER_H - 108} width="130" height="100" rx="3"
         fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
     </svg>
@@ -67,7 +60,11 @@ export default function Grid({
   swapSource,
   isComplete = false,
   onDropOnSlot,
+  onDragSwap,
 }: GridProps) {
+  const [dragSource, setDragSource] = useState<number | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<number | null>(null);
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -75,9 +72,47 @@ export default function Grid({
 
   const handleDrop = (e: React.DragEvent, slotIndex: number) => {
     e.preventDefault();
+    setDragOverTarget(null);
+
+    // Check if this is a grid-card-to-grid-card swap
+    const sourceType = e.dataTransfer.getData('source-type');
+    if (sourceType === 'grid-card' && onDragSwap) {
+      const fromIndex = parseInt(e.dataTransfer.getData('grid-index'), 10);
+      if (!isNaN(fromIndex) && fromIndex !== slotIndex) {
+        onDragSwap(fromIndex, slotIndex);
+      }
+      setDragSource(null);
+      return;
+    }
+
+    // Otherwise it's an option-card drop
     if (onDropOnSlot) {
       onDropOnSlot(slotIndex);
     }
+  };
+
+  const handleGridCardDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('source-type', 'grid-card');
+    e.dataTransfer.setData('grid-index', String(index));
+    e.dataTransfer.effectAllowed = 'move';
+    setDragSource(index);
+  };
+
+  const handleGridCardDragEnd = () => {
+    setDragSource(null);
+    setDragOverTarget(null);
+  };
+
+  const handleCardDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragSource !== null && dragSource !== index) {
+      setDragOverTarget(index);
+    }
+  };
+
+  const handleCardDragLeave = () => {
+    setDragOverTarget(null);
   };
 
   return (
@@ -125,6 +160,8 @@ export default function Grid({
         const isValid = validSlots.includes(index);
         const isSwapSource = swapSource === index;
         const isSwapTarget = swapSource !== null && swapSource !== index && slot.card !== null;
+        const isDragSource = dragSource === index;
+        const isDragOverThis = dragOverTarget === index;
 
         return (
           <div
@@ -135,10 +172,8 @@ export default function Grid({
               top: pos.y,
               width: CARD_W,
               height: CARD_H + 20,
-              zIndex: isSwapSource ? 30 : 10,
+              zIndex: isDragSource ? 30 : isSwapSource ? 30 : 10,
             }}
-            onDragOver={isValid ? handleDragOver : undefined}
-            onDrop={isValid ? (e) => handleDrop(e, index) : undefined}
           >
             {slot.card ? (
               <div
@@ -146,18 +181,26 @@ export default function Grid({
                   grid-slot-filled flex flex-col items-center
                   ${isSwapSource ? 'swap-source' : ''}
                   ${isSwapTarget ? 'swap-target' : ''}
+                  ${isDragSource ? 'dragging-source' : ''}
+                  ${isDragOverThis ? 'drag-swap-target' : ''}
                 `}
                 onClick={() => {
                   if (onCardClick) onCardClick(index);
                   else onSlotClick(index);
                 }}
+                onDragOver={(e) => handleCardDragOver(e, index)}
+                onDragLeave={handleCardDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
               >
                 <PlayerCard
                   card={slot.card}
                   size="grid"
                   showDot={true}
                   dotLevel={dot?.level || 'red'}
-                  className={isSwapSource ? '' : 'animate-card-place'}
+                  className={isDragSource ? '' : isSwapSource ? '' : 'animate-card-place'}
+                  draggable={true}
+                  onDragStart={(e) => handleGridCardDragStart(e, index)}
+                  onDragEnd={handleGridCardDragEnd}
                 />
               </div>
             ) : (

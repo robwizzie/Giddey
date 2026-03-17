@@ -226,6 +226,14 @@ export default function DraftPage() {
     }
   }, [selectedOptionIndex, validSlots, handlePlaceCard]);
 
+  // Handle drag-and-drop swap between grid cards
+  const handleDragSwap = useCallback((fromIndex: number, toIndex: number) => {
+    const result = swapCards(grid, fromIndex, toIndex);
+    if (result) {
+      setGrid(result);
+    }
+  }, [grid]);
+
   const handleDragStartOption = useCallback((index: number) => {
     if (cardPlacedThisRound) return;
     setSelectedOptionIndex(index);
@@ -308,7 +316,7 @@ export default function DraftPage() {
           <div className="mb-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-1.5 flex items-center gap-2 animate-fade-in">
             <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
             <span className="text-[11px] text-yellow-300 font-semibold">
-              Tap another card to swap
+              Tap or drag to another card to swap
             </span>
             <button
               className="text-[10px] text-white/40 hover:text-white/70 ml-auto font-semibold uppercase"
@@ -331,6 +339,7 @@ export default function DraftPage() {
             swapSource={swapMode}
             isComplete={draftComplete}
             onDropOnSlot={handleDropOnSlot}
+            onDragSwap={handleDragSwap}
           />
         </div>
 
@@ -355,7 +364,7 @@ export default function DraftPage() {
             ) : (
               <div className="text-center space-y-3">
                 <p className="text-xs text-white/40">
-                  Card placed! Tap cards to rearrange, then continue.
+                  Card placed! Drag or tap cards to rearrange, then continue.
                 </p>
                 <button
                   onClick={handleNextRound}
@@ -374,7 +383,7 @@ export default function DraftPage() {
             <div>
               <p className="text-sm font-bold text-white/80">Draft Complete!</p>
               <p className="text-xs text-white/40 mt-0.5">
-                Tap cards to swap positions and maximize your chemistry before submitting.
+                Drag or tap cards to swap positions and maximize chemistry.
               </p>
             </div>
 

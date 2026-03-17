@@ -16,7 +16,7 @@ export default function DraftOptions({ options, selectedIndex, onSelect, round, 
 
   return (
     <div className="w-full">
-      <div className="flex justify-center gap-4">
+      <div className="flex justify-center gap-3">
         {options.map((card, index) => {
           const isSelected = selectedIndex === index;
 
@@ -25,7 +25,7 @@ export default function DraftOptions({ options, selectedIndex, onSelect, round, 
               key={card.id}
               className={`option-card relative ${
                 isSelected
-                  ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-[#0a0e17] rounded-xl scale-[1.05]'
+                  ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-[#0a0e17] rounded-lg scale-[1.05]'
                   : ''
               }`}
               onClick={() => onSelect(index)}
@@ -37,6 +37,7 @@ export default function DraftOptions({ options, selectedIndex, onSelect, round, 
                 animationDelay={index * 120}
                 draggable={true}
                 onDragStart={(e) => {
+                  e.dataTransfer.setData('source-type', 'option-card');
                   e.dataTransfer.setData('text/plain', String(index));
                   e.dataTransfer.effectAllowed = 'move';
                   if (onDragStart) onDragStart(index);

@@ -3,15 +3,12 @@
 :root {
   --bg-primary: #0a0e17;
   --bg-secondary: #111827;
-  --bg-card: #1a1f2e;
-  --bg-surface: #1e2538;
   --accent-orange: #f97316;
   --accent-green: #22c55e;
   --accent-yellow: #eab308;
   --accent-red: #ef4444;
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
-  --court-green: #1a5c2a;
 }
 
 * {
@@ -28,68 +25,130 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Court texture background */
-.court-bg {
-  background: linear-gradient(135deg, #0d3320 0%, #1a5c2a 30%, #0d3320 60%, #1a5c2a 100%);
+/* ================================
+   BASKETBALL COURT BACKGROUND
+   ================================ */
+.court-container {
   position: relative;
+  background: linear-gradient(180deg, #c47a3a 0%, #b5682e 50%, #a85a22 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 3px solid #8b4513;
 }
 
-.court-bg::before {
+/* Court wood grain texture */
+.court-container::before {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%),
-    repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.02) 40px, rgba(255,255,255,0.02) 41px);
+    repeating-linear-gradient(90deg,
+      transparent,
+      transparent 18px,
+      rgba(0,0,0,0.03) 18px,
+      rgba(0,0,0,0.03) 19px
+    ),
+    repeating-linear-gradient(0deg,
+      transparent,
+      transparent 60px,
+      rgba(0,0,0,0.015) 60px,
+      rgba(0,0,0,0.015) 61px
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Court lines overlay (half court) */
+.court-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   pointer-events: none;
 }
 
-/* Card tier glows */
+/* ================================
+   CARD TIER GLOWS (2K MyTeam inspired)
+   ================================ */
 .tier-dark-matter {
-  background: linear-gradient(135deg, #0d0221, #1a0533, #2d0a4e, #1a0533);
-  box-shadow: 0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 20px rgba(138, 43, 226, 0.2);
+  background: linear-gradient(145deg, #0d0221 0%, #1a0533 30%, #2d0a4e 60%, #150330 100%);
+  box-shadow:
+    0 0 20px rgba(138, 43, 226, 0.6),
+    0 0 40px rgba(138, 43, 226, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.1);
   border: 2px solid rgba(138, 43, 226, 0.8);
   animation: darkMatterPulse 2s ease-in-out infinite;
 }
 
 .tier-pink-diamond {
-  background: linear-gradient(135deg, #4a0e2e, #8b1a5a, #c71585, #8b1a5a);
-  box-shadow: 0 0 15px rgba(255, 105, 180, 0.5), 0 0 30px rgba(255, 105, 180, 0.2);
+  background: linear-gradient(145deg, #4a0e2e 0%, #8b1a5a 40%, #c71585 70%, #8b1a5a 100%);
+  box-shadow:
+    0 0 15px rgba(255, 105, 180, 0.5),
+    0 0 30px rgba(255, 105, 180, 0.2),
+    inset 0 1px 0 rgba(255,255,255,0.1);
   border: 2px solid rgba(255, 105, 180, 0.7);
 }
 
 .tier-diamond {
-  background: linear-gradient(135deg, #003355, #0077aa, #00aadd, #0077aa);
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.5), 0 0 30px rgba(0, 191, 255, 0.2);
+  background: linear-gradient(145deg, #003355 0%, #0077aa 40%, #00aadd 70%, #0077aa 100%);
+  box-shadow:
+    0 0 15px rgba(0, 191, 255, 0.5),
+    0 0 30px rgba(0, 191, 255, 0.2),
+    inset 0 1px 0 rgba(255,255,255,0.15);
   border: 2px solid rgba(0, 191, 255, 0.7);
 }
 
 .tier-amethyst {
-  background: linear-gradient(135deg, #3d1f56, #6c3483, #8e44ad, #6c3483);
-  box-shadow: 0 0 12px rgba(155, 89, 182, 0.5), 0 0 25px rgba(155, 89, 182, 0.2);
+  background: linear-gradient(145deg, #3d1f56 0%, #6c3483 40%, #8e44ad 70%, #6c3483 100%);
+  box-shadow:
+    0 0 12px rgba(155, 89, 182, 0.5),
+    0 0 25px rgba(155, 89, 182, 0.2),
+    inset 0 1px 0 rgba(255,255,255,0.1);
   border: 2px solid rgba(155, 89, 182, 0.7);
 }
 
 .tier-ruby {
-  background: linear-gradient(135deg, #5a1a1a, #922b21, #c0392b, #922b21);
-  box-shadow: 0 0 12px rgba(231, 76, 60, 0.5), 0 0 25px rgba(231, 76, 60, 0.2);
+  background: linear-gradient(145deg, #5a1a1a 0%, #922b21 40%, #c0392b 70%, #922b21 100%);
+  box-shadow:
+    0 0 12px rgba(231, 76, 60, 0.5),
+    0 0 25px rgba(231, 76, 60, 0.2),
+    inset 0 1px 0 rgba(255,255,255,0.1);
   border: 2px solid rgba(231, 76, 60, 0.7);
 }
 
 @keyframes darkMatterPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 20px rgba(138, 43, 226, 0.2); }
-  50% { box-shadow: 0 0 30px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.4), inset 0 0 30px rgba(138, 43, 226, 0.3); }
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 20px rgba(138, 43, 226, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.4), inset 0 0 30px rgba(138, 43, 226, 0.3);
+  }
 }
 
+/* ================================
+   ANIMATIONS
+   ================================ */
 @keyframes cardEntrance {
   from {
     opacity: 0;
-    transform: scale(0.8) translateY(20px);
+    transform: scale(0.7) translateY(15px);
   }
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+}
+
+@keyframes cardPlace {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes cardSwap {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.85) rotate(-3deg); }
+  70% { transform: scale(0.85) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
 @keyframes scorePopIn {
@@ -113,8 +172,26 @@ html, body {
   100% { background-position: 200% 0; }
 }
 
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes swapHighlight {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(234, 179, 8, 0.8), 0 0 20px rgba(234, 179, 8, 0.3); }
+}
+
 .animate-card-enter {
-  animation: cardEntrance 0.4s ease-out forwards;
+  animation: cardEntrance 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-card-place {
+  animation: cardPlace 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-card-swap {
+  animation: cardSwap 0.35s ease-in-out;
 }
 
 .animate-score-pop {
@@ -129,31 +206,35 @@ html, body {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* Chemistry line colors */
+/* ================================
+   CHEMISTRY LINES
+   ================================ */
 .chem-line-green {
   stroke: #22c55e;
-  filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.6));
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.7));
 }
 
 .chem-line-yellow {
   stroke: #eab308;
-  filter: drop-shadow(0 0 4px rgba(234, 179, 8, 0.6));
+  filter: drop-shadow(0 0 5px rgba(234, 179, 8, 0.6));
 }
 
 .chem-line-red {
   stroke: #ef4444;
-  filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.4));
+  filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.3));
 }
 
-/* Chemistry dots */
+/* ================================
+   CHEMISTRY DOTS
+   ================================ */
 .chem-dot-green {
   background: #22c55e;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.9), 0 0 16px rgba(34, 197, 94, 0.4);
 }
 
 .chem-dot-yellow {
   background: #eab308;
-  box-shadow: 0 0 8px rgba(234, 179, 8, 0.8);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.9), 0 0 16px rgba(234, 179, 8, 0.4);
 }
 
 .chem-dot-red {
@@ -161,21 +242,16 @@ html, body {
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
+/* ================================
+   SCROLLBAR
+   ================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
 
-::-webkit-scrollbar-track {
-  background: var(--bg-primary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
-}
-
-/* Button hover effects */
+/* ================================
+   BUTTONS
+   ================================ */
 .btn-primary {
   background: linear-gradient(135deg, #f97316, #ea580c);
   transition: all 0.2s ease;
@@ -191,57 +267,112 @@ html, body {
   transform: translateY(0);
 }
 
-/* Grid slot styling */
-.grid-slot {
+.btn-green {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
   transition: all 0.2s ease;
-  border: 2px dashed rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.3);
 }
 
-.grid-slot:hover {
-  border-color: rgba(249, 115, 22, 0.5);
-  background: rgba(249, 115, 22, 0.05);
+.btn-green:hover {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
 }
 
-.grid-slot.occupied {
-  border: none;
-  background: transparent;
+/* ================================
+   GRID SLOTS
+   ================================ */
+.grid-slot-empty {
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  transition: all 0.25s ease;
+  cursor: default;
 }
 
-.grid-slot.valid-target {
-  border-color: rgba(34, 197, 94, 0.7);
-  background: rgba(34, 197, 94, 0.1);
+.grid-slot-empty:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.grid-slot-empty.valid-target {
+  border-color: rgba(34, 197, 94, 0.8);
+  background: rgba(34, 197, 94, 0.12);
+  cursor: pointer;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { border-color: rgba(34, 197, 94, 0.4); }
-  50% { border-color: rgba(34, 197, 94, 0.9); }
+.grid-slot-filled {
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* Option card hover */
+.grid-slot-filled:hover {
+  transform: scale(1.03);
+}
+
+.grid-slot-filled.swap-source {
+  animation: swapHighlight 1s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+.grid-slot-filled.swap-target {
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.5);
+  border-radius: 12px;
+}
+
+@keyframes pulse {
+  0%, 100% { border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.06); }
+  50% { border-color: rgba(34, 197, 94, 0.9); background: rgba(34, 197, 94, 0.15); }
+}
+
+/* ================================
+   OPTION CARDS
+   ================================ */
 .option-card {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .option-card:hover {
-  transform: translateY(-4px) scale(1.02);
+  transform: translateY(-6px) scale(1.04);
 }
 
-.option-card.selected {
-  ring: 3px solid #f97316;
+.option-card:active {
+  transform: translateY(-2px) scale(1.01);
 }
 
-/* Dark Matter special shimmer */
+/* ================================
+   DARK MATTER SHIMMER
+   ================================ */
 .dark-matter-shimmer {
-  background: linear-gradient(90deg,
+  background: linear-gradient(110deg,
     transparent 0%,
-    rgba(138, 43, 226, 0.1) 25%,
-    rgba(138, 43, 226, 0.3) 50%,
-    rgba(138, 43, 226, 0.1) 75%,
+    rgba(138, 43, 226, 0.08) 20%,
+    rgba(138, 43, 226, 0.25) 50%,
+    rgba(138, 43, 226, 0.08) 80%,
     transparent 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 3s linear infinite;
+  animation: shimmer 2.5s linear infinite;
+}
+
+/* ================================
+   PLAYER SILHOUETTE
+   ================================ */
+.player-silhouette {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.player-silhouette svg {
+  width: 65%;
+  height: 65%;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }

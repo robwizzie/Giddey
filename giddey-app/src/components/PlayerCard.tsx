@@ -4,7 +4,7 @@ import { PlayerCard as PlayerCardType, TIER_CONFIG, ChemDotLevel } from '@/lib/t
 
 interface PlayerCardProps {
   card: PlayerCardType;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'grid' | 'option' | 'result';
   showDot?: boolean;
   dotLevel?: ChemDotLevel;
   onClick?: () => void;
@@ -20,12 +20,6 @@ const tierClassMap: Record<string, string> = {
   'ruby': 'tier-ruby',
 };
 
-const sizeMap = {
-  sm: { card: 'w-[85px] h-[110px]', text: 'text-[9px]', name: 'text-[10px]', pos: 'text-[8px]', stars: 'text-[7px]' },
-  md: { card: 'w-[100px] h-[130px]', text: 'text-[10px]', name: 'text-[11px]', pos: 'text-[9px]', stars: 'text-[8px]' },
-  lg: { card: 'w-[120px] h-[155px]', text: 'text-[11px]', name: 'text-xs', pos: 'text-[10px]', stars: 'text-[9px]' },
-};
-
 function getTierStars(tier: string): number {
   switch (tier) {
     case 'dark-matter': return 5;
@@ -37,9 +31,64 @@ function getTierStars(tier: string): number {
   }
 }
 
+// Basketball player silhouette SVG
+function PlayerSilhouette({ color }: { color: string }) {
+  return (
+    <svg viewBox="0 0 80 100" fill={color} xmlns="http://www.w3.org/2000/svg">
+      {/* Head */}
+      <circle cx="40" cy="18" r="12" />
+      {/* Body */}
+      <path d="M24 35 C24 30, 56 30, 56 35 L58 60 C58 62, 54 63, 52 62 L48 50 L46 75 C46 77, 42 78, 40 78 C38 78, 34 77, 34 75 L32 50 L28 62 C26 63, 22 62, 22 60 Z" />
+      {/* Arms */}
+      <path d="M24 36 L12 52 C10 54, 8 52, 10 50 L22 38 Z" />
+      <path d="M56 36 L68 52 C70 54, 72 52, 70 50 L58 38 Z" />
+      {/* Ball */}
+      <circle cx="70" cy="48" r="7" strokeWidth="1" stroke={color} fill="none" />
+      <path d="M63 48 Q70 45, 77 48" strokeWidth="0.8" stroke={color} fill="none" />
+      <path d="M70 41 Q68 48, 70 55" strokeWidth="0.8" stroke={color} fill="none" />
+    </svg>
+  );
+}
+
+const sizeConfig = {
+  grid: {
+    width: 'w-[90px]',
+    height: 'h-[120px]',
+    nameText: 'text-[10px]',
+    detailText: 'text-[8px]',
+    posText: 'text-[7px]',
+    starText: 'text-[7px]',
+    silhouetteSize: 'w-8 h-10',
+    teamBadgeSize: 'w-6 h-6 text-[7px]',
+    padding: 'p-1',
+  },
+  option: {
+    width: 'w-[105px]',
+    height: 'h-[140px]',
+    nameText: 'text-[11px]',
+    detailText: 'text-[9px]',
+    posText: 'text-[8px]',
+    starText: 'text-[8px]',
+    silhouetteSize: 'w-10 h-12',
+    teamBadgeSize: 'w-7 h-7 text-[8px]',
+    padding: 'p-1.5',
+  },
+  result: {
+    width: 'w-[90px]',
+    height: 'h-[120px]',
+    nameText: 'text-[10px]',
+    detailText: 'text-[8px]',
+    posText: 'text-[7px]',
+    starText: 'text-[7px]',
+    silhouetteSize: 'w-8 h-10',
+    teamBadgeSize: 'w-6 h-6 text-[7px]',
+    padding: 'p-1',
+  },
+};
+
 export default function PlayerCard({
   card,
-  size = 'md',
+  size = 'option',
   showDot = false,
   dotLevel = 'red',
   onClick,
@@ -47,82 +96,92 @@ export default function PlayerCard({
   animationDelay = 0,
 }: PlayerCardProps) {
   const tierClass = tierClassMap[card.tier];
-  const s = sizeMap[size];
-  const config = TIER_CONFIG[card.tier];
+  const s = sizeConfig[size];
   const stars = getTierStars(card.tier);
-  const initials = `${card.firstName[0]}. ${card.lastName}`;
-  const displayName = card.lastName.length > 10
-    ? `${card.firstName[0]}. ${card.lastName.substring(0, 9)}..`
-    : initials;
+  const displayName = `${card.firstName[0]}. ${card.lastName}`;
+  const truncatedName = displayName.length > 14 ? displayName.substring(0, 13) + '.' : displayName;
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-0.5 shrink-0">
       <div
-        className={`${s.card} ${tierClass} rounded-lg flex flex-col items-center justify-between p-1.5 relative overflow-hidden cursor-pointer select-none ${className}`}
+        className={`${s.width} ${s.height} ${tierClass} rounded-xl flex flex-col items-center justify-between ${s.padding} relative overflow-hidden cursor-pointer select-none shrink-0 ${className}`}
         onClick={onClick}
         style={{ animationDelay: `${animationDelay}ms` }}
       >
         {/* Dark Matter shimmer overlay */}
         {card.tier === 'dark-matter' && (
-          <div className="absolute inset-0 dark-matter-shimmer pointer-events-none" />
+          <div className="absolute inset-0 dark-matter-shimmer pointer-events-none z-20" />
         )}
 
-        {/* Position badge */}
+        {/* Team color background watermark */}
         <div
-          className={`absolute top-1 left-1 ${s.pos} font-bold px-1.5 py-0.5 rounded`}
+          className="absolute inset-0 opacity-15 z-0"
           style={{
-            background: card.team.primaryColor,
-            color: '#fff',
-            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+            background: `radial-gradient(circle at 50% 40%, ${card.team.primaryColor} 0%, transparent 70%)`,
           }}
-        >
-          {card.position}
-        </div>
+        />
 
-        {/* Overall badge */}
-        <div className={`absolute top-1 right-1 ${s.pos} font-bold text-white/80`}>
-          {card.overall}
-        </div>
-
-        {/* Team abbreviation circle */}
-        <div className="mt-5 mb-1">
+        {/* Top row: Position badge + OVR */}
+        <div className="w-full flex items-start justify-between z-10 mb-0.5">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold border-2"
+            className={`${s.posText} font-black px-1.5 py-0.5 rounded-md uppercase`}
             style={{
-              backgroundColor: card.team.primaryColor,
-              borderColor: card.team.secondaryColor,
+              background: card.team.primaryColor,
               color: '#fff',
               textShadow: '0 1px 2px rgba(0,0,0,0.5)',
             }}
           >
+            {card.position}
+          </div>
+          <div className={`${s.posText} font-bold text-white/60 mt-0.5`}>
+            {card.overall}
+          </div>
+        </div>
+
+        {/* Player silhouette with team badge behind */}
+        <div className="relative flex items-center justify-center z-10 flex-1">
+          {/* Team badge (behind silhouette) */}
+          <div
+            className={`absolute ${s.teamBadgeSize} rounded-full flex items-center justify-center font-black border-2 opacity-70`}
+            style={{
+              backgroundColor: card.team.primaryColor,
+              borderColor: card.team.secondaryColor,
+              color: '#fff',
+              textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+            }}
+          >
             {card.team.abbreviation}
+          </div>
+          {/* Player silhouette (in front) */}
+          <div className={`${s.silhouetteSize} relative z-10`}>
+            <PlayerSilhouette color="rgba(255,255,255,0.85)" />
           </div>
         </div>
 
         {/* Player name */}
-        <div className={`${s.name} font-bold text-white text-center leading-tight z-10`}>
-          {displayName}
+        <div className={`${s.nameText} font-bold text-white text-center leading-tight z-10 w-full truncate px-0.5`}>
+          {truncatedName}
         </div>
 
-        {/* Division & Draft Year */}
-        <div className={`${s.text} text-white/70 font-semibold text-center z-10`}>
+        {/* Division */}
+        <div className={`${s.detailText} text-white/60 font-bold uppercase tracking-wide z-10`}>
           {card.team.division}
         </div>
-        <div className={`${s.text} text-white/70 font-semibold z-10`}>
+
+        {/* Draft Year */}
+        <div className={`${s.detailText} text-white/60 font-bold z-10`}>
           {card.draftYear}
         </div>
 
         {/* Stars */}
-        <div className={`${s.stars} text-yellow-400 z-10`}>
+        <div className={`${s.starText} text-yellow-400 z-10 leading-none`}>
           {'★'.repeat(stars)}{'☆'.repeat(5 - stars)}
         </div>
       </div>
 
       {/* Chemistry Dot */}
       {showDot && (
-        <div
-          className={`w-2.5 h-2.5 rounded-full chem-dot-${dotLevel}`}
-        />
+        <div className={`w-2.5 h-2.5 rounded-full chem-dot-${dotLevel} mt-0.5`} />
       )}
     </div>
   );

@@ -356,9 +356,18 @@ html, body {
 /* ================================
    RESPONSIVE
    ================================ */
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .court-container {
-    transform: scale(0.85);
+    transform: scale(0.82);
     transform-origin: top center;
+    margin-bottom: -40px;
+  }
+}
+
+@media (max-width: 380px) {
+  .court-container {
+    transform: scale(0.72);
+    transform-origin: top center;
+    margin-bottom: -80px;
   }
 }

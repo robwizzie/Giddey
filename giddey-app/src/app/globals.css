@@ -1,0 +1,247 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #111827;
+  --bg-card: #1a1f2e;
+  --bg-surface: #1e2538;
+  --accent-orange: #f97316;
+  --accent-green: #22c55e;
+  --accent-yellow: #eab308;
+  --accent-red: #ef4444;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --court-green: #1a5c2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Court texture background */
+.court-bg {
+  background: linear-gradient(135deg, #0d3320 0%, #1a5c2a 30%, #0d3320 60%, #1a5c2a 100%);
+  position: relative;
+}
+
+.court-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%),
+    repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.02) 40px, rgba(255,255,255,0.02) 41px);
+  pointer-events: none;
+}
+
+/* Card tier glows */
+.tier-dark-matter {
+  background: linear-gradient(135deg, #0d0221, #1a0533, #2d0a4e, #1a0533);
+  box-shadow: 0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 20px rgba(138, 43, 226, 0.2);
+  border: 2px solid rgba(138, 43, 226, 0.8);
+  animation: darkMatterPulse 2s ease-in-out infinite;
+}
+
+.tier-pink-diamond {
+  background: linear-gradient(135deg, #4a0e2e, #8b1a5a, #c71585, #8b1a5a);
+  box-shadow: 0 0 15px rgba(255, 105, 180, 0.5), 0 0 30px rgba(255, 105, 180, 0.2);
+  border: 2px solid rgba(255, 105, 180, 0.7);
+}
+
+.tier-diamond {
+  background: linear-gradient(135deg, #003355, #0077aa, #00aadd, #0077aa);
+  box-shadow: 0 0 15px rgba(0, 191, 255, 0.5), 0 0 30px rgba(0, 191, 255, 0.2);
+  border: 2px solid rgba(0, 191, 255, 0.7);
+}
+
+.tier-amethyst {
+  background: linear-gradient(135deg, #3d1f56, #6c3483, #8e44ad, #6c3483);
+  box-shadow: 0 0 12px rgba(155, 89, 182, 0.5), 0 0 25px rgba(155, 89, 182, 0.2);
+  border: 2px solid rgba(155, 89, 182, 0.7);
+}
+
+.tier-ruby {
+  background: linear-gradient(135deg, #5a1a1a, #922b21, #c0392b, #922b21);
+  box-shadow: 0 0 12px rgba(231, 76, 60, 0.5), 0 0 25px rgba(231, 76, 60, 0.2);
+  border: 2px solid rgba(231, 76, 60, 0.7);
+}
+
+@keyframes darkMatterPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 20px rgba(138, 43, 226, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(138, 43, 226, 0.8), 0 0 60px rgba(138, 43, 226, 0.4), inset 0 0 30px rgba(138, 43, 226, 0.3); }
+}
+
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes scorePopIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-card-enter {
+  animation: cardEntrance 0.4s ease-out forwards;
+}
+
+.animate-score-pop {
+  animation: scorePopIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Chemistry line colors */
+.chem-line-green {
+  stroke: #22c55e;
+  filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.6));
+}
+
+.chem-line-yellow {
+  stroke: #eab308;
+  filter: drop-shadow(0 0 4px rgba(234, 179, 8, 0.6));
+}
+
+.chem-line-red {
+  stroke: #ef4444;
+  filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.4));
+}
+
+/* Chemistry dots */
+.chem-dot-green {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+}
+
+.chem-dot-yellow {
+  background: #eab308;
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.8);
+}
+
+.chem-dot-red {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 3px;
+}
+
+/* Button hover effects */
+.btn-primary {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #fb923c, #f97316);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Grid slot styling */
+.grid-slot {
+  transition: all 0.2s ease;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.grid-slot:hover {
+  border-color: rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.05);
+}
+
+.grid-slot.occupied {
+  border: none;
+  background: transparent;
+}
+
+.grid-slot.valid-target {
+  border-color: rgba(34, 197, 94, 0.7);
+  background: rgba(34, 197, 94, 0.1);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { border-color: rgba(34, 197, 94, 0.4); }
+  50% { border-color: rgba(34, 197, 94, 0.9); }
+}
+
+/* Option card hover */
+.option-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-card:hover {
+  transform: translateY(-4px) scale(1.02);
+}
+
+.option-card.selected {
+  ring: 3px solid #f97316;
+}
+
+/* Dark Matter special shimmer */
+.dark-matter-shimmer {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(138, 43, 226, 0.1) 25%,
+    rgba(138, 43, 226, 0.3) 50%,
+    rgba(138, 43, 226, 0.1) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}

@@ -30,23 +30,24 @@ html, body {
    ================================ */
 .court-container {
   position: relative;
-  background: linear-gradient(180deg, #c47a3a 0%, #b5682e 50%, #a85a22 100%);
+  background: linear-gradient(180deg, #d4700c 0%, #c06008 40%, #b05508 70%, #a04d06 100%);
   border-radius: 16px;
   overflow: visible;
-  border: 3px solid #8b4513;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+  border: 3px solid #8a3e00;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,180,80,0.2);
 }
 
 .court-container::before {
   content: '';
   position: absolute;
   inset: 0;
+  border-radius: 14px;
   background:
     repeating-linear-gradient(90deg,
       transparent,
-      transparent 18px,
-      rgba(0,0,0,0.03) 18px,
-      rgba(0,0,0,0.03) 19px
+      transparent 20px,
+      rgba(0,0,0,0.025) 20px,
+      rgba(0,0,0,0.025) 21px
     ),
     repeating-linear-gradient(0deg,
       transparent,
@@ -285,22 +286,20 @@ html, body {
 /* ================================
    CHEMISTRY DOTS
    ================================ */
+.chem-dot-white {
+  background: #ffffff;
+}
+
 .chem-dot-green {
-  background: radial-gradient(circle, #86efac 0%, #22c55e 70%);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 1), 0 0 16px rgba(34, 197, 94, 0.6), 0 0 24px rgba(34, 197, 94, 0.3);
-  border: 1px solid rgba(134, 239, 172, 0.6);
+  background: #4ade80;
 }
 
 .chem-dot-yellow {
-  background: radial-gradient(circle, #fde68a 0%, #eab308 70%);
-  box-shadow: 0 0 8px rgba(234, 179, 8, 1), 0 0 16px rgba(234, 179, 8, 0.6), 0 0 24px rgba(234, 179, 8, 0.3);
-  border: 1px solid rgba(253, 230, 138, 0.6);
+  background: #f59e0b;
 }
 
 .chem-dot-red {
-  background: radial-gradient(circle, #fca5a5 0%, #ef4444 70%);
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6), 0 0 12px rgba(239, 68, 68, 0.3);
-  border: 1px solid rgba(252, 165, 165, 0.4);
+  background: #ef4444;
 }
 
 /* ================================
@@ -343,23 +342,22 @@ html, body {
    GRID SLOTS
    ================================ */
 .grid-slot-empty {
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 8px;
-  transition: all 0.25s ease;
+  background: #7a3a10;
+  border-radius: 10px;
+  transition: border 0.2s ease;
   cursor: default;
 }
 
-.grid-slot-empty:hover {
-  border-color: rgba(255, 255, 255, 0.3);
+.grid-slot-empty:hover:not(.valid-target) {
+  background: #8a4515;
 }
 
 .grid-slot-empty.valid-target {
   border: 2px solid rgba(34, 197, 94, 0.9);
-  background: rgba(34, 197, 94, 0.15);
+  background: #7a3a10;
   cursor: pointer;
   animation: validTargetPulse 1.2s ease-in-out infinite;
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.4), inset 0 0 12px rgba(34, 197, 94, 0.1);
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.45), inset 0 0 10px rgba(34, 197, 94, 0.08);
 }
 
 .grid-slot-filled {
@@ -482,18 +480,20 @@ html, body {
 /* ================================
    RESPONSIVE
    ================================ */
-@media (max-width: 500px) {
-  .court-container {
-    transform: scale(0.78);
-    transform-origin: top center;
-    margin-bottom: -60px;
-  }
+
+/* Prevent any horizontal overflow on small screens */
+html, body {
+  overflow-x: hidden;
 }
 
-@media (max-width: 400px) {
-  .court-container {
-    transform: scale(0.68);
-    transform-origin: top center;
-    margin-bottom: -110px;
+/* Court scaling is handled dynamically via JS in Grid.tsx */
+
+/* ================================
+   MOBILE COMPACT UI
+   ================================ */
+@media (max-width: 480px) {
+  .draft-grade-bar {
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
 }

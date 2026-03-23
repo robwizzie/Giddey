@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const SITE_URL = "https://giddey.app";
+const SITE_URL = "https://playgiddey.com";
 const SITE_NAME = "Giddey";
 const DESCRIPTION =
   "The daily basketball draft puzzle. Draft 9 players, build chemistry, and score big. Inspired by 2K MyTeam.";

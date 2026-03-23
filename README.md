@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.png" alt="Giddey" width="100" />
+  <img src="giddey-app/public/logo.png" alt="Giddey" width="100" />
 </p>
 
 <h1 align="center">Giddey</h1>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://giddey.app">Play Now</a>
+  <a href="https://playgiddey.com">Play Now</a>
 </p>
 
 ---

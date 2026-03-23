@@ -5,15 +5,15 @@ import Header from '@/components/Header';
 import { TIER_CONFIG, Tier } from '@/lib/types';
 
 const tiers: { tier: Tier; label: string; ovr: string }[] = [
-	{ tier: 'dark-matter', label: 'Dark Matter', ovr: '100' },
-	{ tier: 'galaxy-opal', label: 'Galaxy Opal', ovr: '97-99' },
+	{ tier: 'dark-matter', label: 'Dark Matter', ovr: '99-100' },
+	{ tier: 'galaxy-opal', label: 'Galaxy Opal', ovr: '97-98' },
 	{ tier: 'pink-diamond', label: 'Pink Diamond', ovr: '95-96' },
 	{ tier: 'diamond', label: 'Diamond', ovr: '92-94' },
 	{ tier: 'amethyst', label: 'Amethyst', ovr: '90-91' },
 	{ tier: 'ruby', label: 'Ruby', ovr: '87-89' },
 	{ tier: 'sapphire', label: 'Sapphire', ovr: '84-86' },
 	{ tier: 'emerald', label: 'Emerald', ovr: '80-83' },
-	{ tier: 'gold', label: 'Gold', ovr: '76-79' }
+	{ tier: 'gold', label: 'Gold', ovr: '75-79' }
 ];
 
 export default function Home() {
@@ -25,7 +25,7 @@ export default function Home() {
 				{/* Hero */}
 				<div className='text-center mb-8 animate-fade-in'>
 					{/* Logo */}
-					<img src='/logo.png' alt='Giddey' className='w-24 h-24 mx-auto mb-4 rounded-2xl' style={{ boxShadow: '0 0 40px rgba(249, 115, 22, 0.4)' }} />
+					<img src='/logo.png' alt='Giddey' className='w-24 h-24 mx-auto mb-4' style={{ filter: 'drop-shadow(0 0 20px rgba(249, 115, 22, 0.5)) drop-shadow(0 0 40px rgba(249, 115, 22, 0.25))' }} />
 
 					<h1 className='text-4xl font-black tracking-tight mb-2'>
 						<span className='text-orange-500'>GIDDEY</span>
@@ -46,7 +46,7 @@ export default function Home() {
 						<div className='text-[10px] text-white/50 uppercase tracking-wider font-semibold'>Rounds</div>
 					</div>
 					<div className='bg-white/5 rounded-xl p-3 text-center border border-white/10'>
-						<div className='text-2xl font-black text-green-400'>125</div>
+						<div className='text-2xl font-black text-green-400'>144</div>
 						<div className='text-[10px] text-white/50 uppercase tracking-wider font-semibold'>Max Chem</div>
 					</div>
 					<div className='bg-white/5 rounded-xl p-3 text-center border border-white/10'>

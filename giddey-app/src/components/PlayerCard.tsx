@@ -55,27 +55,29 @@ const tierSections: Record<string, { upper: string; lower: string; divider: stri
   gold: { upper: "#713f12", lower: "#1a0c03", divider: "#ca8a04", badge: "#eab308" },
 };
 
-const tierStars: Record<string, number> = {
-  "dark-matter": 5,
-  "galaxy-opal": 5,
-  "pink-diamond": 4,
-  diamond: 3,
-  amethyst: 3,
-  ruby: 2,
-  sapphire: 2,
-  emerald: 1,
-  gold: 1,
+// Half-star system: each tier gets a unique rating so no two look the same
+// Value is number of half-stars (e.g. 9 = 4.5 stars, 7 = 3.5 stars)
+const tierHalfStars: Record<string, number> = {
+  "dark-matter": 10,  // ★★★★★
+  "galaxy-opal": 9,   // ★★★★½
+  "pink-diamond": 8,  // ★★★★
+  diamond: 7,          // ★★★½
+  amethyst: 6,         // ★★★
+  ruby: 5,             // ★★½
+  sapphire: 4,         // ★★
+  emerald: 3,          // ★½
+  gold: 2,             // ★
 };
 
 // Static sizes for option/result cards
-const CARD_SIZE = { w: 90, h: 126, gemSize: 18, nameFont: 11, infoFont: 9, yearFont: 12, posFont: 8 };
+const CARD_SIZE = { w: 90, h: 126, gemSize: 24, nameFont: 11, infoFont: 9, yearFont: 12, posFont: 8 };
 const sizeConfig = { grid: CARD_SIZE, option: CARD_SIZE, result: CARD_SIZE };
 
 function computeCardSizes(w: number, h: number) {
   return {
     w,
     h,
-    gemSize: Math.max(13, Math.round(w * 0.21)),
+    gemSize: Math.max(18, Math.round(w * 0.28)),
     nameFont: Math.max(8, Math.round(w * 0.12)),
     infoFont: Math.max(7, Math.round(w * 0.095)),
     yearFont: Math.max(9, Math.round(w * 0.13)),
@@ -88,18 +90,53 @@ function GemBadge({ ovr, size, tier }: { ovr: number; size: number; tier: string
   const s = size;
   const points = `${s / 2},1 ${s - 1},${s * 0.38} ${s / 2},${s - 1} 1,${s * 0.38}`;
   return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} className="shrink-0">
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} className="shrink-0" style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.5))" }}>
       <defs>
         <linearGradient id={`gem-${tier}-${s}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={colors.border} />
-          <stop offset="50%" stopColor={colors.bg} />
+          <stop offset="40%" stopColor={colors.bg} />
           <stop offset="100%" stopColor={colors.border} />
         </linearGradient>
       </defs>
-      <polygon points={points} fill={`url(#gem-${tier}-${s})`} stroke={colors.border} strokeWidth="1" />
-      <text x={s / 2} y={s * 0.48} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontWeight="900" fontSize={s * 0.38} fontFamily="-apple-system, sans-serif">
+      <polygon points={points} fill={`url(#gem-${tier}-${s})`} stroke={colors.border} strokeWidth="1.5" />
+      <text x={s / 2} y={s * 0.47} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontWeight="900" fontSize={s * 0.42} fontFamily="-apple-system, sans-serif" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" } as React.CSSProperties}>
         {ovr}
       </text>
+    </svg>
+  );
+}
+
+/** SVG star path for a 10×10 viewBox */
+const STAR_PATH = "M5 0.5L6.18 3.82L9.75 3.82L6.79 5.93L7.94 9.27L5 7.18L2.06 9.27L3.21 5.93L0.25 3.82L3.82 3.82Z";
+
+function StarRating({ halfStars, size }: { halfStars: number; size: number }) {
+  const gap = Math.max(1, Math.round(size * 0.15));
+  const totalW = size * 5 + gap * 4;
+  return (
+    <svg width={totalW} height={size} viewBox={`0 0 ${totalW} ${size}`} style={{ display: "block" }}>
+      <defs>
+        {/* Reusable clip for half-star: clips to left 50% */}
+        <clipPath id="half-star-clip">
+          <rect x="0" y="0" width="5" height="10" />
+        </clipPath>
+      </defs>
+      {Array.from({ length: 5 }, (_, i) => {
+        const needed = halfStars - i * 2;
+        const x = i * (size + gap);
+        return (
+          <g key={i} transform={`translate(${x}, 0) scale(${size / 10})`}>
+            {/* Empty star background */}
+            <path d={STAR_PATH} fill="rgba(255,255,255,0.15)" />
+            {needed >= 2 ? (
+              /* Full star */
+              <path d={STAR_PATH} fill="#facc15" />
+            ) : needed === 1 ? (
+              /* Half star — gold left half over the empty background */
+              <path d={STAR_PATH} fill="#facc15" clipPath="url(#half-star-clip)" />
+            ) : null}
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -108,13 +145,15 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
   const tierClass = tierClassMap[card.tier];
   const s = cardSize ? computeCardSizes(cardSize.w, cardSize.h) : sizeConfig[size];
   const sec = tierSections[card.tier];
-  const headshotUrl = getPlayerHeadshotUrl(card.id);
+  const headshotUrl = getPlayerHeadshotUrl(card.id, card.firstName, card.lastName);
   const teamLogoUrl = getTeamLogoUrl(card.team.abbreviation);
-  const stars = tierStars[card.tier] || 2;
+  const halfStars = tierHalfStars[card.tier] || 2;
 
-  const maxLen = 11;
-  const lastName = card.lastName.length > maxLen ? card.lastName.substring(0, maxLen - 1) + "." : card.lastName;
-  const displayName = `${card.firstName.charAt(0)}. ${lastName}`;
+  const displayName = `${card.firstName.charAt(0)}. ${card.lastName}`;
+  // Scale name font down for long names so nothing gets cut off
+  const nameLen = displayName.length;
+  const nameFontScale = nameLen > 12 ? Math.max(0.7, 12 / nameLen) : 1;
+  const scaledNameFont = Math.round(s.nameFont * nameFontScale);
 
   // Upper section: 54% of card height
   const upperPct = 54;
@@ -144,6 +183,7 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
             <img
               src={teamLogoUrl}
               alt=""
+              referrerPolicy="no-referrer"
               style={{
                 position: "absolute",
                 left: "4%",
@@ -162,6 +202,7 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
           <img
             src={headshotUrl}
             alt={`${card.firstName} ${card.lastName}`}
+            referrerPolicy="no-referrer"
             style={{
               position: "absolute",
               right: 0,
@@ -174,7 +215,14 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
               pointerEvents: "none",
             }}
             draggable={false}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            onError={(e) => {
+              const img = e.target as HTMLImageElement;
+              if (!img.src.includes('cdn.nba.com')) {
+                img.src = `https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png`;
+              } else {
+                img.style.display = "none";
+              }
+            }}
           />
           {/* OVR gem — top left */}
           <div style={{ position: "absolute", top: 3, left: 3, zIndex: 5 }}>
@@ -195,19 +243,22 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
               transform: "translate(-50%, -50%)",
               background: sec.badge,
               borderRadius: 3,
-              padding: "2px 7px",
+              padding: `${Math.max(1, Math.round(s.w * 0.022))}px ${Math.max(4, Math.round(s.w * 0.06))}px`,
               fontSize: s.posFont,
               fontWeight: 800,
               color: "#fff",
               textTransform: "uppercase",
-              letterSpacing: "0.5px",
+              letterSpacing: "0.3px",
               whiteSpace: "nowrap",
               fontFamily: "-apple-system, sans-serif",
-              lineHeight: 1.3,
+              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               zIndex: 4,
             }}
           >
-            {card.position}
+            {card.position} / {card.secondaryPosition}
           </div>
         </div>
 
@@ -221,22 +272,20 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            padding: "10px 3px 4px",
+            padding: `${Math.max(8, Math.round(s.h * 0.07))}px 3px ${Math.max(2, Math.round(s.h * 0.025))}px`,
             gap: 1,
           }}
         >
           {/* F. LastName */}
           <div
             style={{
-              fontSize: s.nameFont,
+              fontSize: scaledNameFont,
               fontWeight: 900,
               color: "#ffffff",
               textAlign: "center",
               textTransform: "uppercase",
-              letterSpacing: "0.3px",
+              letterSpacing: "0.2px",
               whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
               width: "100%",
               lineHeight: 1.1,
               fontFamily: "-apple-system, sans-serif",
@@ -275,10 +324,8 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
             {card.draftYear}
           </div>
 
-          {/* Stars */}
-          <div style={{ lineHeight: 1, color: "#facc15", fontSize: s.infoFont, letterSpacing: "1px" }}>
-            {"★".repeat(stars)}{"☆".repeat(Math.max(0, 5 - stars))}
-          </div>
+          {/* Stars — SVG half-star system */}
+          <StarRating halfStars={halfStars} size={Math.max(8, Math.round(s.infoFont * 1.1))} />
         </div>
       </div>
 

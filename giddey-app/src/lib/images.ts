@@ -1,231 +1,86 @@
-// NBA CDN URLs for player headshots and team logos
-// Player headshots: https://cdn.nba.com/headshots/nba/latest/260x190/{nbaId}.png
-// Team logos: https://cdn.nba.com/logos/nba/{nbaTeamId}/primary/L/logo.png
+// 2KRatings.com URLs for player headshots and team logos
+// Player: https://www.2kratings.com/wp-content/uploads/{First}-{Last}-2K-Rating.png
+// Team:   https://www.2kratings.com/wp-content/uploads/{City}-{Name}-Secondary-Logo.svg
 
-// NBA team IDs mapping (official NBA.com IDs)
-export const NBA_TEAM_IDS: Record<string, number> = {
-	ATL: 1610612737,
-	BOS: 1610612738,
-	BKN: 1610612751,
-	CHA: 1610612766,
-	CHI: 1610612741,
-	CLE: 1610612739,
-	DAL: 1610612742,
-	DEN: 1610612743,
-	DET: 1610612765,
-	GSW: 1610612744,
-	HOU: 1610612745,
-	IND: 1610612754,
-	LAC: 1610612746,
-	LAL: 1610612747,
-	MEM: 1610612763,
-	MIA: 1610612748,
-	MIL: 1610612749,
-	MIN: 1610612750,
-	NOP: 1610612740,
-	NYK: 1610612752,
-	OKC: 1610612760,
-	ORL: 1610612753,
-	PHI: 1610612755,
-	PHX: 1610612756,
-	POR: 1610612757,
-	SAC: 1610612758,
-	SAS: 1610612759,
-	TOR: 1610612761,
-	UTA: 1610612762,
-	WAS: 1610612764
-};
-
-// NBA player IDs (official NBA.com person IDs)
-export const NBA_PLAYER_IDS: Record<string, number> = {
-	// Dark Matter
-	lebron: 2544,
-	curry: 201939,
-	giannis: 203507,
-	jokic: 203999,
-	durant: 201142,
-	shai: 1628983,
-	luka: 1629029,
-	tatum: 1628369,
-	embiid: 203954,
-	ant: 1630162,
-
-	// Pink Diamond
-	booker: 1626164,
-	jaylen: 1627759,
-	dame: 203081,
-	kawhi: 202695,
-	ad: 203076,
-	jimmy: 202710,
-	donovan: 1628378,
-	morant: 1629630,
-	haliburton: 1630169,
-	paolo: 1631094,
-	brunson: 1628973,
-	towns: 1626157,
-	wemby: 1641705,
-	adebayo: 1628389,
-	fox: 1628368,
-	garland: 1629636,
-	lauri: 1628374,
-	cade: 1630595,
-	pg13: 202331,
-	kyrie: 202681,
-
-	// Diamond
-	maxey: 1630178,
-	zion: 1629627,
-	scottie: 1630567,
-	franz: 1630532,
-	desmond: 1630217,
-	siakam: 1627783,
-	jjj: 1628991,
-	jamal: 1627750,
-	dejounte: 1627749,
-	draymond: 203110,
-	mikal: 1628969,
-	cp3: 101108,
-	jrue: 201950,
-	lamelo: 1630163,
-	trae: 1629027,
-	ingram: 1627742,
-	sabonis: 1627734,
-	mitchell_r: 1629011,
-	klay: 202691,
-	ayton: 1629028,
-	herb: 1630539,
-	jalen_green: 1630224,
-	jabari: 1631095,
-	alperen: 1630578,
-	amen: 1641706,
-	mobley: 1630596,
-	allen: 1628386,
-	mpj: 1629008,
-	dort: 1629652,
-	chet: 1631096,
-	jalen_w: 1631114,
-
-	// Amethyst
-	middleton: 203114,
-	gobert: 203497,
-	vucevic: 202696,
-	lavine: 203897,
-	derozan: 201942,
-	poole: 1629673,
-	suggs: 1630591,
-	obi: 1630168,
-	vassell: 1630170,
-	keldon: 1629640,
-	conley: 201144,
-	rick: 1629014,
-	porzingis: 204001,
-	og: 1628384,
-	hartenstein: 1628392,
-	clarkson: 203903,
-	smart: 203935,
-	wendell: 1628981,
-	wiggins: 203952,
-	randle: 203944,
-	ben_simmons: 1627732,
-	john_collins: 1628381,
-	bogdan: 203992,
-	mcdaniels: 1630183,
-	markwill: 1631109,
-	dillon: 1628415,
-	coby: 1629632,
-	looney: 1626172,
-	capela: 203991,
-	derrick_white: 1628401,
-	josh_hart: 1628404,
-	pj_wash: 1629023,
-	lopez: 201572,
-	austin_reaves: 1630559,
-	jerami: 203924,
-	rui: 1629060,
-
-	// Ruby
-	sengun2: 1630560, // Cam Thomas
-	cam_johnson: 1629661,
-	tre_jones: 1630186,
-	fournier: 203095,
-	aldama: 1630583,
-	ivey: 1631093,
-	duren: 1631105,
-	okoro: 1630171,
-	pat_will: 1630172,
-	bones: 1630579,
-	brogdon: 1627763,
-	ayo: 1630534,
-	giddey: 1630581,
-	naz: 1629675,
-	poeltl: 1627751,
-	hunter: 1629631,
-	kuminga: 1630228,
-	moody: 1630541,
-	niang: 1627777,
-	rubio_q: 1630202, // Quentin Grimes
-	tre_mann: 1630544,
-	nick_rich: 1630208,
-	deni: 1630166,
-	anfernee: 1631098, // Scoot Henderson
-	jaime: 1641707,
-	herro: 1629639,
-	dinwiddie: 203915,
-	mathurin: 1631097,
-	nembhard: 1631110,
-	turner: 1626167,
-	powell: 1626181,
-	zubac: 1627826,
-	russell: 1626156,
-	wood: 1626174,
-	keegan: 1631099,
-	walker: 1631116,
-	keyonte: 1641708,
-	taylor: 1641709,
-	dwight_p: 203939,
-	ausar: 1641710,
-
-	// 2024 Rookies
-	jared_mccain: 1642272,
-	risacher: 1642258,
-	sarr: 1642259,
-	sheppard: 1642263,
-	castle: 1642264,
-	holland: 1641842,
-	clingan: 1642270,
-	edey: 1641744,
-	knecht: 1642261,
-
-	// 2025 Rookies
-	flagg: 1642843,
-	harper: 1642844,
-	edgecombe: 1642845,
-	knueppel: 1642851,
-	ace_bailey: 1642846,
-	tre_johnson: 1642848,
-	fears: 1642847,
-	demin: 1642856
-};
-
-export function getPlayerHeadshotUrl(playerId: string): string {
-	const nbaId = NBA_PLAYER_IDS[playerId];
-	if (!nbaId) {
-		// Fallback silhouette
-		return `https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png`;
-	}
-	return `https://cdn.nba.com/headshots/nba/latest/260x190/${nbaId}.png`;
+/** Convert a name string into URL-safe slug: remove apostrophes/periods, spaces → hyphens */
+function slugify(name: string): string {
+  return name
+    .replace(/['.]/g, '')   // Remove apostrophes and periods
+    .replace(/\s+/g, '-')   // Spaces → hyphens
+    .trim();
 }
 
-// ESPN uses slightly different abbreviations for a few teams
-const ESPN_ABBR: Record<string, string> = {
-	UTA: 'utah',
-	NOP: 'no',
-	SAS: 'sa',
-	GSW: 'gs',
+// Players whose 2kratings image URL doesn't follow the standard {First}-{Last}-2K-Rating.png pattern
+const IMAGE_URL_OVERRIDES: Record<string, string> = {
+  anthony_edwards: 'https://www.2kratings.com/wp-content/uploads/Anthony-Edwards-2K-Rating-1.png',
+  karl_anthony_towns: 'https://www.2kratings.com/wp-content/uploads/Karl-Anthony-Towns-2K-Rating-1.png',
+  naz_reid: 'https://www.2kratings.com/wp-content/uploads/Naz-Reid-2K-Rating-1.png',
+  sam_merrill: 'https://www.2kratings.com/wp-content/uploads/Sam-Merrill-2K-Rating-1.png',
+  dangelo_russell: 'https://www.2kratings.com/wp-content/uploads/DAngelo-Russell-2K-Rating-1.png',
+  jarred_vanderbilt: 'https://www.2kratings.com/wp-content/uploads/Jarred-Vanderbilt-2K-Rating-1.png',
+  jordan_mclaughlin: 'https://www.2kratings.com/wp-content/uploads/Jordan-McLaughlin-2K-Rating-1.png',
+  royce_oneale: 'https://www.2kratings.com/wp-content/uploads/Royce-ONeale-2K-Rating.png',
+  deaaron_fox: 'https://www.2kratings.com/wp-content/uploads/DeAaron-Fox-2K-Rating.png',
+  deanthony_melton: 'https://www.2kratings.com/wp-content/uploads/DeAnthony-Melton-2K-Rating.png',
+  kelel_ware: 'https://www.2kratings.com/wp-content/uploads/Kelel-Ware-2K-Rating.png',
+  jakobe_walter: 'https://www.2kratings.com/wp-content/uploads/JaKobe-Walter-2K-Rating.png',
+  hoodie_melo: '/hoodie-carmelo.png',
 };
 
+// ── Team full names for 2kratings logo URLs ──
+const TEAM_FULL_NAMES: Record<string, string> = {
+  ATL: 'Atlanta-Hawks', BOS: 'Boston-Celtics', BKN: 'Brooklyn-Nets',
+  CHA: 'Charlotte-Hornets', CHI: 'Chicago-Bulls', CLE: 'Cleveland-Cavaliers',
+  DAL: 'Dallas-Mavericks', DEN: 'Denver-Nuggets', DET: 'Detroit-Pistons',
+  GSW: 'Golden-State-Warriors', HOU: 'Houston-Rockets', IND: 'Indiana-Pacers',
+  LAC: 'Los-Angeles-Clippers', LAL: 'Los-Angeles-Lakers',
+  MEM: 'Memphis-Grizzlies', MIA: 'Miami-Heat', MIL: 'Milwaukee-Bucks',
+  MIN: 'Minnesota-Timberwolves', NOP: 'New-Orleans-Pelicans',
+  NYK: 'New-York-Knicks', OKC: 'Oklahoma-City-Thunder',
+  ORL: 'Orlando-Magic', PHI: 'Philadelphia-76ers', PHX: 'Phoenix-Suns',
+  POR: 'Portland-Trail-Blazers', SAC: 'Sacramento-Kings',
+  SAS: 'San-Antonio-Spurs', TOR: 'Toronto-Raptors', UTA: 'Utah-Jazz',
+  WAS: 'Washington-Wizards',
+};
+
+/**
+ * Get player headshot URL from 2kratings.com.
+ */
+export function getPlayerHeadshotUrl(
+  playerId: string,
+  firstName?: string,
+  lastName?: string,
+): string {
+  // Check override map first
+  if (IMAGE_URL_OVERRIDES[playerId]) {
+    return IMAGE_URL_OVERRIDES[playerId];
+  }
+  if (firstName && lastName) {
+    const first = slugify(firstName);
+    const last = slugify(lastName);
+    return `https://www.2kratings.com/wp-content/uploads/${first}-${last}-2K-Rating.png`;
+  }
+  return `https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png`;
+}
+
+// Overrides for teams whose logo URL doesn't follow the standard pattern
+const TEAM_LOGO_OVERRIDES: Record<string, string> = {
+  UTA: 'https://www.2kratings.com/wp-content/uploads/Utah-Jazz-2K-Roster-Secondary-Logo.svg',
+  LAC: 'https://www.2kratings.com/wp-content/uploads/Los-Angeles-Clippers-Primary-Logo.svg',
+};
+
+/**
+ * Get team logo URL (SVG from 2kratings).
+ */
 export function getTeamLogoUrl(teamAbbr: string): string {
-	if (!NBA_TEAM_IDS[teamAbbr]) return '';
-	const espnAbbr = ESPN_ABBR[teamAbbr] || teamAbbr.toLowerCase();
-	return `https://a.espncdn.com/i/teamlogos/nba/500/${espnAbbr}.png`;
+  if (TEAM_LOGO_OVERRIDES[teamAbbr]) return TEAM_LOGO_OVERRIDES[teamAbbr];
+  const fullName = TEAM_FULL_NAMES[teamAbbr];
+  if (fullName) {
+    return `https://www.2kratings.com/wp-content/uploads/${fullName}-Secondary-Logo.svg`;
+  }
+  const espnMap: Record<string, string> = {
+    UTA: 'utah', NOP: 'no', SAS: 'sa', GSW: 'gs',
+  };
+  const espn = espnMap[teamAbbr] || teamAbbr.toLowerCase();
+  return `https://a.espncdn.com/i/teamlogos/nba/500/${espn}.png`;
 }

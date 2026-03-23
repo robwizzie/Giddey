@@ -25,10 +25,10 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
   const displayScore = activeTab === 'solution' ? optimal.bestScore : score;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0a0e17' }}>
+    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', background: '#0a0e17' }}>
 
       {/* ── TABS ── */}
-      <div className="flex gap-2 px-4 pt-4 pb-0 w-full max-w-xl mx-auto">
+      <div className="flex gap-2 px-4 pt-3 pb-0 w-full max-w-xl mx-auto shrink-0">
         <button
           onClick={() => setActiveTab('myteam')}
           className="flex-1 py-2.5 rounded-xl font-black text-sm uppercase tracking-wide transition-all"
@@ -54,7 +54,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
       </div>
 
       {/* ── ACCURACY + MAX SCORE ── */}
-      <div className="flex items-center justify-between px-4 py-2 w-full max-w-xl mx-auto">
+      <div className="flex items-center justify-between px-4 py-1 w-full max-w-xl mx-auto shrink-0">
         <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
           Accuracy{' '}
           <span style={{ color: '#facc15' }}>{accuracy}% ⭐</span>
@@ -66,18 +66,21 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
       </div>
 
       {/* ── COURT ── */}
-      <div className="w-full flex justify-center">
-        <Grid
-          grid={displayGrid}
-          lines={displayScore.lines}
-          dots={displayScore.dots}
-          onSlotClick={() => {}}
-          isComplete={true}
-        />
+      <div className="w-full flex justify-center flex-1 min-h-0 px-2">
+        <div className="w-full max-w-xl h-full">
+          <Grid
+            grid={displayGrid}
+            lines={displayScore.lines}
+            dots={displayScore.dots}
+            onSlotClick={() => {}}
+            isComplete={true}
+            readOnly={true}
+          />
+        </div>
       </div>
 
       {/* ── TALENT / CHEM / TOTAL ── */}
-      <div className="flex gap-2 px-4 pt-3 pb-2 w-full max-w-xl mx-auto">
+      <div className="flex gap-2 px-4 pt-2 pb-1 w-full max-w-xl mx-auto shrink-0">
         {[
           { label: 'Talent', value: displayScore.talent,   color: '#fb923c' },
           { label: 'Chem',   value: displayScore.totalChem, color: '#4ade80' },
@@ -85,17 +88,17 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
         ].map(({ label, value, color }) => (
           <div
             key={label}
-            className="flex-1 rounded-2xl text-center py-3"
+            className="flex-1 rounded-2xl text-center py-2"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
           >
-            <div className="font-black leading-none" style={{ fontSize: 32, color }}>{value}</div>
-            <div className="uppercase tracking-wider font-bold mt-1" style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{label}</div>
+            <div className="font-black leading-none" style={{ fontSize: 28, color }}>{value}</div>
+            <div className="uppercase tracking-wider font-bold mt-0.5" style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{label}</div>
           </div>
         ))}
       </div>
 
       {/* ── CHEMISTRY DETAIL ── */}
-      <div className="px-4 pb-2 w-full max-w-xl mx-auto">
+      <div className="px-4 pb-1 w-full max-w-xl mx-auto shrink-0">
         <div
           className="rounded-2xl px-4 py-3 grid grid-cols-2 gap-x-6 gap-y-1.5"
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
@@ -115,7 +118,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
       </div>
 
       {/* ── BUTTONS ── */}
-      <div className="flex gap-2 px-4 pb-8 pt-1 w-full max-w-xl mx-auto mt-auto">
+      <div className="flex gap-2 px-4 pb-4 pt-1 w-full max-w-xl mx-auto shrink-0">
         <Link
           href="/"
           className="flex-1 py-3 rounded-2xl text-center no-underline font-black text-sm uppercase tracking-wide transition-colors"

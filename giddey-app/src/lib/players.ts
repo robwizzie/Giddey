@@ -1,188 +1,156 @@
-import { Player } from './types';
+import { Player, Position, Tier } from "./types";
+import nbaPlayersData from "@/data/nba-players.json";
+import { TEAMS } from "./teams";
 
-// Comprehensive NBA player database with tier assignments
-// Updated for 2025-26 NBA season (through Feb 2026 trade deadline)
-// Tiers: dark-matter (100), galaxy-opal (97-99), pink-diamond (95-96),
-//        diamond (92-94), amethyst (90-91), ruby (87-89),
-//        sapphire (84-86), emerald (80-83), gold (76-79)
-export const PLAYERS: Player[] = [
-  // ============ DARK MATTER (100 OVR) ============
-  { id: 'lebron', firstName: 'LeBron', lastName: 'James', position: 'SF', teamId: 'LAL', draftYear: 2003, tier: 'dark-matter', overall: 100 },
-  { id: 'curry', firstName: 'Stephen', lastName: 'Curry', position: 'PG', teamId: 'GSW', draftYear: 2009, tier: 'dark-matter', overall: 100 },
-  { id: 'giannis', firstName: 'Giannis', lastName: 'Antetokounmpo', position: 'PF', teamId: 'MIL', draftYear: 2013, tier: 'dark-matter', overall: 100 },
-  { id: 'jokic', firstName: 'Nikola', lastName: 'Jokic', position: 'C', teamId: 'DEN', draftYear: 2014, tier: 'dark-matter', overall: 100 },
-  { id: 'shai', firstName: 'Shai', lastName: 'Gilgeous-Alexander', position: 'PG', teamId: 'OKC', draftYear: 2018, tier: 'dark-matter', overall: 100 },
-
-  // ============ GALAXY OPAL (97-99 OVR) ============
-  { id: 'durant', firstName: 'Kevin', lastName: 'Durant', position: 'SF', teamId: 'HOU', draftYear: 2007, tier: 'galaxy-opal', overall: 98 },
-  { id: 'luka', firstName: 'Luka', lastName: 'Doncic', position: 'PG', teamId: 'LAL', draftYear: 2018, tier: 'galaxy-opal', overall: 98 },
-  { id: 'tatum', firstName: 'Jayson', lastName: 'Tatum', position: 'SF', teamId: 'BOS', draftYear: 2017, tier: 'galaxy-opal', overall: 98 },
-  { id: 'embiid', firstName: 'Joel', lastName: 'Embiid', position: 'C', teamId: 'PHI', draftYear: 2014, tier: 'galaxy-opal', overall: 97 },
-  { id: 'ant', firstName: 'Anthony', lastName: 'Edwards', position: 'SG', teamId: 'MIN', draftYear: 2020, tier: 'galaxy-opal', overall: 97 },
-  { id: 'wemby', firstName: 'Victor', lastName: 'Wembanyama', position: 'C', teamId: 'SAS', draftYear: 2023, tier: 'galaxy-opal', overall: 97 },
-  { id: 'booker', firstName: 'Devin', lastName: 'Booker', position: 'SG', teamId: 'PHX', draftYear: 2015, tier: 'galaxy-opal', overall: 97 },
-
-  // ============ PINK DIAMOND (95-96 OVR) ============
-  { id: 'jaylen', firstName: 'Jaylen', lastName: 'Brown', position: 'SG', teamId: 'BOS', draftYear: 2016, tier: 'pink-diamond', overall: 96 },
-  { id: 'kawhi', firstName: 'Kawhi', lastName: 'Leonard', position: 'SF', teamId: 'LAC', draftYear: 2011, tier: 'pink-diamond', overall: 96 },
-  { id: 'ad', firstName: 'Anthony', lastName: 'Davis', position: 'PF', teamId: 'WAS', draftYear: 2012, tier: 'pink-diamond', overall: 96 },
-  { id: 'jimmy', firstName: 'Jimmy', lastName: 'Butler', position: 'SF', teamId: 'GSW', draftYear: 2011, tier: 'pink-diamond', overall: 95 },
-  { id: 'donovan', firstName: 'Donovan', lastName: 'Mitchell', position: 'SG', teamId: 'CLE', draftYear: 2017, tier: 'pink-diamond', overall: 95 },
-  { id: 'morant', firstName: 'Ja', lastName: 'Morant', position: 'PG', teamId: 'MEM', draftYear: 2019, tier: 'pink-diamond', overall: 95 },
-  { id: 'brunson', firstName: 'Jalen', lastName: 'Brunson', position: 'PG', teamId: 'NYK', draftYear: 2018, tier: 'pink-diamond', overall: 95 },
-  { id: 'towns', firstName: 'Karl-Anthony', lastName: 'Towns', position: 'C', teamId: 'NYK', draftYear: 2015, tier: 'pink-diamond', overall: 95 },
-  { id: 'kyrie', firstName: 'Kyrie', lastName: 'Irving', position: 'PG', teamId: 'DAL', draftYear: 2011, tier: 'pink-diamond', overall: 96 },
-  { id: 'fox', firstName: "De'Aaron", lastName: 'Fox', position: 'PG', teamId: 'SAS', draftYear: 2017, tier: 'pink-diamond', overall: 95 },
-
-  // ============ DIAMOND (92-94 OVR) ============
-  { id: 'haliburton', firstName: 'Tyrese', lastName: 'Haliburton', position: 'PG', teamId: 'IND', draftYear: 2020, tier: 'diamond', overall: 94 },
-  { id: 'paolo', firstName: 'Paolo', lastName: 'Banchero', position: 'PF', teamId: 'ORL', draftYear: 2022, tier: 'diamond', overall: 94 },
-  { id: 'adebayo', firstName: 'Bam', lastName: 'Adebayo', position: 'C', teamId: 'MIA', draftYear: 2017, tier: 'diamond', overall: 93 },
-  { id: 'cade', firstName: 'Cade', lastName: 'Cunningham', position: 'PG', teamId: 'DET', draftYear: 2021, tier: 'diamond', overall: 93 },
-  { id: 'lauri', firstName: 'Lauri', lastName: 'Markkanen', position: 'PF', teamId: 'UTA', draftYear: 2017, tier: 'diamond', overall: 93 },
-  { id: 'garland', firstName: 'Darius', lastName: 'Garland', position: 'PG', teamId: 'LAC', draftYear: 2019, tier: 'diamond', overall: 93 },
-  { id: 'pg13', firstName: 'Paul', lastName: 'George', position: 'SF', teamId: 'PHI', draftYear: 2010, tier: 'diamond', overall: 93 },
-  { id: 'maxey', firstName: 'Tyrese', lastName: 'Maxey', position: 'SG', teamId: 'PHI', draftYear: 2020, tier: 'diamond', overall: 93 },
-  { id: 'zion', firstName: 'Zion', lastName: 'Williamson', position: 'PF', teamId: 'NOP', draftYear: 2019, tier: 'diamond', overall: 93 },
-  { id: 'scottie', firstName: 'Scottie', lastName: 'Barnes', position: 'SF', teamId: 'TOR', draftYear: 2021, tier: 'diamond', overall: 92 },
-  { id: 'franz', firstName: 'Franz', lastName: 'Wagner', position: 'SF', teamId: 'ORL', draftYear: 2021, tier: 'diamond', overall: 92 },
-  { id: 'mobley', firstName: 'Evan', lastName: 'Mobley', position: 'PF', teamId: 'CLE', draftYear: 2021, tier: 'diamond', overall: 92 },
-  { id: 'chet', firstName: 'Chet', lastName: 'Holmgren', position: 'C', teamId: 'OKC', draftYear: 2022, tier: 'diamond', overall: 92 },
-  { id: 'jalen_w', firstName: 'Jalen', lastName: 'Williams', position: 'SF', teamId: 'OKC', draftYear: 2022, tier: 'diamond', overall: 92 },
-  { id: 'sabonis', firstName: 'Domantas', lastName: 'Sabonis', position: 'C', teamId: 'SAC', draftYear: 2016, tier: 'diamond', overall: 92 },
-  { id: 'trae', firstName: 'Trae', lastName: 'Young', position: 'PG', teamId: 'WAS', draftYear: 2018, tier: 'diamond', overall: 92 },
-
-  // ============ AMETHYST (90-91 OVR) ============
-  { id: 'desmond', firstName: 'Desmond', lastName: 'Bane', position: 'SG', teamId: 'ORL', draftYear: 2020, tier: 'amethyst', overall: 91 },
-  { id: 'siakam', firstName: 'Pascal', lastName: 'Siakam', position: 'PF', teamId: 'IND', draftYear: 2016, tier: 'amethyst', overall: 91 },
-  { id: 'jjj', firstName: 'Jaren', lastName: 'Jackson Jr.', position: 'PF', teamId: 'UTA', draftYear: 2018, tier: 'amethyst', overall: 91 },
-  { id: 'jamal', firstName: 'Jamal', lastName: 'Murray', position: 'PG', teamId: 'DEN', draftYear: 2016, tier: 'amethyst', overall: 91 },
-  { id: 'jrue', firstName: 'Jrue', lastName: 'Holiday', position: 'PG', teamId: 'POR', draftYear: 2009, tier: 'amethyst', overall: 91 },
-  { id: 'lamelo', firstName: 'LaMelo', lastName: 'Ball', position: 'PG', teamId: 'CHA', draftYear: 2020, tier: 'amethyst', overall: 91 },
-  { id: 'jalen_green', firstName: 'Jalen', lastName: 'Green', position: 'SG', teamId: 'PHX', draftYear: 2021, tier: 'amethyst', overall: 91 },
-  { id: 'alperen', firstName: 'Alperen', lastName: 'Sengun', position: 'C', teamId: 'HOU', draftYear: 2021, tier: 'amethyst', overall: 91 },
-  { id: 'dejounte', firstName: 'Dejounte', lastName: 'Murray', position: 'PG', teamId: 'NOP', draftYear: 2016, tier: 'amethyst', overall: 90 },
-  { id: 'draymond', firstName: 'Draymond', lastName: 'Green', position: 'PF', teamId: 'GSW', draftYear: 2012, tier: 'amethyst', overall: 90 },
-  { id: 'mikal', firstName: 'Mikal', lastName: 'Bridges', position: 'SF', teamId: 'NYK', draftYear: 2018, tier: 'amethyst', overall: 90 },
-  { id: 'cp3', firstName: 'Chris', lastName: 'Paul', position: 'PG', teamId: 'TOR', draftYear: 2005, tier: 'amethyst', overall: 90 },
-  { id: 'ingram', firstName: 'Brandon', lastName: 'Ingram', position: 'SF', teamId: 'TOR', draftYear: 2016, tier: 'amethyst', overall: 90 },
-  { id: 'mitchell_r', firstName: 'Mitchell', lastName: 'Robinson', position: 'C', teamId: 'NYK', draftYear: 2018, tier: 'amethyst', overall: 90 },
-  { id: 'klay', firstName: 'Klay', lastName: 'Thompson', position: 'SG', teamId: 'DAL', draftYear: 2011, tier: 'amethyst', overall: 90 },
-  { id: 'ayton', firstName: 'Deandre', lastName: 'Ayton', position: 'C', teamId: 'LAL', draftYear: 2018, tier: 'amethyst', overall: 90 },
-  { id: 'herb', firstName: 'Herb', lastName: 'Jones', position: 'SF', teamId: 'NOP', draftYear: 2021, tier: 'amethyst', overall: 90 },
-  { id: 'amen', firstName: 'Amen', lastName: 'Thompson', position: 'SG', teamId: 'HOU', draftYear: 2023, tier: 'amethyst', overall: 90 },
-  { id: 'allen', firstName: 'Jarrett', lastName: 'Allen', position: 'C', teamId: 'CLE', draftYear: 2017, tier: 'amethyst', overall: 90 },
-  { id: 'mpj', firstName: 'Michael', lastName: 'Porter Jr.', position: 'SF', teamId: 'BKN', draftYear: 2018, tier: 'amethyst', overall: 90 },
-  { id: 'dort', firstName: 'Luguentz', lastName: 'Dort', position: 'SG', teamId: 'OKC', draftYear: 2019, tier: 'amethyst', overall: 90 },
-  { id: 'jabari', firstName: 'Jabari', lastName: 'Smith Jr.', position: 'PF', teamId: 'HOU', draftYear: 2022, tier: 'amethyst', overall: 90 },
-
-  // ============ RUBY (87-89 OVR) ============
-  { id: 'porzingis', firstName: 'Kristaps', lastName: 'Porzingis', position: 'C', teamId: 'GSW', draftYear: 2015, tier: 'ruby', overall: 89 },
-  { id: 'gobert', firstName: 'Rudy', lastName: 'Gobert', position: 'C', teamId: 'MIN', draftYear: 2013, tier: 'ruby', overall: 89 },
-  { id: 'middleton', firstName: 'Khris', lastName: 'Middleton', position: 'SF', teamId: 'DAL', draftYear: 2012, tier: 'ruby', overall: 88 },
-  { id: 'lavine', firstName: 'Zach', lastName: 'LaVine', position: 'SG', teamId: 'SAC', draftYear: 2014, tier: 'ruby', overall: 88 },
-  { id: 'derozan', firstName: 'DeMar', lastName: 'DeRozan', position: 'SF', teamId: 'SAC', draftYear: 2009, tier: 'ruby', overall: 88 },
-  { id: 'wiggins', firstName: 'Andrew', lastName: 'Wiggins', position: 'SF', teamId: 'MIA', draftYear: 2014, tier: 'ruby', overall: 87 },
-  { id: 'randle', firstName: 'Julius', lastName: 'Randle', position: 'PF', teamId: 'MIN', draftYear: 2014, tier: 'ruby', overall: 87 },
-  { id: 'og', firstName: 'OG', lastName: 'Anunoby', position: 'SF', teamId: 'NYK', draftYear: 2017, tier: 'ruby', overall: 87 },
-  { id: 'derrick_white', firstName: 'Derrick', lastName: 'White', position: 'SG', teamId: 'BOS', draftYear: 2017, tier: 'ruby', overall: 87 },
-  { id: 'austin_reaves', firstName: 'Austin', lastName: 'Reaves', position: 'SG', teamId: 'LAL', draftYear: 2021, tier: 'ruby', overall: 87 },
-  { id: 'rick', firstName: 'Anfernee', lastName: 'Simons', position: 'SG', teamId: 'CHI', draftYear: 2018, tier: 'ruby', overall: 87 },
-  { id: 'vassell', firstName: 'Devin', lastName: 'Vassell', position: 'SG', teamId: 'SAS', draftYear: 2020, tier: 'ruby', overall: 87 },
-  { id: 'castle', firstName: 'Stephon', lastName: 'Castle', position: 'PG', teamId: 'SAS', draftYear: 2024, tier: 'ruby', overall: 87 },
-  { id: 'vucevic', firstName: 'Nikola', lastName: 'Vucevic', position: 'C', teamId: 'BOS', draftYear: 2011, tier: 'ruby', overall: 87 },
-
-  // ============ SAPPHIRE (84-86 OVR) ============
-  { id: 'poole', firstName: 'Jordan', lastName: 'Poole', position: 'SG', teamId: 'NOP', draftYear: 2019, tier: 'sapphire', overall: 86 },
-  { id: 'suggs', firstName: 'Jalen', lastName: 'Suggs', position: 'PG', teamId: 'ORL', draftYear: 2021, tier: 'sapphire', overall: 86 },
-  { id: 'hartenstein', firstName: 'Isaiah', lastName: 'Hartenstein', position: 'C', teamId: 'OKC', draftYear: 2017, tier: 'sapphire', overall: 86 },
-  { id: 'smart', firstName: 'Marcus', lastName: 'Smart', position: 'PG', teamId: 'MEM', draftYear: 2014, tier: 'sapphire', overall: 86 },
-  { id: 'wendell', firstName: 'Wendell', lastName: 'Carter Jr.', position: 'C', teamId: 'ORL', draftYear: 2018, tier: 'sapphire', overall: 86 },
-  { id: 'mcdaniels', firstName: 'Jaden', lastName: 'McDaniels', position: 'SF', teamId: 'MIN', draftYear: 2020, tier: 'sapphire', overall: 86 },
-  { id: 'markwill', firstName: 'Mark', lastName: 'Williams', position: 'C', teamId: 'CHA', draftYear: 2022, tier: 'sapphire', overall: 86 },
-  { id: 'coby', firstName: 'Coby', lastName: 'White', position: 'PG', teamId: 'CHA', draftYear: 2019, tier: 'sapphire', overall: 86 },
-  { id: 'lopez', firstName: 'Brook', lastName: 'Lopez', position: 'C', teamId: 'MIL', draftYear: 2008, tier: 'sapphire', overall: 86 },
-  { id: 'pj_wash', firstName: 'P.J.', lastName: 'Washington', position: 'PF', teamId: 'DAL', draftYear: 2019, tier: 'sapphire', overall: 86 },
-  { id: 'jerami', firstName: 'Jerami', lastName: 'Grant', position: 'PF', teamId: 'POR', draftYear: 2014, tier: 'sapphire', overall: 86 },
-  { id: 'jared_mccain', firstName: 'Jared', lastName: 'McCain', position: 'SG', teamId: 'OKC', draftYear: 2024, tier: 'sapphire', overall: 86 },
-  { id: 'obi', firstName: 'Obi', lastName: 'Toppin', position: 'PF', teamId: 'IND', draftYear: 2020, tier: 'sapphire', overall: 85 },
-  { id: 'keldon', firstName: 'Keldon', lastName: 'Johnson', position: 'SF', teamId: 'SAS', draftYear: 2019, tier: 'sapphire', overall: 85 },
-  { id: 'conley', firstName: 'Mike', lastName: 'Conley', position: 'PG', teamId: 'CHI', draftYear: 2007, tier: 'sapphire', overall: 85 },
-  { id: 'clarkson', firstName: 'Jordan', lastName: 'Clarkson', position: 'SG', teamId: 'UTA', draftYear: 2014, tier: 'sapphire', overall: 85 },
-  { id: 'bogdan', firstName: 'Bogdan', lastName: 'Bogdanovic', position: 'SG', teamId: 'LAC', draftYear: 2014, tier: 'sapphire', overall: 85 },
-  { id: 'dillon', firstName: 'Dillon', lastName: 'Brooks', position: 'SF', teamId: 'PHX', draftYear: 2017, tier: 'sapphire', overall: 85 },
-  { id: 'looney', firstName: 'Kevon', lastName: 'Looney', position: 'C', teamId: 'GSW', draftYear: 2015, tier: 'sapphire', overall: 85 },
-  { id: 'capela', firstName: 'Clint', lastName: 'Capela', position: 'C', teamId: 'ATL', draftYear: 2014, tier: 'sapphire', overall: 85 },
-  { id: 'josh_hart', firstName: 'Josh', lastName: 'Hart', position: 'SG', teamId: 'NYK', draftYear: 2017, tier: 'sapphire', overall: 85 },
-  { id: 'rui', firstName: 'Rui', lastName: 'Hachimura', position: 'PF', teamId: 'LAL', draftYear: 2019, tier: 'sapphire', overall: 85 },
-  { id: 'herro', firstName: 'Tyler', lastName: 'Herro', position: 'SG', teamId: 'MIA', draftYear: 2019, tier: 'sapphire', overall: 85 },
-  { id: 'sengun2', firstName: 'Cam', lastName: 'Thomas', position: 'SG', teamId: 'BKN', draftYear: 2021, tier: 'sapphire', overall: 84 },
-  { id: 'flagg', firstName: 'Cooper', lastName: 'Flagg', position: 'PF', teamId: 'DAL', draftYear: 2025, tier: 'sapphire', overall: 84 },
-  { id: 'turner', firstName: 'Myles', lastName: 'Turner', position: 'C', teamId: 'MIL', draftYear: 2015, tier: 'sapphire', overall: 84 },
-
-  // ============ EMERALD (80-83 OVR) ============
-  { id: 'cam_johnson', firstName: 'Cam', lastName: 'Johnson', position: 'SF', teamId: 'DEN', draftYear: 2019, tier: 'emerald', overall: 83 },
-  { id: 'ivey', firstName: 'Jaden', lastName: 'Ivey', position: 'SG', teamId: 'CHI', draftYear: 2022, tier: 'emerald', overall: 83 },
-  { id: 'duren', firstName: 'Jalen', lastName: 'Duren', position: 'C', teamId: 'DET', draftYear: 2022, tier: 'emerald', overall: 83 },
-  { id: 'jaime', firstName: 'Jaime', lastName: 'Jaquez Jr.', position: 'SF', teamId: 'MIA', draftYear: 2023, tier: 'emerald', overall: 83 },
-  { id: 'mathurin', firstName: 'Bennedict', lastName: 'Mathurin', position: 'SG', teamId: 'LAC', draftYear: 2022, tier: 'emerald', overall: 83 },
-  { id: 'powell', firstName: 'Norman', lastName: 'Powell', position: 'SG', teamId: 'MIA', draftYear: 2015, tier: 'emerald', overall: 83 },
-  { id: 'keegan', firstName: 'Keegan', lastName: 'Murray', position: 'SF', teamId: 'SAC', draftYear: 2022, tier: 'emerald', overall: 83 },
-  { id: 'kuminga', firstName: 'Jonathan', lastName: 'Kuminga', position: 'PF', teamId: 'ATL', draftYear: 2021, tier: 'emerald', overall: 83 },
-  { id: 'knecht', firstName: 'Dalton', lastName: 'Knecht', position: 'SG', teamId: 'LAL', draftYear: 2024, tier: 'emerald', overall: 83 },
-  { id: 'tre_jones', firstName: 'Tre', lastName: 'Jones', position: 'PG', teamId: 'CHI', draftYear: 2020, tier: 'emerald', overall: 82 },
-  { id: 'aldama', firstName: 'Santi', lastName: 'Aldama', position: 'PF', teamId: 'MEM', draftYear: 2021, tier: 'emerald', overall: 82 },
-  { id: 'pat_will', firstName: 'Patrick', lastName: 'Williams', position: 'PF', teamId: 'CHI', draftYear: 2020, tier: 'emerald', overall: 82 },
-  { id: 'brogdon', firstName: 'Malcolm', lastName: 'Brogdon', position: 'PG', teamId: 'WAS', draftYear: 2016, tier: 'emerald', overall: 82 },
-  { id: 'ayo', firstName: 'Ayo', lastName: 'Dosunmu', position: 'PG', teamId: 'MIN', draftYear: 2021, tier: 'emerald', overall: 82 },
-  { id: 'giddey', firstName: 'Josh', lastName: 'Giddey', position: 'PG', teamId: 'CHI', draftYear: 2021, tier: 'emerald', overall: 82 },
-  { id: 'naz', firstName: 'Naz', lastName: 'Reid', position: 'C', teamId: 'MIN', draftYear: 2019, tier: 'emerald', overall: 82 },
-  { id: 'poeltl', firstName: 'Jakob', lastName: 'Poeltl', position: 'C', teamId: 'TOR', draftYear: 2016, tier: 'emerald', overall: 82 },
-  { id: 'hunter', firstName: "De'Andre", lastName: 'Hunter', position: 'SF', teamId: 'CLE', draftYear: 2019, tier: 'emerald', overall: 82 },
-  { id: 'nembhard', firstName: 'Andrew', lastName: 'Nembhard', position: 'PG', teamId: 'IND', draftYear: 2022, tier: 'emerald', overall: 82 },
-  { id: 'zubac', firstName: 'Ivica', lastName: 'Zubac', position: 'C', teamId: 'IND', draftYear: 2016, tier: 'emerald', overall: 82 },
-  { id: 'russell', firstName: "D'Angelo", lastName: 'Russell', position: 'PG', teamId: 'WAS', draftYear: 2015, tier: 'emerald', overall: 82 },
-  { id: 'keyonte', firstName: 'Keyonte', lastName: 'George', position: 'PG', teamId: 'UTA', draftYear: 2023, tier: 'emerald', overall: 82 },
-  { id: 'ausar', firstName: 'Ausar', lastName: 'Thompson', position: 'SF', teamId: 'DET', draftYear: 2023, tier: 'emerald', overall: 82 },
-  { id: 'deni', firstName: 'Deni', lastName: 'Avdija', position: 'SF', teamId: 'POR', draftYear: 2020, tier: 'emerald', overall: 82 },
-  { id: 'risacher', firstName: 'Zaccharie', lastName: 'Risacher', position: 'SF', teamId: 'ATL', draftYear: 2024, tier: 'emerald', overall: 82 },
-  { id: 'harper', firstName: 'Dylan', lastName: 'Harper', position: 'PG', teamId: 'SAS', draftYear: 2025, tier: 'emerald', overall: 82 },
-  { id: 'ace_bailey', firstName: 'Ace', lastName: 'Bailey', position: 'SF', teamId: 'UTA', draftYear: 2025, tier: 'emerald', overall: 82 },
-  { id: 'anfernee', firstName: 'Scoot', lastName: 'Henderson', position: 'PG', teamId: 'POR', draftYear: 2023, tier: 'emerald', overall: 82 },
-  { id: 'okoro', firstName: 'Isaac', lastName: 'Okoro', position: 'SF', teamId: 'CLE', draftYear: 2020, tier: 'emerald', overall: 81 },
-  { id: 'moody', firstName: 'Moses', lastName: 'Moody', position: 'SG', teamId: 'GSW', draftYear: 2021, tier: 'emerald', overall: 81 },
-  { id: 'nick_rich', firstName: 'Nick', lastName: 'Richards', position: 'C', teamId: 'CHA', draftYear: 2020, tier: 'emerald', overall: 81 },
-  { id: 'taylor', firstName: 'Taylor', lastName: 'Hendricks', position: 'PF', teamId: 'MEM', draftYear: 2023, tier: 'emerald', overall: 81 },
-  { id: 'sarr', firstName: 'Alex', lastName: 'Sarr', position: 'C', teamId: 'WAS', draftYear: 2024, tier: 'emerald', overall: 81 },
-  { id: 'clingan', firstName: 'Donovan', lastName: 'Clingan', position: 'C', teamId: 'POR', draftYear: 2024, tier: 'emerald', overall: 81 },
-  { id: 'edey', firstName: 'Zach', lastName: 'Edey', position: 'C', teamId: 'MEM', draftYear: 2024, tier: 'emerald', overall: 81 },
-  { id: 'edgecombe', firstName: 'VJ', lastName: 'Edgecombe', position: 'SG', teamId: 'PHI', draftYear: 2025, tier: 'emerald', overall: 81 },
-  { id: 'knueppel', firstName: 'Kon', lastName: 'Knueppel', position: 'SG', teamId: 'CHA', draftYear: 2025, tier: 'emerald', overall: 81 },
-  { id: 'tre_johnson', firstName: 'Tre', lastName: 'Johnson', position: 'SG', teamId: 'WAS', draftYear: 2025, tier: 'emerald', overall: 81 },
-  { id: 'sheppard', firstName: 'Reed', lastName: 'Sheppard', position: 'SG', teamId: 'HOU', draftYear: 2024, tier: 'emerald', overall: 80 },
-  { id: 'holland', firstName: 'Ron', lastName: 'Holland II', position: 'SF', teamId: 'DET', draftYear: 2024, tier: 'emerald', overall: 80 },
-  { id: 'fears', firstName: 'Jeremiah', lastName: 'Fears', position: 'PG', teamId: 'NOP', draftYear: 2025, tier: 'emerald', overall: 80 },
-  { id: 'demin', firstName: 'Egor', lastName: 'Demin', position: 'PG', teamId: 'BKN', draftYear: 2025, tier: 'emerald', overall: 80 },
-
-  // ============ GOLD (76-79 OVR) ============
-  { id: 'fournier', firstName: 'Evan', lastName: 'Fournier', position: 'SG', teamId: 'DET', draftYear: 2012, tier: 'gold', overall: 78 },
-  { id: 'bones', firstName: 'Bones', lastName: 'Hyland', position: 'PG', teamId: 'ATL', draftYear: 2021, tier: 'gold', overall: 78 },
-  { id: 'niang', firstName: 'Georges', lastName: 'Niang', position: 'PF', teamId: 'MEM', draftYear: 2016, tier: 'gold', overall: 78 },
-  { id: 'rubio_q', firstName: 'Quentin', lastName: 'Grimes', position: 'SG', teamId: 'PHI', draftYear: 2021, tier: 'gold', overall: 78 },
-  { id: 'tre_mann', firstName: 'Tre', lastName: 'Mann', position: 'PG', teamId: 'CHA', draftYear: 2021, tier: 'gold', overall: 77 },
-  { id: 'dinwiddie', firstName: 'Spencer', lastName: 'Dinwiddie', position: 'PG', teamId: 'DAL', draftYear: 2014, tier: 'gold', overall: 77 },
-  { id: 'walker', firstName: 'Jabari', lastName: 'Walker', position: 'PF', teamId: 'POR', draftYear: 2022, tier: 'gold', overall: 77 },
-  { id: 'dwight_p', firstName: 'Dwight', lastName: 'Powell', position: 'PF', teamId: 'DAL', draftYear: 2014, tier: 'gold', overall: 76 },
-];
-
-export function getPlayersByTier(tier: Player['tier']): Player[] {
-  return PLAYERS.filter((p) => p.tier === tier);
+// ═══════════════════════════════════════════════════════════════
+//  TIER THRESHOLDS
+// ═══════════════════════════════════════════════════════════════
+//  Dark Matter:  99-100    Galaxy Opal:  97-98
+//  Pink Diamond: 95-96     Diamond:      92-94
+//  Amethyst:     90-91     Ruby:         87-89
+//  Sapphire:     84-86     Emerald:      80-83
+//  Gold:         ≤79
+// ═══════════════════════════════════════════════════════════════
+export function tierFromOverall(ovr: number): Tier {
+  if (ovr >= 99) return "dark-matter";
+  if (ovr >= 97) return "galaxy-opal";
+  if (ovr >= 95) return "pink-diamond";
+  if (ovr >= 92) return "diamond";
+  if (ovr >= 90) return "amethyst";
+  if (ovr >= 87) return "ruby";
+  if (ovr >= 84) return "sapphire";
+  if (ovr >= 80) return "emerald";
+  return "gold";
 }
 
-export function getPlayersByPosition(position: Player['position']): Player[] {
-  return PLAYERS.filter((p) => p.position === position);
+// ═══════════════════════════════════════════════════════════════
+//  POSITION HELPERS
+// ═══════════════════════════════════════════════════════════════
+const POS_MAP: Record<string, Position> = { PG: "PG", SG: "SG", SF: "SF", PF: "PF", C: "C" };
+const DEFAULT_SECONDARY: Record<Position, Position> = {
+  PG: "SG",
+  SG: "SF",
+  SF: "PF",
+  PF: "SF",
+  C: "PF",
+};
+
+// Team name → abbreviation lookup
+const TEAM_NAME_TO_ABBR: Record<string, string> = {};
+for (const t of TEAMS) {
+  TEAM_NAME_TO_ABBR[`${t.city} ${t.name}`] = t.abbreviation;
+}
+
+function makeId(firstName: string, lastName: string): string {
+  return firstName.toLowerCase().replace(/['.]/g, "").replace(/\s+/g, "_") + "_" + lastName.toLowerCase().replace(/['.]/g, "").replace(/\s+/g, "_").replace(/-/g, "_");
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  LOAD NBA PLAYERS FROM JSON DATA
+//  Data sourced from 2kratings.com. To refresh:
+//  1. Get updated data from 2kratings.com
+//  2. Replace src/data/nba-players.json
+//  Format: [{ first_name, last_name, position, rating, team_name,
+//             team_division, draft_year, image, team_logo }]
+// ═══════════════════════════════════════════════════════════════
+interface RawPlayer {
+  first_name: string;
+  last_name: string;
+  position: string;
+  rating: number;
+  team_name: string;
+  team_division: string;
+  draft_year: number;
+  image: string;
+  team_logo: string;
+}
+
+const OVR_OVERRIDES: Record<string, number> = {
+  shai_gilgeous_alexander: 100,
+  nikola_jokic: 100,
+  victor_wembanyama: 100,
+  stephen_curry: 100,
+  lebron_james: 100,
+  kevin_durant: 100,
+  luka_doncic: 100,
+  anthony_edwards: 98,
+  cade_cunningham: 97,
+};
+
+function convertRawPlayer(raw: RawPlayer): Player {
+  const parts = raw.position.split("/").map((s) => s.trim());
+  const primary = POS_MAP[parts[0]] ?? "SF";
+  let secondary = parts[1] ? POS_MAP[parts[1]] : undefined;
+  if (!secondary || secondary === primary) secondary = DEFAULT_SECONDARY[primary];
+
+  const id = makeId(raw.first_name, raw.last_name);
+  const ovr = OVR_OVERRIDES[id] ?? raw.rating;
+
+  return {
+    id,
+    firstName: raw.first_name,
+    lastName: raw.last_name,
+    position: primary,
+    secondaryPosition: secondary,
+    teamId: TEAM_NAME_TO_ABBR[raw.team_name] ?? "UTA",
+    draftYear: raw.draft_year,
+    tier: tierFromOverall(ovr),
+    overall: ovr,
+  };
+}
+
+// Convert JSON data to Player objects (deduped by id)
+const seen = new Set<string>();
+export const PLAYERS: Player[] = [];
+for (const raw of nbaPlayersData as RawPlayer[]) {
+  const p = convertRawPlayer(raw);
+  if (!seen.has(p.id)) {
+    seen.add(p.id);
+    PLAYERS.push(p);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CUSTOM / PROMO CARDS
+// ═══════════════════════════════════════════════════════════════
+// Add special edition cards here. Use `playerId` to link to the
+// base player so two versions can't appear in the same draft.
+//
+// Example:
+//   {
+//     id: 'lebron_xmas', playerId: 'lebron_james',
+//     firstName: 'LeBron', lastName: 'James', position: 'SF',
+//     secondaryPosition: 'PF', teamId: 'LAL', draftYear: 2003,
+//     tier: 'dark-matter', overall: 100, badge: 'CHRISTMAS',
+//   },
+//
+export const CUSTOM_CARDS: Player[] = [
+  {
+    id: "hoodie_melo",
+    playerId: "carmelo_anthony",
+    firstName: "Carmelo",
+    lastName: "Anthony",
+    position: "SF",
+    secondaryPosition: "PF",
+    teamId: "NYK",
+    draftYear: 2025,
+    tier: "dark-matter",
+    overall: 100,
+    badge: "HOODIE",
+  },
+];
+
+// All cards available for drafting (base roster + custom)
+export const ALL_PLAYERS: Player[] = [...PLAYERS, ...CUSTOM_CARDS];
+
+export function getPlayersByTier(tier: Tier): Player[] {
+  return ALL_PLAYERS.filter((p) => p.tier === tier);
+}
+
+export function getPlayersByPosition(position: Position): Player[] {
+  return ALL_PLAYERS.filter((p) => p.position === position);
 }
 
 export function getPlayersByTeam(teamId: string): Player[] {
-  return PLAYERS.filter((p) => p.teamId === teamId);
+  return ALL_PLAYERS.filter((p) => p.teamId === teamId);
 }

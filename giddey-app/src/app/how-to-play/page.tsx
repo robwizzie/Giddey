@@ -1,8 +1,11 @@
 'use client';
 
 import Header from '@/components/Header';
+import PlayerCard from '@/components/PlayerCard';
+import MiniGridDiagram from '@/components/MiniGridDiagram';
 import Link from 'next/link';
 import { Tier, DRAFT_ODDS } from '@/lib/types';
+import { EXAMPLE_CARDS, TIER_DISPLAY } from '@/lib/example-cards';
 
 const tiers: { tier: Tier; label: string; ovrRange: string }[] = [
   { tier: 'dark-matter', label: 'Dark Matter', ovrRange: '100' },
@@ -16,17 +19,9 @@ const tiers: { tier: Tier; label: string; ovrRange: string }[] = [
   { tier: 'gold', label: 'Gold', ovrRange: '76-79' },
 ];
 
-const tierColors: Record<string, string> = {
-  'dark-matter': '#8b5cf6',
-  'galaxy-opal': '#f0abfc',
-  'pink-diamond': '#ec4899',
-  'diamond': '#06b6d4',
-  'amethyst': '#a855f7',
-  'ruby': '#ef4444',
-  'sapphire': '#3b82f6',
-  'emerald': '#22c55e',
-  'gold': '#eab308',
-};
+const tierColors: Record<string, string> = Object.fromEntries(
+  TIER_DISPLAY.map(t => [t.tier, t.color])
+);
 
 export default function HowToPlayPage() {
   return (
@@ -75,17 +70,15 @@ export default function HowToPlayPage() {
             Each player has an <strong className="text-white">Overall Rating (OVR)</strong> shown on their card. Higher OVR players contribute more to your talent score. Talent per player = <strong className="text-white">OVR - 75</strong> (so a 100 OVR adds 25, a 90 OVR adds 15, a 76 OVR adds 1).
           </p>
 
-          <div className="bg-black/40 rounded-xl p-4 border border-white/10">
-            <div className="grid grid-cols-9 gap-1">
-              {tiers.map(({ tier, label, ovrRange }) => (
-                <div key={tier} className="flex flex-col items-center gap-1.5">
-                  <span className="text-[8px] font-bold leading-tight text-center" style={{ color: tierColors[tier] }}>
-                    {label.split(' ').map(w => w[0]).join('')}
+          <div className="bg-black/40 rounded-xl p-4 border border-white/10 overflow-x-auto">
+            <div className="flex gap-3 min-w-max pb-1">
+              {EXAMPLE_CARDS.map(({ card, talent }) => (
+                <div key={card.tier} className="flex flex-col items-center gap-1.5">
+                  <span className="text-[9px] font-bold leading-tight text-center" style={{ color: tierColors[card.tier] }}>
+                    {tiers.find(t => t.tier === card.tier)?.label}
                   </span>
-                  <div className={`w-8 h-10 rounded-md tier-${tier}`} />
-                  <span className="text-[8px] font-bold text-white/60 leading-tight text-center">
-                    {ovrRange}
-                  </span>
+                  <PlayerCard card={card} size="option" cardSize={{ w: 68, h: 95 }} />
+                  <span className="text-[10px] font-black text-orange-400">+{talent}</span>
                 </div>
               ))}
             </div>
@@ -167,14 +160,7 @@ export default function HowToPlayPage() {
             Your lineup is arranged in a formation with 13 connections between 9 positions. The <strong className="text-white">Center (C)</strong> connects to 4 adjacent players — making it the most important piece of the puzzle.
           </p>
 
-          <div className="bg-black/40 rounded-xl p-4 border border-white/10">
-            <pre className="text-xs text-white/60 font-mono text-center leading-relaxed">
-{`     [SG]  [SF]
- [UTIL][PG][PG][UTIL]
- [SF]            [SG]
-        [C]`}
-            </pre>
-          </div>
+          <MiniGridDiagram />
         </div>
 
         {/* Other Rules */}

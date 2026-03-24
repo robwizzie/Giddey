@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { PlayerCard as PlayerCardType, GridSlot, ScoreBreakdown, DRAFT_ODDS } from '@/lib/types';
+import { Player, PlayerCard as PlayerCardType, GridSlot, ScoreBreakdown, DRAFT_ODDS } from '@/lib/types';
 import { createInitialGrid, generateOptions, placeCard, swapCards, getValidSlotsForCard, getValidSwapTargets } from '@/lib/draft';
 import { calculateScore } from '@/lib/scoring';
+import { loadPlayers } from '@/lib/player-loader';
+import { EXAMPLE_CARDS, TIER_DISPLAY } from '@/lib/example-cards';
 import Header from '@/components/Header';
 import Grid from '@/components/Grid';
+import PlayerCard from '@/components/PlayerCard';
+import MiniGridDiagram from '@/components/MiniGridDiagram';
 import DraftOptions from '@/components/DraftOptions';
 import ResultsScreen from '@/components/ResultsScreen';
 
@@ -36,9 +40,25 @@ function HowToPlayModal({ onClose }: { onClose: () => void }) {
         {/* Talent */}
         <div className="mb-6">
           <h3 className="text-base font-black text-orange-500 uppercase tracking-wider mb-2">Talent</h3>
-          <p className="text-xs text-white/70 leading-relaxed">
-            Each player has an <strong className="text-white">Overall Rating (OVR)</strong> shown on their card. Talent per player = <strong className="text-white">OVR − 75</strong> (so a 100 OVR adds 25, a 90 OVR adds 15).
+          <p className="text-xs text-white/70 leading-relaxed mb-3">
+            Each card&apos;s tier earns fixed talent points:
           </p>
+          <div className="bg-black/40 rounded-xl p-3 border border-white/10 overflow-x-auto">
+            <div className="flex gap-2.5 min-w-max pb-1">
+              {EXAMPLE_CARDS.map(({ card, talent }) => {
+                const display = TIER_DISPLAY.find(t => t.tier === card.tier);
+                return (
+                  <div key={card.tier} className="flex flex-col items-center gap-1">
+                    <span className="text-[8px] font-bold leading-tight text-center" style={{ color: display?.color }}>
+                      {display?.label}
+                    </span>
+                    <PlayerCard card={card} size="option" cardSize={{ w: 56, h: 78 }} />
+                    <span className="text-[9px] font-black text-orange-400">+{talent}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Chemistry */}
@@ -84,12 +104,7 @@ function HowToPlayModal({ onClose }: { onClose: () => void }) {
           <p className="text-xs text-white/70 leading-relaxed mb-3">
             9 positions, 15 connections. The <strong className="text-white">Center (C)</strong> connects to 4 players — the most important spot.
           </p>
-          <div className="bg-black/40 rounded-xl p-3 border border-white/10">
-            <pre className="text-xs text-white/60 font-mono text-center leading-relaxed">{`    [SG]  [SF]
-[UTIL][PG][PG][UTIL]
-[SF]          [SG]
-      [C]`}</pre>
-          </div>
+          <MiniGridDiagram />
         </div>
 
         {/* Rules */}
@@ -99,6 +114,7 @@ function HowToPlayModal({ onClose }: { onClose: () => void }) {
             {[
               'Once a player is placed, you cannot swap them for a different card option that round.',
               'Drag cards on the grid to rearrange positions at any time.',
+              'Players can be placed at their primary or secondary position (shown on card).',
               'UTIL spots accept any position.',
             ].map((rule) => (
               <div key={rule} className="flex items-start gap-2">
@@ -246,11 +262,15 @@ export default function DraftPage() {
   const [showOdds, setShowOdds] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [playerPool, setPlayerPool] = useState<Player[]>([]);
 
+  // Load players dynamically on mount, then generate first round options
   useEffect(() => {
-    const opts = generateOptions(1, grid, usedPlayerIds);
-    setOptions(opts);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadPlayers().then((players) => {
+      setPlayerPool(players);
+      const opts = generateOptions(1, createInitialGrid(), new Set(), players);
+      setOptions(opts);
+    });
   }, []);
 
   useEffect(() => {
@@ -314,9 +334,9 @@ export default function DraftPage() {
     setRound(nextRound);
     setCardPlacedThisRound(false);
     setPlacedOptionIndex(null);
-    const newOpts = generateOptions(nextRound, grid, usedPlayerIds);
+    const newOpts = generateOptions(nextRound, grid, usedPlayerIds, playerPool);
     setOptions(newOpts);
-  }, [cardPlacedThisRound, round, grid, usedPlayerIds]);
+  }, [cardPlacedThisRound, round, grid, usedPlayerIds, playerPool]);
 
   const handleSlotClick = useCallback((index: number) => {
     if (swapMode !== null) {
@@ -367,13 +387,38 @@ export default function DraftPage() {
     }
   }, [selectedOptionIndex, swapMode, grid]);
 
-  const handleDropOnSlot = useCallback((slotIndex: number) => {
-    if (selectedOptionIndex !== null && validSlots.includes(slotIndex)) {
-      handlePlaceCard(slotIndex);
+  const handleDropOnSlot = useCallback((slotIndex: number, optionIndex?: number) => {
+    // Use optionIndex from drag data if available, fallback to selectedOptionIndex
+    const idx = optionIndex ?? selectedOptionIndex;
+    if (idx === null || idx === undefined) return;
+    const card = options[idx];
+    if (!card) return;
+    // Validate slot is compatible with this card's position
+    const valid = getValidSlotsForCard(grid, card);
+    if (valid.includes(slotIndex)) {
+      handlePlaceCard(slotIndex, card);
     }
-  }, [selectedOptionIndex, validSlots, handlePlaceCard]);
+  }, [selectedOptionIndex, options, grid, handlePlaceCard]);
 
   const handleDragSwap = useCallback((fromIndex: number, toIndex: number) => {
+    // If target slot is empty, move the card there (if position valid)
+    if (!grid[toIndex]?.card && grid[fromIndex]?.card) {
+      const card = grid[fromIndex].card!;
+      const toSlot = grid[toIndex];
+      const posValid = toSlot.position === 'UTIL' || toSlot.position === card.position || toSlot.position === card.secondaryPosition;
+      if (posValid) {
+        const newGrid = grid.map((slot, i) => {
+          if (i === fromIndex) return { ...slot, card: null };
+          if (i === toIndex) return { ...slot, card };
+          return slot;
+        });
+        setGrid(newGrid);
+        setSwapMode(null);
+        setValidSlots([]);
+        return;
+      }
+    }
+    // Otherwise try a swap between two filled slots
     const result = swapCards(grid, fromIndex, toIndex);
     if (result) setGrid(result);
     setSwapMode(null);
@@ -419,9 +464,9 @@ export default function DraftPage() {
     setDraftComplete(false);
     setShowResults(false);
     setCardPlacedThisRound(false);
-    const opts = generateOptions(1, newGrid, new Set());
+    const opts = generateOptions(1, newGrid, new Set(), playerPool);
     setOptions(opts);
-  }, []);
+  }, [playerPool]);
 
   if (showResults) {
     return <ResultsScreen grid={grid} score={score} onPlayAgain={handlePlayAgain} />;
@@ -456,10 +501,10 @@ export default function DraftPage() {
         />
       </div>
 
-      {/* ── DRAFT AREA (dark section at bottom, fixed height) ── */}
+      {/* ── DRAFT AREA (dark section at bottom, consistent height) ── */}
       <div
         className="shrink-0 w-full flex flex-col items-center gap-2 px-3 pt-2 pb-3"
-        style={{ background: '#111827', borderTop: '3px solid #1f2937' }}
+        style={{ background: '#111827', borderTop: '3px solid #1f2937', minHeight: 200 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top row: achvs + round dots + odds */}

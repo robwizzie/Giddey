@@ -13,20 +13,14 @@ import { PlayerCard, GridSlot, GridPosition, ChemLine, ChemDot, ChemLineLevel, C
  *   Yellow Dot (+6 Chem): Player has 2–3 line chem from adjacent connections
  *   Red Dot (0 Chem): Player has 0–1 line chem
  *
- * MAX CHEMISTRY: 12 green lines × 3 + 9 green dots × 11 = 36 + 99 = 135
+ * MAX CHEMISTRY: 15 green lines × 3 + 9 green dots × 11 = 45 + 99 = 144
  *
  * TALENT: Fixed points per tier (max 9 × 15 = 135)
- *   Dark Matter   → 15
- *   Galaxy Opal   → 13
- *   Pink Diamond  → 11
- *   Diamond       →  9
- *   Amethyst      →  7
- *   Ruby          →  5
- *   Sapphire      →  4
- *   Emerald       →  2
- *   Gold          →  1
+ *   Dark Matter   → 15   Galaxy Opal → 13   Pink Diamond → 11
+ *   Diamond       →  9   Amethyst    →  7   Ruby         →  5
+ *   Sapphire      →  4   Emerald     →  2   Gold         →  1
  *
- * MAX TOTAL: 135 (talent) + 135 (chem) = 270
+ * MAX TOTAL: 135 (talent) + 144 (chem) = 279
  */
 
 const TIER_TALENT: Record<Tier, number> = {
@@ -139,7 +133,7 @@ export function findOptimalLineup(grid: GridSlot[]): { bestScore: ScoreBreakdown
 
   function canPlace(card: PlayerCard, slotPos: GridPosition): boolean {
     if (slotPos === 'UTIL') return true;
-    return slotPos === card.position;
+    return slotPos === card.position || slotPos === card.secondaryPosition;
   }
 
   const used = new Array(cards.length).fill(false);

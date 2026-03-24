@@ -27,13 +27,18 @@ export interface Team {
 
 export interface Player {
   id: string;
+  /** Links card variants of the same real person — defaults to id if not set */
+  playerId?: string;
   firstName: string;
   lastName: string;
   position: Position;
+  secondaryPosition: Position;
   teamId: string;
   draftYear: number;
   tier: Tier;
   overall: number;
+  /** Optional custom label shown on the card (e.g. "PROMO", "CHRISTMAS") */
+  badge?: string;
 }
 
 export interface PlayerCard extends Player {

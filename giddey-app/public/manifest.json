@@ -1,0 +1,17 @@
+{
+  "name": "Giddey — Basketball Draft Puzzle",
+  "short_name": "Giddey",
+  "description": "The daily basketball draft puzzle. Draft 9 players, build chemistry, and score big.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e17",
+  "theme_color": "#0a0e17",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

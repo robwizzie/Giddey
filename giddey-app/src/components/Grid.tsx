@@ -14,7 +14,8 @@ interface GridProps {
   swapSource?: number | null;
   swapTargets?: number[];
   isComplete?: boolean;
-  onDropOnSlot?: (slotIndex: number) => void;
+  readOnly?: boolean;
+  onDropOnSlot?: (slotIndex: number, optionIndex?: number) => void;
   onDragSwap?: (fromIndex: number, toIndex: number) => void;
   onBackgroundClick?: () => void;
   onGridCardDragStart?: (index: number) => void;
@@ -49,7 +50,7 @@ function computeMatchingTraits(grid: GridSlot[]): Record<number, Set<string>> {
 
 export default function Grid({
   grid, lines, dots, validSlots = [], onSlotClick, onCardClick,
-  swapSource, swapTargets = [], isComplete = false,
+  swapSource, swapTargets = [], isComplete = false, readOnly = false,
   onDropOnSlot, onDragSwap, onBackgroundClick,
   onGridCardDragStart, onGridCardDragEnd,
 }: GridProps) {
@@ -71,12 +72,11 @@ export default function Grid({
     const H = el.offsetHeight;
     if (W < 80) return;
     setContainerW(W);
-    // Width-based sizing: 4 cards + gaps across the row
-    const cwByWidth = Math.floor(W / 5.5);
-    // Height-based sizing: 4 rows + pgShift(~0.63*cardH) + padding must fit
-    // 4*cardH + 0.63*cardH + 24 ≈ 4.7*cardH + 24 <= H
-    const cwByHeight = H > 40 ? Math.floor(((H - 24) / 4.7) / 1.4) : cwByWidth;
-    const cw = Math.min(cwByWidth, cwByHeight, 105);
+    // Width-based: fit 4 cards + gaps across the row
+    const cwByWidth = Math.floor(W / 5.2);
+    // Height-based: fit ~5 rows of cards vertically
+    const cwByHeight = H > 40 ? Math.floor(((H - 16) / 4.8) / 1.4) : cwByWidth;
+    const cw = Math.min(cwByWidth, cwByHeight, 160);
     setCardW(Math.max(cw, 54));
   }, []);
 
@@ -135,33 +135,63 @@ export default function Grid({
   const pgShift  = Math.round(cardH * 0.57);   // PG slots shifted further down within row-2
   const cLift    = Math.round(cardH * 0.48);   // row-4 center lifted up
 
-  // Row max-width: cap at 550px (reference) so grid centers on wide screens
-  const rowMaxW = Math.min(containerW - 4, 550);
+  // Row max-width: scale with card size, cap for very wide screens
+  const rowMaxW = Math.min(containerW - 4, cardW * 6.5);
+
+  // ── Magnetic snap: find nearest slot to cursor ──────────────────
+  const nearestSlotRef = useRef<number | null>(null);
+  const SNAP_RADIUS = cardW * 1.8; // snap when cursor is within 1.8× card width
+
+  const findNearestSlot = useCallback((clientX: number, clientY: number): number | null => {
+    let best: number | null = null;
+    let bestDist = SNAP_RADIUS;
+    slotRefs.current.forEach((ref, i) => {
+      if (!ref || i === dragSource) return;
+      const r = ref.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dist = Math.hypot(clientX - cx, clientY - cy);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    });
+    return best;
+  }, [dragSource, SNAP_RADIUS]);
 
   // ── Drag handlers ──────────────────────────────────────────────
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
-  const handleDrop = (e: React.DragEvent, idx: number) => {
-    e.preventDefault(); setDragOverTarget(null);
+  const handleContainerDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); e.dataTransfer.dropEffect = "move";
+    const nearest = findNearestSlot(e.clientX, e.clientY);
+    nearestSlotRef.current = nearest;
+    setDragOverTarget(nearest);
+  }, [findNearestSlot]);
+
+  const handleContainerDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const targetIdx = nearestSlotRef.current;
+    setDragOverTarget(null);
+    nearestSlotRef.current = null;
+    if (targetIdx === null) { setDragSource(null); return; }
+
     const st = e.dataTransfer.getData("source-type");
     if (st === "grid-card" && onDragSwap) {
       const from = parseInt(e.dataTransfer.getData("grid-index"), 10);
-      if (!isNaN(from) && from !== idx) onDragSwap(from, idx);
+      if (!isNaN(from) && from !== targetIdx) onDragSwap(from, targetIdx);
       setDragSource(null); return;
     }
-    if (onDropOnSlot) onDropOnSlot(idx);
-  };
+    if (st === "option-card" && onDropOnSlot) {
+      const optIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+      onDropOnSlot(targetIdx, isNaN(optIdx) ? undefined : optIdx);
+      return;
+    }
+    if (onDropOnSlot) onDropOnSlot(targetIdx);
+  }, [onDragSwap, onDropOnSlot]);
+
   const handleGridCardDragStart = (e: React.DragEvent, idx: number) => {
     e.dataTransfer.setData("source-type", "grid-card");
     e.dataTransfer.setData("grid-index", String(idx));
     e.dataTransfer.effectAllowed = "move";
     setDragSource(idx); onGridCardDragStart?.(idx);
   };
-  const handleGridCardDragEnd = () => { setDragSource(null); setDragOverTarget(null); onGridCardDragEnd?.(); };
-  const handleCardDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault(); e.dataTransfer.dropEffect = "move";
-    if (dragSource !== null && dragSource !== idx) setDragOverTarget(idx);
-  };
-  const handleCardDragLeave = () => setDragOverTarget(null);
+  const handleGridCardDragEnd = () => { setDragSource(null); setDragOverTarget(null); nearestSlotRef.current = null; onGridCardDragEnd?.(); };
 
   // ── Render one slot wrapper ────────────────────────────────────
   function renderSlot(i: number) {
@@ -170,7 +200,7 @@ export default function Grid({
     const valid = validSlots.includes(i);
     const isSrc    = swapSource === i;
     const isTgt    = swapTargets.includes(i);
-    const inactive = swapSource !== null && !isSrc && !isTgt && slot.card !== null;
+    const inactive = swapSource != null && !isSrc && !isTgt && slot.card !== null;
     const isDragSrc = dragSource === i;
     const isDragTgt = dragOverTarget === i;
     const side = LABEL_SIDE[i];
@@ -201,10 +231,8 @@ export default function Grid({
               ${inactive ? "swap-inactive"     : ""}
               ${isDragSrc ? "dragging-source"  : ""}
               ${isDragTgt ? "drag-swap-target" : ""}`}
-            onClick={(e) => { e.stopPropagation(); onCardClick ? onCardClick(i) : onSlotClick(i); }}
-            onDragOver={(e) => handleCardDragOver(e, i)}
-            onDragLeave={handleCardDragLeave}
-            onDrop={(e) => handleDrop(e, i)}
+            style={readOnly ? { cursor: "default" } : undefined}
+            onClick={(e) => { e.stopPropagation(); if (!readOnly) { onCardClick ? onCardClick(i) : onSlotClick(i); } }}
           >
             <PlayerCard
               card={slot.card} size="grid"
@@ -212,20 +240,18 @@ export default function Grid({
               showDot={false}
               matchingTraits={matchingTraits[i]}
               className={isComplete || isDragSrc || isSrc ? "" : "animate-card-place"}
-              draggable
-              onDragStart={(e) => handleGridCardDragStart(e, i)}
-              onDragEnd={handleGridCardDragEnd}
+              draggable={!readOnly}
+              onDragStart={readOnly ? undefined : (e) => handleGridCardDragStart(e, i)}
+              onDragEnd={readOnly ? undefined : handleGridCardDragEnd}
             />
           </div>
         ) : (
           <div
             ref={(el) => { slotRefs.current[i] = el; }}
-            className={`grid-slot-empty flex items-center justify-center w-full h-full ${valid ? "valid-target" : ""}`}
+            className={`grid-slot-empty flex items-center justify-center w-full h-full ${valid ? "valid-target" : ""} ${isDragTgt ? "drag-swap-target" : ""}`}
             onClick={(e) => { e.stopPropagation(); onSlotClick(i); }}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, i)}
           >
-            <img src="/logo.png" alt="" style={{ width: Math.round(cardW * 0.42), height: Math.round(cardW * 0.42), objectFit: "contain", opacity: valid ? 0.55 : 0.38, pointerEvents: "none" }} draggable={false} />
+            <img src="/logo.png" alt="" style={{ width: Math.round(cardW * 0.38), height: Math.round(cardW * 0.38), objectFit: "contain", opacity: valid ? 0.55 : 0.35, pointerEvents: "none" }} draggable={false} />
           </div>
         )}
 
@@ -262,13 +288,16 @@ export default function Grid({
         alignItems: "center",
         justifyContent: "space-evenly",
         padding: "0.75rem 0.5rem",
-        overflow: "visible",
+        overflow: "hidden",
         borderRadius: 0,
         border: "none",
         boxShadow: "none",
-        background: "linear-gradient(180deg, #c45e20 0%, #a84e18 50%, #c45e20 100%)",
+        background: "linear-gradient(180deg, #c4651f 0%, #b5570f 30%, #a84e18 60%, #b5570f 85%, #c4651f 100%)",
       }}
       onClick={onBackgroundClick}
+      onDragOver={readOnly ? undefined : handleContainerDragOver}
+      onDrop={readOnly ? undefined : handleContainerDrop}
+      onDragLeave={() => { setDragOverTarget(null); nearestSlotRef.current = null; }}
     >
       {/* Decorative court lines */}
       {svgSize.w > 0 && <CourtLines w={svgSize.w} h={svgSize.h} />}
@@ -301,15 +330,15 @@ export default function Grid({
         <div style={{ width: cardW, flexShrink: 0, visibility: "hidden" }} />
       </div>
 
-      {/* Row 2: [2:UTIL][3:PG][4:PG][5:UTIL] — PGs shifted further down */}
-      <div style={rowStyle}>
+      {/* Row 2: [2:UTIL][3:PG][4:PG][5:UTIL] — narrower so UTIL is inward from wings */}
+      <div style={{ ...rowStyle, maxWidth: Math.round(rowMaxW * 0.82) }}>
         {renderSlot(2)}
         <div style={{ transform: `translateY(${pgShift}px)` }}>{renderSlot(3)}</div>
         <div style={{ transform: `translateY(${pgShift}px)` }}>{renderSlot(4)}</div>
         {renderSlot(5)}
       </div>
 
-      {/* Row 3: [6:SF-bottom][7:SG-bottom] */}
+      {/* Row 3: [6:SF-bottom][7:SG-bottom] — full width so wings are outside UTIL */}
       <div style={rowStyle}>
         {renderSlot(6)}
         {renderSlot(7)}

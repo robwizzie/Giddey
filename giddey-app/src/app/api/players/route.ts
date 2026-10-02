@@ -1,3 +1,5 @@
+export const dynamic = 'force-static';
+
 import { NextResponse } from 'next/server';
 import { ALL_PLAYERS } from '@/lib/players';
 import { TEAMS_MAP } from '@/lib/teams';

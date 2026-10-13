@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { bestLineup, other, players, recordGame, seriesScore, Side, teamOvr, VersusState } from '@/lib/versus/engine';
+import { bestLineup, normalizeSettings, other, players, recordGame, seriesScore, setSabotage, Settings, Side, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
+import { TierBuilder } from './SetupScreen';
 import { getTeamFor, VersusPlayer } from '@/lib/versus/pool';
 import { getPlayerHeadshotUrls } from '@/lib/images';
 import Headshot from '@/components/Headshot';
@@ -11,7 +12,9 @@ import {
 	challengeSegments,
 	DIFFICULTY_INFO,
 	getChallenge,
+	getSabotage,
 	getTwist,
+	SABOTAGES,
 	QUARTER_SEGMENTS,
 	quarterMinutes,
 	rollReward,
@@ -203,7 +206,7 @@ function GameRosters({ state }: { state: VersusState }) {
 					return (
 						<div key={side} className='rounded-2xl p-2.5 border min-w-0' style={{ borderColor: `${SIDE_COLORS[side]}55`, background: `linear-gradient(160deg, ${SIDE_COLORS[side]}18, transparent 60%)` }}>
 							<div className='flex items-baseline justify-between mb-1 px-0.5'>
-								<div className='text-xs font-black uppercase tracking-wider truncate' style={{ color: SIDE_COLORS[side] }}>{names[side]}</div>
+								<div className='text-xs font-black uppercase tracking-wider truncate' style={{ color: SIDE_COLORS[side] }}>{teamName(state.settings, side)}</div>
 								<div className='text-sm font-black text-white tabular-nums'>{teamOvr(state.teams[side]).toFixed(1)}</div>
 							</div>
 							<div className='divide-y divide-white/5'>
@@ -358,6 +361,9 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 							})()}
 						</div>
 
+						{/* Sabotage in play */}
+						{state.sabotage && <SabotageCard state={state} />}
+
 						{/* Honor boosts in play */}
 						{([0, 1] as Side[]).flatMap(side =>
 							state.honor[side]
@@ -405,11 +411,88 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 	);
 }
 
-export function PostGameScreen({ state, onRunBack, onRedraft, onNewSeries }: { state: VersusState; onRunBack: () => void; onRedraft: () => void; onNewSeries: () => void }) {
+export function SabotageCard({ state, pending }: { state: VersusState; pending?: boolean }) {
+	const sab = pending ? state.pendingSabotage : state.sabotage;
+	const info = getSabotage(sab?.id);
+	if (!sab || !info) return null;
+	const { names } = state.settings;
+	return (
+		<div className='rounded-xl p-3 border flex gap-3 items-start vs-rise' style={{ borderColor: `${info.color}66`, background: `${info.color}18` }}>
+			<div className='text-2xl'>😈</div>
+			<div className='text-[12px] text-white/80 leading-snug'>
+				<div className='text-xs font-black uppercase tracking-wider' style={{ color: info.color }}>
+					Sabotage: {info.label}
+				</div>
+				{info.id === 'mercy' ? (
+					<>
+						<span className='font-black' style={{ color: SIDE_COLORS[sab.on] }}>{names[sab.on]}</span> walks free. {info.desc}
+					</>
+				) : (
+					<>
+						<span className='font-black' style={{ color: SIDE_COLORS[sab.by] }}>{names[sab.by]}</span> hits <span className='font-black' style={{ color: SIDE_COLORS[sab.on] }}>{names[sab.on]}</span>
+						{pending ? ' next game' : ''}: {info.desc}
+					</>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function SabotageSpin({ state, setState }: { state: VersusState; setState: SetState }) {
+	const last = state.series[state.series.length - 1];
+	const loser = other(last.winner);
+	const [size] = useState(() => (typeof window === 'undefined' ? 280 : Math.min(300, window.innerWidth - 64)));
+	if (state.pendingSabotage) return <SabotageCard state={state} pending />;
+	return (
+		<div className='rounded-2xl border border-red-500/30 bg-red-500/[0.06] p-4 flex flex-col items-center'>
+			<div className='text-[11px] font-black uppercase tracking-widest text-red-300 mb-1'>😈 Revenge spin</div>
+			<div className='text-sm text-white/70 text-center mb-4'>
+				<span className='font-black' style={{ color: SIDE_COLORS[loser] }}>{state.settings.names[loser]}</span> lost — spin a sabotage for{' '}
+				<span className='font-black' style={{ color: SIDE_COLORS[last.winner] }}>{state.settings.names[last.winner]}</span> to suffer next game.
+			</div>
+			<Wheel items={SABOTAGES} size={size} accent='#ef4444' spinLabel='SPIN' onResult={i => setTimeout(() => setState(setSabotage(state, SABOTAGES[i].id)), 900)} />
+		</div>
+	);
+}
+
+/** The loser of the last game sets the winner's roster build for the redraft */
+function HandicapSheet({ state, setState, onClose }: { state: VersusState; setState: SetState; onClose: () => void }) {
+	const last = state.series[state.series.length - 1];
+	const winner = last.winner;
+	const loser = other(winner);
+	const [s, setS] = useState<Settings>(() => normalizeSettings({ ...state.settings, handicap: true, tiers2: state.settings.handicap ? state.settings.tiers2 : { ...state.settings.tiers } }));
+	const field = winner === 0 ? 'tiers' : 'tiers2';
+	return (
+		<div className='fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
+			<div className='w-full max-w-xl max-h-[90vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl p-4 animate-slide-up' onClick={e => e.stopPropagation()}>
+				<div className='text-lg font-black text-white mb-1'>🎯 {state.settings.names[loser]} sets the handicap</div>
+				<div className='text-xs text-white/50 mb-4'>Choose {state.settings.names[winner]}&apos;s roster build for the redraft. Your own build stays as it is. Handicap mode turns on.</div>
+				<TierBuilder s={s} setS={setS} field={field} title={`${state.settings.names[winner]}'s roster`} color={SIDE_COLORS[winner]} />
+				<div className='flex gap-2'>
+					<button onClick={onClose} className='rounded-2xl px-4 py-3 font-bold text-sm bg-white/10 text-white/70'>
+						Cancel
+					</button>
+					<button
+						onClick={() => {
+							setState({ ...state, settings: normalizeSettings(s) });
+							onClose();
+						}}
+						className='flex-1 btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white'
+					>
+						Lock it in
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSeries }: { state: VersusState; setState: SetState; onRunBack: () => void; onRedraft: () => void; onNewSeries: () => void }) {
 	const { names } = state.settings;
 	const last = state.series[state.series.length - 1];
 	const [w0, w1] = seriesScore(state);
 	const w = last.winner;
+	const [handicapOpen, setHandicapOpen] = useState(false);
 	return (
 		<div className='min-h-screen pb-10'>
 			<Confetti count={90} colors={[SIDE_COLORS[w], '#facc15', '#ffffff']} />
@@ -418,7 +501,7 @@ export function PostGameScreen({ state, onRunBack, onRedraft, onNewSeries }: { s
 					<div className='text-6xl mb-2'>🏆</div>
 					<div className='text-[11px] font-black uppercase tracking-[0.3em] text-white/45'>Game {last.game} goes to</div>
 					<div className='text-5xl font-black' style={{ color: SIDE_COLORS[w] }}>
-						{names[w]}
+						{teamName(state.settings, w)}
 					</div>
 					{last.score[0] !== null && last.score[1] !== null && (
 						<div className='text-xl font-black text-white/70 mt-1 tabular-nums'>
@@ -478,12 +561,21 @@ export function PostGameScreen({ state, onRunBack, onRedraft, onNewSeries }: { s
 					})}
 				</div>
 
+				<div className='mb-6'>
+					<SabotageSpin state={state} setState={setState} />
+				</div>
+
+				{handicapOpen && <HandicapSheet state={state} setState={setState} onClose={() => setHandicapOpen(false)} />}
+
 				<div className='space-y-2'>
 					<button onClick={onRunBack} className='w-full btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg'>
 						🔁 Run it back — same squads
 					</button>
 					<button onClick={onRedraft} className='w-full rounded-2xl py-4 font-black uppercase tracking-wider text-white bg-white/10 border border-white/15'>
 						🎴 Redraft — {names[other(w)]} wins the coin toss
+					</button>
+					<button onClick={() => setHandicapOpen(true)} className='w-full rounded-2xl py-3 text-sm font-black text-amber-300 bg-amber-400/10 border border-amber-400/25'>
+						🎯 {names[other(w)]} sets {names[w]}&apos;s handicap for the redraft
 					</button>
 					<button onClick={onNewSeries} className='w-full rounded-2xl py-3 text-sm font-bold text-white/45'>
 						End series &amp; start over

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { weightedIndex } from '@/lib/versus/wheels';
+import { play } from '@/lib/versus/sound';
 
 export interface WheelItem {
 	id: string;
@@ -60,12 +61,14 @@ export default function Wheel({ items, size = 300, onResult, disabled, spinLabel
 		const flick = () => {
 			t++;
 			setTick(x => x + 1);
+			play('tick');
 			const delay = 40 + t * t * 1.6;
 			if (delay < SPIN_MS * 0.5) timer.current = setTimeout(flick, delay);
 		};
 		flick();
 		setTimeout(() => {
 			setSpinning(false);
+			play('reveal');
 			setLanded(idx);
 			onResult(idx);
 		}, SPIN_MS + 80);

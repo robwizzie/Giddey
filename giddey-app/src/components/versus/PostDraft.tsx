@@ -5,6 +5,7 @@ import {
 	answerTrade,
 	applyEqualizer,
 	bestLineup,
+	chooseKeeper,
 	fairness,
 	other,
 	passTrade,
@@ -12,9 +13,12 @@ import {
 	proposeTrade,
 	resolveBoost,
 	Side,
+	teamName,
 	teamOvr,
 	VersusState,
 } from '@/lib/versus/engine';
+import { shareSquads } from '@/lib/versus/shareCard';
+import { ChemBars } from './DraftFx';
 import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { BOOSTS } from '@/lib/versus/wheels';
 import VersusCard, { RosterRow } from './VersusCard';
@@ -262,6 +266,13 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 	const ovr = [teamOvr(state.teams[0]), teamOvr(state.teams[1])];
 	const f = fairness(state.teams[0], state.teams[1]);
 	const [copied, setCopied] = useState(false);
+	const [sharing, setSharing] = useState<string | null>(null);
+	const share = async () => {
+		setSharing('Rendering…');
+		const r = await shareSquads(state);
+		setSharing(r === 'failed' ? 'Couldn’t render the image' : r === 'downloaded' ? '✓ Saved image' : null);
+		setTimeout(() => setSharing(null), 2000);
+	};
 
 	const copy = async () => {
 		const txt = `Giddey Versus — Game ${state.gameNo}\n\n${rosterText(state, 0)}\n\n${rosterText(state, 1)}`;
@@ -284,11 +295,14 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 				<div className='flex items-stretch gap-3 mb-4'>
 					{[0, 1].map(i => (
 						<div key={i} className='flex-1 rounded-2xl p-4 text-center border' style={{ borderColor: `${SIDE_COLORS[i]}66`, background: `linear-gradient(160deg, ${SIDE_COLORS[i]}2a, transparent 70%)` }}>
-							<div className='text-xs font-black uppercase tracking-widest' style={{ color: SIDE_COLORS[i] }}>
-								{names[i]}
+							<div className='text-xs font-black uppercase tracking-widest truncate' style={{ color: SIDE_COLORS[i] }}>
+								{teamName(state.settings, i as Side)}
 							</div>
 							<div className='text-5xl font-black text-white tabular-nums leading-none mt-1'>{ovr[i].toFixed(1)}</div>
 							<div className='text-[10px] font-bold uppercase tracking-widest text-white/40 mt-1'>Team OVR</div>
+							<div className='mt-3 text-left'>
+								<ChemBars ids={state.teams[i]} rosterSize={state.teams[i].length} color={SIDE_COLORS[i]} compact />
+							</div>
 						</div>
 					))}
 				</div>
@@ -339,9 +353,14 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 				<div className='rounded-xl bg-white/[0.04] border border-white/10 p-3 text-[11px] text-white/50 leading-relaxed mb-4'>
 					<span className='font-bold text-white/70'>Setting it up in 2K27:</span> Play Now → choose two teams → Edit Rosters / Custom Rosters, then sign or trade these players onto each side. Starters above are auto-fit to positions (<span className='text-amber-400 font-bold'>OOP</span> = out of position).
 				</div>
-				<button onClick={copy} className='w-full rounded-xl py-2.5 text-sm font-bold bg-white/10 text-white/80 border border-white/10'>
-					{copied ? '✓ Copied rosters' : '📋 Copy both rosters'}
-				</button>
+				<div className='grid grid-cols-2 gap-2'>
+					<button onClick={share} disabled={!!sharing} className='rounded-xl py-2.5 text-sm font-black bg-gradient-to-r from-pink-500/30 to-violet-500/30 text-white border border-white/15'>
+						{sharing ?? '📸 Share squads'}
+					</button>
+					<button onClick={copy} className='rounded-xl py-2.5 text-sm font-bold bg-white/10 text-white/80 border border-white/10'>
+						{copied ? '✓ Copied' : '📋 Copy rosters'}
+					</button>
+				</div>
 			</div>
 			<BottomBar>
 				<button onClick={onNext} className='flex-1 btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg'>
@@ -352,3 +371,46 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 	);
 }
 
+
+// ─── Keepers (redraft) ──────────────────────────────────────────
+
+export function KeepersScreen({ state, setState }: { state: VersusState; setState: SetState }) {
+	const side = state.keeperTurn;
+	const [chosen, setChosen] = useState<string | null>(null);
+	useEffect(() => setChosen(null), [side]);
+	const name = state.settings.names[side];
+	const mine = players(state.teams[side]).sort((a, b) => b.overall - a.overall);
+	const otherPick = state.keeperPicks[other(side)];
+	return (
+		<div className='min-h-screen pb-28'>
+			<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
+				<SectionTitle kicker='🔒 Keepers' title={`${name}, keep one player`} sub='He comes with you into the redraft and uses up one of your rounds in his tier.' />
+				{otherPick && (
+					<div className='text-center text-xs text-white/50 mb-4'>
+						{state.settings.names[other(side)]} kept <span className='font-black text-white'>{getVersusPlayer(otherPick)?.lastName}</span>.
+					</div>
+				)}
+				<div className='space-y-1.5 max-w-md mx-auto'>
+					{mine.map(p => (
+						<button key={p.id} onClick={() => setChosen(chosen === p.id ? null : p.id)} className='w-full text-left rounded-lg' style={chosen === p.id ? { outline: `2px solid ${SIDE_COLORS[side]}`, outlineOffset: 1 } : undefined}>
+							<RosterRow player={p} highlight={chosen === p.id} />
+						</button>
+					))}
+				</div>
+			</div>
+			<BottomBar>
+				<button onClick={() => setState(chooseKeeper(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
+					No keeper
+				</button>
+				<button
+					disabled={!chosen}
+					onClick={() => setState(chooseKeeper(state, chosen))}
+					className='flex-1 rounded-2xl py-3.5 font-black uppercase tracking-wider text-white disabled:opacity-35'
+					style={{ background: chosen ? SIDE_COLORS[side] : 'rgba(255,255,255,0.08)' }}
+				>
+					{chosen ? `Keep ${getVersusPlayer(chosen)?.lastName}` : 'Pick a keeper'}
+				</button>
+			</BottomBar>
+		</div>
+	);
+}

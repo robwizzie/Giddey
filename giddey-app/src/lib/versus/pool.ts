@@ -97,10 +97,12 @@ export function getVersusPlayer(id: string): VersusPlayer | undefined {
 }
 
 /** Pool sorted by OVR descending. */
+const MIXED_PLAYERS = [...MODERN_PLAYERS, ...ALLTIME_PLAYERS].sort((a, b) => b.overall - a.overall);
+
 export function getPool(mode: PoolMode): VersusPlayer[] {
 	if (mode === 'modern') return MODERN_PLAYERS;
 	if (mode === 'alltime') return ALLTIME_PLAYERS;
-	return [...MODERN_PLAYERS, ...ALLTIME_PLAYERS].sort((a, b) => b.overall - a.overall);
+	return MIXED_PLAYERS;
 }
 
 export function getTeamFor(p: VersusPlayer): Team {

@@ -142,3 +142,29 @@ export function getChallenge(id: string | null): Challenge | undefined {
 export function getTwist(id: string | null): Twist | undefined {
 	return TWISTS.find(t => t.id === id);
 }
+
+// ─── sabotage (the loser spins, the winner suffers next game) ───
+
+export interface SabotageItem {
+	id: string;
+	label: string;
+	desc: string;
+	color: string;
+	weight: number;
+}
+
+export const SABOTAGES: SabotageItem[] = [
+	{ id: 'benchbest', label: 'Sixth Man', desc: 'Your highest-rated player comes off the bench — he can’t check in until the 2nd quarter.', color: '#ef4444', weight: 3 },
+	{ id: 'nothrees', label: 'No Threes Q1', desc: 'You can’t attempt a three-pointer in the 1st quarter.', color: '#f97316', weight: 3 },
+	{ id: 'wrongpg', label: 'Point Forward', desc: 'Your second-lowest rated player starts at PG and runs the offense all 1st half.', color: '#a855f7', weight: 2 },
+	{ id: 'notimeouts', label: 'No Timeouts', desc: 'You can’t call a timeout all game. They can.', color: '#3b82f6', weight: 3 },
+	{ id: 'paint', label: 'Paint Ban', desc: 'No dunks or layups in the 1st quarter — jumpers only.', color: '#eab308', weight: 2 },
+	{ id: 'jersey', label: 'Dress Code', desc: 'They pick your jerseys, court and camera angle.', color: '#14b8a6', weight: 2 },
+	{ id: 'iso', label: 'Ball Movement', desc: 'Every possession in the 1st half needs at least 2 passes before a shot.', color: '#22c55e', weight: 2 },
+	{ id: 'freethrow', label: 'Free Throw Pick', desc: 'They choose who shoots every one of your free throws.', color: '#ec4899', weight: 2 },
+	{ id: 'mercy', label: 'Mercy', desc: 'Nothing. The winner walks free this time.', color: '#64748b', weight: 1 },
+];
+
+export function getSabotage(id: string | null | undefined): SabotageItem | undefined {
+	return SABOTAGES.find(x => x.id === id);
+}

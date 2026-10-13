@@ -1,13 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { buildBlueprint, initialState, nextGame, normalizeSettings, Settings, startDraft, VersusState, DEFAULT_SETTINGS } from '@/lib/versus/engine';
+import { initialState, migrateState, nextGame, normalizeSettings, Settings, sideColor, startDraft, VersusState, DEFAULT_SETTINGS } from '@/lib/versus/engine';
+import { logGame } from '@/lib/versus/rivalry';
+import { isMuted, onMuteChange, setMuted, play } from '@/lib/versus/sound';
 import SetupScreen, { SettingsForm, settingsValid } from '@/components/versus/SetupScreen';
 import DraftScreen from '@/components/versus/DraftScreen';
-import { BoostScreen, EqualizerScreen, RevealScreen, TradeScreen } from '@/components/versus/PostDraft';
+import AuctionScreen from '@/components/versus/AuctionScreen';
+import { BoostScreen, EqualizerScreen, KeepersScreen, RevealScreen, TradeScreen } from '@/components/versus/PostDraft';
 import { GameDayScreen, PostGameScreen } from '@/components/versus/GameDay';
-import { CoinFlip, Confetti, SectionTitle, SIDE_COLORS } from '@/components/versus/Fx';
+import RivalrySheet from '@/components/versus/RivalrySheet';
+import { CoinFlip, Confetti, SectionTitle, setSideColors, SIDE_COLORS } from '@/components/versus/Fx';
 
 const STORAGE_KEY = 'giddey-versus-v1';
 
@@ -15,12 +19,10 @@ function load(): VersusState | null {
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
 		if (!raw) return null;
-		const s = JSON.parse(raw) as VersusState;
+		const s = JSON.parse(raw);
 		if (s.v !== 1) return null;
-		// saves from before custom tiers: fill new settings and pin the in-progress draft's rounds
-		const settings = normalizeSettings(s.settings);
-		const draft = s.draft && !s.draft.blueprint ? { ...s.draft, blueprint: buildBlueprint({ ...settings, shuffleRounds: false }) } : s.draft;
-		return { ...s, settings, draft };
+		// older saves: fill new settings and convert an in-progress draft
+		return migrateState(s);
 	} catch {
 		return null;
 	}
@@ -56,7 +58,28 @@ function SettingsSheet({ state, onSave, onClose }: { state: VersusState; onSave:
 	);
 }
 
-function TopBar({ onReset, showReset, onSettings }: { onReset: () => void; showReset: boolean; onSettings: () => void }) {
+function MuteButton() {
+	const [muted, setM] = useState(false);
+	useEffect(() => {
+		setM(isMuted());
+		return onMuteChange(setM);
+	}, []);
+	return (
+		<button
+			onClick={() => {
+				setMuted(!muted);
+				if (muted) play('tick');
+			}}
+			className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center'
+			aria-label={muted ? 'Unmute sound' : 'Mute sound'}
+			title={muted ? 'Unmute' : 'Mute'}
+		>
+			{muted ? '🔇' : '🔊'}
+		</button>
+	);
+}
+
+function TopBar({ onReset, showReset, onSettings, onRivalry }: { onReset: () => void; showReset: boolean; onSettings: () => void; onRivalry: () => void }) {
 	return (
 		<header className='w-full bg-[#111]/80 border-b border-white/10 px-4 py-2.5 shrink-0'>
 			<div className='max-w-3xl mx-auto flex items-center justify-between'>
@@ -65,16 +88,22 @@ function TopBar({ onReset, showReset, onSettings }: { onReset: () => void; showR
 					<span className='text-lg font-black tracking-tight text-white'>GIDDEY</span>
 					<span className='text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-gradient-to-r from-orange-500 to-sky-500 text-white'>Versus</span>
 				</Link>
-				{showReset && (
-					<div className='flex items-center gap-3'>
-						<button onClick={onSettings} className='text-xs font-bold text-white/60 hover:text-white rounded-lg bg-white/10 px-2.5 py-1.5'>
-							⚙️ Settings
-						</button>
-						<button onClick={onReset} className='text-xs font-bold text-white/40 hover:text-white/80'>
-							New series
-						</button>
-					</div>
-				)}
+				<div className='flex items-center gap-1.5'>
+					<MuteButton />
+					<button onClick={onRivalry} className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='Rivalry record' title='Rivalry record'>
+						📊
+					</button>
+					{showReset && (
+						<>
+							<button onClick={onSettings} className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='Settings' title='Settings'>
+								⚙️
+							</button>
+							<button onClick={onReset} className='text-[11px] font-bold text-white/40 hover:text-white/80 pl-1.5'>
+								New series
+							</button>
+						</>
+					)}
+				</div>
 			</div>
 		</header>
 	);
@@ -83,12 +112,20 @@ function TopBar({ onReset, showReset, onSettings }: { onReset: () => void; showR
 export default function VersusPage() {
 	const [state, setStateRaw] = useState<VersusState | null>(null);
 	const [showSettings, setShowSettings] = useState(false);
+	const [showRivalry, setShowRivalry] = useState(false);
+	const current = useRef<VersusState | null>(null);
 
 	useEffect(() => {
-		setStateRaw(load() ?? initialState());
+		const s = load() ?? initialState();
+		current.current = s;
+		setStateRaw(s);
 	}, []);
 
 	const setState = useCallback((s: VersusState) => {
+		// a newly recorded game goes into the permanent rivalry log
+		const prev = current.current;
+		if (prev && s.series.length > prev.series.length) logGame(s.settings, s.series[s.series.length - 1]);
+		current.current = s;
 		setStateRaw(s);
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
@@ -105,20 +142,25 @@ export default function VersusPage() {
 	};
 
 	if (!state) return <div className='min-h-screen' />;
+	// coaches' chosen colors feed every component that reads SIDE_COLORS
+	setSideColors([sideColor(state.settings, 0), sideColor(state.settings, 1)]);
 
 	const showReset = state.phase !== 'setup';
 	const wrap = (node: React.ReactNode) => (
 		<div className='min-h-screen vs-bg'>
-			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} />
+			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} />
 			{node}
+			{showRivalry && <RivalrySheet settings={state.settings} onClose={() => setShowRivalry(false)} />}
 			{showSettings && (
 				<SettingsSheet
 					state={state}
 					onClose={() => setShowSettings(false)}
 					onSave={settings => {
-						setStateRaw({ ...state, settings });
+						const next = { ...state, settings };
+						current.current = next;
+						setStateRaw(next);
 						try {
-							localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, settings }));
+							localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 						} catch {
 							/* ignore */
 						}
@@ -131,12 +173,12 @@ export default function VersusPage() {
 
 	switch (state.phase) {
 		case 'setup':
-			return wrap(<SetupScreen initial={state.settings ?? DEFAULT_SETTINGS} onStart={(settings: Settings) => setState({ ...state, settings, phase: 'coin', coinWinner: null })} />);
+			return wrap(<SetupScreen initial={state.settings ?? DEFAULT_SETTINGS} onRivalry={() => setShowRivalry(true)} onStart={(settings: Settings) => setState({ ...state, settings, phase: 'coin', coinWinner: null })} />);
 		case 'coin':
 			return wrap(
 				<div className='max-w-3xl mx-auto px-4 pt-10 flex flex-col items-center animate-fade-in'>
 					<SectionTitle kicker='Coin toss' title='Who picks first?' sub='Winner gets the first pick of round 1.' />
-					<CoinFlip names={state.settings.names} onResult={w => setStateRaw({ ...state, coinWinner: w })} />
+					<CoinFlip names={state.settings.names} onResult={w => setState({ ...state, coinWinner: w })} />
 					{state.coinWinner !== null && (
 						<>
 							<Confetti count={50} colors={[SIDE_COLORS[state.coinWinner], '#ffffff']} />
@@ -155,8 +197,10 @@ export default function VersusPage() {
 					</button>
 				</div>
 			);
+		case 'keepers':
+			return wrap(<KeepersScreen state={state} setState={setState} />);
 		case 'draft':
-			return wrap(<DraftScreen state={state} setState={setState} />);
+			return wrap(state.draft?.auction ? <AuctionScreen state={state} setState={setState} /> : <DraftScreen state={state} setState={setState} />);
 		case 'equalizer':
 			return wrap(<EqualizerScreen state={state} setState={setState} />);
 		case 'trade':
@@ -171,6 +215,7 @@ export default function VersusPage() {
 			return wrap(
 				<PostGameScreen
 					state={state}
+					setState={setState}
 					onRunBack={() => setState(nextGame(state, false))}
 					onRedraft={() => setState(nextGame(state, true))}
 					onNewSeries={() => {

@@ -1,7 +1,8 @@
 "use client";
 
 import { PlayerCard as PlayerCardType, ChemDotLevel } from "@/lib/types";
-import { getPlayerHeadshotUrl, getTeamLogoUrl } from "@/lib/images";
+import { getPlayerHeadshotUrls, getTeamLogoUrl } from "@/lib/images";
+import Headshot from "./Headshot";
 
 interface PlayerCardProps {
   card: PlayerCardType;
@@ -145,7 +146,7 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
   const tierClass = tierClassMap[card.tier];
   const s = cardSize ? computeCardSizes(cardSize.w, cardSize.h) : sizeConfig[size];
   const sec = tierSections[card.tier];
-  const headshotUrl = getPlayerHeadshotUrl(card.id, card.firstName, card.lastName);
+  const headshotUrls = getPlayerHeadshotUrls(card.id, card.firstName, card.lastName);
   const teamLogoUrl = getTeamLogoUrl(card.team.abbreviation);
   const halfStars = tierHalfStars[card.tier] || 2;
 
@@ -199,10 +200,9 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
             />
           )}
           {/* Player headshot — right side, bottom-anchored */}
-          <img
-            src={headshotUrl}
+          <Headshot
+            urls={headshotUrls}
             alt={`${card.firstName} ${card.lastName}`}
-            referrerPolicy="no-referrer"
             style={{
               position: "absolute",
               right: 0,
@@ -214,15 +214,29 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
               filter: "drop-shadow(-3px 2px 8px rgba(0,0,0,0.7))",
               pointerEvents: "none",
             }}
-            draggable={false}
-            onError={(e) => {
-              const img = e.target as HTMLImageElement;
-              if (!img.src.includes('cdn.nba.com')) {
-                img.src = `https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png`;
-              } else {
-                img.style.display = "none";
-              }
-            }}
+            fallback={
+              <div
+                style={{
+                  position: "absolute",
+                  right: "6%",
+                  bottom: "8%",
+                  width: "50%",
+                  aspectRatio: "1",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  color: "#fff",
+                  fontSize: Math.round(s.w * 0.16),
+                  background: `linear-gradient(135deg, ${card.team.primaryColor}, ${card.team.secondaryColor})`,
+                  border: "2px solid rgba(255,255,255,0.25)",
+                }}
+              >
+                {card.firstName[0]}
+                {card.lastName[0]}
+              </div>
+            }
           />
           {/* OVR gem — top left */}
           <div style={{ position: "absolute", top: 3, left: 3, zIndex: 5 }}>

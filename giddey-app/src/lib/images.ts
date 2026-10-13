@@ -1,3 +1,5 @@
+import PERSON_IDS from '@/data/nba-person-ids.json';
+
 // 2KRatings.com URLs for player headshots and team logos
 // Player: https://www.2kratings.com/wp-content/uploads/{First}-{Last}-2K-Rating.png
 // Team:   https://www.2kratings.com/wp-content/uploads/{City}-{Name}-Secondary-Logo.svg
@@ -43,24 +45,54 @@ const TEAM_FULL_NAMES: Record<string, string> = {
   WAS: 'Washington-Wizards',
 };
 
+/** Name key shared with src/data/nba-person-ids.json (accents, punctuation and Jr./II stripped) */
+function personKey(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[.'’]/g, '')
+    .replace(/\b(jr|sr|ii|iii|iv)\b/g, '')
+    .replace(/[^a-z]/g, '');
+}
+
+/** Official NBA headshot (by NBA.com person id), if we know the id */
+export function getNbaHeadshotUrl(firstName: string, lastName: string, era: 'modern' | 'alltime' = 'modern'): string | null {
+  const pid = (PERSON_IDS[era] as Record<string, number>)[personKey(firstName, lastName)];
+  return pid ? `https://cdn.nba.com/headshots/nba/latest/1040x760/${pid}.png` : null;
+}
+
 /**
- * Get player headshot URL from 2kratings.com.
+ * Every headshot source for a player, best first. Cards try them in order
+ * and fall back to initials if all fail:
+ *   1. custom override (e.g. promo cards)
+ *   2. NBA.com headshot by person id — covers every current player and most legends
+ *   3. 2kratings render by name
+ */
+export function getPlayerHeadshotUrls(
+  playerId: string,
+  firstName: string,
+  lastName: string,
+  era: 'modern' | 'alltime' = 'modern',
+): string[] {
+  const urls: string[] = [];
+  if (IMAGE_URL_OVERRIDES[playerId]) urls.push(IMAGE_URL_OVERRIDES[playerId]);
+  const nba = getNbaHeadshotUrl(firstName, lastName, era);
+  if (nba) urls.push(nba);
+  urls.push(`https://www.2kratings.com/wp-content/uploads/${slugify(firstName)}-${slugify(lastName)}-2K-Rating.png`);
+  return [...new Set(urls)];
+}
+
+/**
+ * Best single headshot URL for a player.
  */
 export function getPlayerHeadshotUrl(
   playerId: string,
   firstName?: string,
   lastName?: string,
 ): string {
-  // Check override map first
-  if (IMAGE_URL_OVERRIDES[playerId]) {
-    return IMAGE_URL_OVERRIDES[playerId];
-  }
-  if (firstName && lastName) {
-    const first = slugify(firstName);
-    const last = slugify(lastName);
-    return `https://www.2kratings.com/wp-content/uploads/${first}-${last}-2K-Rating.png`;
-  }
-  return `https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png`;
+  if (firstName && lastName) return getPlayerHeadshotUrls(playerId, firstName, lastName)[0];
+  return IMAGE_URL_OVERRIDES[playerId] ?? `https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png`;
 }
 
 // Overrides for teams whose logo URL doesn't follow the standard pattern

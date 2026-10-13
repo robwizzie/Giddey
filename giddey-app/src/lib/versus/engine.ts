@@ -18,7 +18,14 @@ export interface Settings {
 	names: [string, string];
 	pool: PoolMode;
 	style: DraftStyle;
-	rosterSize: 5 | 8 | 10;
+	/** how many players of each tier each coach drafts (one round per player) */
+	tiers: Record<Band, number>;
+	/** derived: total of `tiers` */
+	rosterSize: number;
+	/** draft the tier rounds in random order instead of stars first */
+	shuffleRounds: boolean;
+	/** auto-offer the Equalizer when teams finish 1.5+ OVR apart */
+	equalizer: boolean;
 	packSize: 3 | 4 | 5;
 	rerolls: 0 | 1 | 2;
 	underdogFirst: boolean;
@@ -30,7 +37,10 @@ export const DEFAULT_SETTINGS: Settings = {
 	names: ['Rob', 'Dave'],
 	pool: 'mixed',
 	style: 'snake',
+	tiers: { superstar: 1, star: 2, starter: 2, rotation: 2, deep: 1 },
 	rosterSize: 8,
+	shuffleRounds: false,
+	equalizer: true,
 	packSize: 4,
 	rerolls: 1,
 	underdogFirst: true,
@@ -46,14 +56,46 @@ export const BAND_INFO: Record<Band, { label: string; range: [number, number]; c
 	deep: { label: 'Deep Bench', range: [0.7, 1], color: '#4ade80' },
 };
 
-export const BLUEPRINTS: Record<Settings['rosterSize'], Band[]> = {
-	5: ['superstar', 'star', 'star', 'starter', 'rotation'],
-	8: ['superstar', 'star', 'star', 'starter', 'starter', 'rotation', 'rotation', 'deep'],
-	10: ['superstar', 'star', 'star', 'starter', 'starter', 'starter', 'rotation', 'rotation', 'deep', 'deep'],
-};
+export const BANDS: Band[] = ['superstar', 'star', 'starter', 'rotation', 'deep'];
+export const MIN_ROSTER = 5;
+export const MAX_ROSTER = 15;
+export const MAX_PER_TIER = 8;
+
+export const TIER_PRESETS: { id: string; label: string; icon: string; desc: string; tiers: Record<Band, number> }[] = [
+	{ id: 'balanced', label: 'Balanced', icon: '⚖️', desc: 'A star, some help, real depth', tiers: { superstar: 1, star: 2, starter: 2, rotation: 2, deep: 1 } },
+	{ id: 'five', label: 'Starting Five', icon: '🖐️', desc: '5 picks, no bench', tiers: { superstar: 1, star: 2, starter: 2, rotation: 0, deep: 0 } },
+	{ id: 'bigthree', label: 'Big Three', icon: '🔥', desc: '3 superstars + role players', tiers: { superstar: 3, star: 0, starter: 1, rotation: 2, deep: 2 } },
+	{ id: 'super', label: 'Superteams', icon: '🚀', desc: 'Overpowered. Nothing but stars', tiers: { superstar: 4, star: 4, starter: 0, rotation: 0, deep: 0 } },
+	{ id: 'underdogs', label: 'Underdogs', icon: '🐕', desc: 'No stars — pure grit', tiers: { superstar: 0, star: 0, starter: 2, rotation: 3, deep: 3 } },
+	{ id: 'deep', label: 'Full Rotation', icon: '📋', desc: '12-man 2K-style roster', tiers: { superstar: 1, star: 2, starter: 3, rotation: 3, deep: 3 } },
+];
+
+export function rosterTotal(tiers: Record<Band, number>): number {
+	return BANDS.reduce((n, b) => n + (tiers[b] ?? 0), 0);
+}
+
+/** Fill gaps from older saved settings (fixed 5/8/10 rosters) and recompute the total */
+export function normalizeSettings(raw: Partial<Settings> & { rosterSize?: number }): Settings {
+	const legacy: Record<number, Record<Band, number>> = {
+		5: { superstar: 1, star: 2, starter: 1, rotation: 1, deep: 0 },
+		8: DEFAULT_SETTINGS.tiers,
+		10: { superstar: 1, star: 2, starter: 3, rotation: 2, deep: 2 },
+	};
+	const tiers = { ...(raw.tiers ?? legacy[raw.rosterSize ?? 8] ?? DEFAULT_SETTINGS.tiers) };
+	const s: Settings = { ...DEFAULT_SETTINGS, ...raw, tiers, rosterSize: 0 };
+	return { ...s, rosterSize: rosterTotal(tiers) };
+}
+
+/** One band per round, stars first unless shuffled */
+export function buildBlueprint(settings: Settings): Band[] {
+	const rounds = BANDS.flatMap(b => Array.from({ length: settings.tiers[b] ?? 0 }, () => b));
+	return settings.shuffleRounds ? shuffle(rounds) : rounds;
+}
 
 export interface DraftState {
 	round: number;
+	/** tier for each round, fixed when the draft starts */
+	blueprint: Band[];
 	/** order[0] acts first this round (picks first, or chooses in cut mode) */
 	order: [Side, Side];
 	/** index into order of who is acting now */
@@ -250,13 +292,33 @@ export function bestLineup(ids: string[]): Lineup {
 	};
 }
 
-/** Starting positions nobody on the roster can play yet */
+/** Starting spots the best-fit lineup can't fill with a natural (primary/secondary) player yet */
 export function missingPositions(ids: string[]): Position[] {
-	const ps = players(ids);
-	return SLOTS.filter(slot => !ps.some(p => p.position === slot || p.secondaryPosition === slot));
+	return bestLineup(ids)
+		.starters.filter(s => s.fit === 'empty' || s.fit === 'out')
+		.map(s => s.slot);
+}
+
+export function fitsNeed(p: VersusPlayer, needs: Position[]): Position | null {
+	return needs.find(pos => p.position === pos || p.secondaryPosition === pos) ?? null;
 }
 
 // ─── pack generation ────────────────────────────────────────────
+
+export interface SideNeeds {
+	needs: Position[];
+	/** remaining picks barely cover the holes */
+	urgent: boolean;
+	/** every remaining pick has to fill a hole */
+	must: boolean;
+}
+
+export function sideNeeds(s: VersusState, side: Side): SideNeeds {
+	const total = s.draft?.blueprint.length ?? s.settings.rosterSize;
+	const needs = missingPositions(s.teams[side]);
+	const picksLeft = total - s.teams[side].length;
+	return { needs, urgent: needs.length > 0 && picksLeft <= needs.length + 1, must: needs.length > 0 && picksLeft <= needs.length };
+}
 
 function bandSlice(pool: VersusPlayer[], band: Band, widen = 0): VersusPlayer[] {
 	const [lo, hi] = BAND_INFO[band].range;
@@ -283,22 +345,56 @@ export function makePack(s: VersusState, band: Band, size: number, exclude: stri
 		const [lo, hi] = BAND_INFO[band].range;
 		const mid = ((lo + hi) / 2) * pool.length;
 		const rankOf = new Map(pool.map((p, i) => [p.id, i]));
-		candidates = ranked.sort((a, b) => Math.abs(rankOf.get(a.id)! - mid) - Math.abs(rankOf.get(b.id)! - mid)).slice(0, size + 2);
+		const sorted = ranked.sort((a, b) => Math.abs(rankOf.get(a.id)! - mid) - Math.abs(rankOf.get(b.id)! - mid));
+		candidates = sorted.slice(0, size + 2);
+		// keep that team's players who fill a must-have hole in the mix
+		for (const side of [0, 1] as Side[]) {
+			const n = sideNeeds(s, side);
+			if (n.must) candidates.push(...sorted.filter(p => fitsNeed(p, n.needs) && !candidates.includes(p)).slice(0, 2));
+		}
 	} else {
 		for (let widen = 0; widen <= 1 && candidates.length < size * 2; widen += 0.05) {
 			candidates = bandSlice(pool, band, widen).filter(p => !taken.has(p.id));
 		}
 	}
-	if (candidates.length <= size) return shuffle(candidates).map(p => p.id);
+	// What each coach still needs at the five starting spots, and how urgent it is
+	const sides = ([0, 1] as Side[]).map(side => sideNeeds(s, side));
 
-	const needs = [...new Set([...missingPositions(s.teams[0]), ...missingPositions(s.teams[1])])];
+	// A coach running out of picks must see someone who fits — pull the closest-ranked fit in if the band has none
+	if (!franchise) {
+		const rankOf = new Map(pool.map((p, i) => [p.id, i]));
+		const [lo, hi] = BAND_INFO[band].range;
+		const mid = ((lo + hi) / 2) * pool.length;
+		for (const side of sides) {
+			if (!side.must || candidates.some(p => fitsNeed(p, side.needs))) continue;
+			const fit = pool
+				.filter(p => !taken.has(p.id) && fitsNeed(p, side.needs) && !candidates.includes(p))
+				.sort((a, b) => Math.abs(rankOf.get(a.id)! - mid) - Math.abs(rankOf.get(b.id)! - mid))
+				.slice(0, 2);
+			candidates = [...candidates, ...fit];
+		}
+	}
+	if (candidates.length <= size) return shuffle(candidates).sort((a, b) => b.overall - a.overall).map(p => p.id);
+
+	const scorePack = (pack: VersusPlayer[]) => {
+		let score = 0;
+		for (const side of sides) {
+			if (!side.needs.length) continue;
+			const fits = pack.filter(p => fitsNeed(p, side.needs));
+			const distinct = new Set(fits.map(p => fitsNeed(p, side.needs))).size;
+			// two fits per coach so the second picker isn't left with nothing
+			score += Math.min(fits.length, 2) * (side.urgent ? 30 : 12) + distinct * 4;
+			if (side.must && fits.length === 0) score -= 1000;
+		}
+		score += new Set(pack.map(p => p.position)).size * 2;
+		return score;
+	};
+
 	let best: VersusPlayer[] = [];
-	let bestScore = -1;
-	for (let i = 0; i < 24; i++) {
+	let bestScore = -Infinity;
+	for (let i = 0; i < 40; i++) {
 		const pack = shuffle(candidates).slice(0, size);
-		const covered = needs.filter(pos => pack.some(p => p.position === pos || p.secondaryPosition === pos)).length;
-		const variety = new Set(pack.map(p => p.position)).size;
-		const score = covered * 10 + variety;
+		const score = scorePack(pack) + Math.random(); // tie-break randomly
 		if (score > bestScore) {
 			bestScore = score;
 			best = pack;
@@ -307,14 +403,20 @@ export function makePack(s: VersusState, band: Band, size: number, exclude: stri
 	return best.sort((a, b) => b.overall - a.overall).map(p => p.id);
 }
 
-/** Franchises that still have at least 2 undrafted players in the pool */
+/**
+ * Franchises that still have at least 2 undrafted players in the pool. When a
+ * coach is down to must-fill picks, only teams that can fill that hole make the wheel.
+ */
 export function franchiseOptions(s: VersusState): string[] {
 	const taken = draftedSet(s);
+	const left = getPool(s.settings.pool).filter(p => !taken.has(p.id));
 	const counts = new Map<string, number>();
-	for (const p of getPool(s.settings.pool)) {
-		if (!taken.has(p.id)) counts.set(p.teamId, (counts.get(p.teamId) ?? 0) + 1);
-	}
-	return [...counts.entries()].filter(([, n]) => n >= 2).map(([t]) => t);
+	for (const p of left) counts.set(p.teamId, (counts.get(p.teamId) ?? 0) + 1);
+	const all = [...counts.entries()].filter(([, n]) => n >= 2).map(([t]) => t);
+	const musts = ([0, 1] as Side[]).map(side => sideNeeds(s, side)).filter(n => n.must);
+	if (!musts.length) return all;
+	const ok = all.filter(t => musts.every(n => left.some(p => p.teamId === t && fitsNeed(p, n.needs))));
+	return ok.length >= 2 ? ok : all;
 }
 
 // ─── draft flow ─────────────────────────────────────────────────
@@ -334,18 +436,20 @@ function roundOrder(s: VersusState, round: number, prev: DraftState | null): [Si
 }
 
 export function currentBand(s: VersusState): Band {
-	return BLUEPRINTS[s.settings.rosterSize][s.draft!.round];
+	return s.draft!.blueprint[s.draft!.round];
 }
 
 export function actingSide(d: DraftState): Side {
 	return d.order[d.turn];
 }
 
-export function startRound(s: VersusState, round: number): VersusState {
+export function startRound(s: VersusState, round: number, blueprint?: Band[]): VersusState {
 	const prev = s.draft;
 	const order = roundOrder(s, round, prev);
+	const bp = blueprint ?? prev?.blueprint ?? buildBlueprint(s.settings);
 	const base: DraftState = {
 		round,
+		blueprint: bp,
 		order,
 		turn: 0,
 		stage: 'pick',
@@ -357,7 +461,7 @@ export function startRound(s: VersusState, round: number): VersusState {
 		log: prev?.log ?? [],
 	};
 	const next: VersusState = { ...s, phase: 'draft', draft: base };
-	const band = BLUEPRINTS[s.settings.rosterSize][round];
+	const band = bp[round];
 
 	if (s.settings.style === 'franchise') return { ...next, draft: { ...base, stage: 'spin' } };
 
@@ -370,7 +474,7 @@ export function startRound(s: VersusState, round: number): VersusState {
 }
 
 export function startDraft(s: VersusState): VersusState {
-	return startRound({ ...s, teams: [[], []], draft: null, equalizer: null, trade: null }, 0);
+	return startRound({ ...s, teams: [[], []], draft: null, equalizer: null, trade: null }, 0, buildBlueprint(s.settings));
 }
 
 export function landFranchise(s: VersusState, franchise: string): VersusState {
@@ -389,6 +493,36 @@ export function reroll(s: VersusState): VersusState {
 	// franchise ran dry — fall back to the band
 	if (pack.length < d.pack.length) pack = makePack(s, currentBand(s), d.pack.length, d.pack);
 	return { ...s, draft: { ...d, pack, rerolls } };
+}
+
+/**
+ * Cut-mode guard: when a coach must fill a starting hole with every remaining
+ * pick, the offer has to give them a way to do it. Returns why an offer is invalid.
+ */
+export function cutOfferProblem(s: VersusState, offered: string[]): string | null {
+	if (offered.length !== 2) return null;
+	const problem = rawCutProblem(s, offered);
+	if (!problem) return null;
+	// never deadlock: if no pair in the pack satisfies the rule, any offer goes
+	const pack = s.draft!.pack;
+	for (let i = 0; i < pack.length; i++) for (let j = i + 1; j < pack.length; j++) if (!rawCutProblem(s, [pack[i], pack[j]])) return problem;
+	return null;
+}
+
+function rawCutProblem(s: VersusState, offered: string[]): string | null {
+	const d = s.draft!;
+	const chooser = d.order[0];
+	const cutter = d.order[1];
+	const [a, b] = players(offered);
+	const c = sideNeeds(s, chooser);
+	const k = sideNeeds(s, cutter);
+	const name = (side: Side) => s.settings.names[side];
+	const fitsC = (p: VersusPlayer) => !!fitsNeed(p, c.needs);
+	const fitsK = (p: VersusPlayer) => !!fitsNeed(p, k.needs);
+	if (c.must && !fitsC(a) && !fitsC(b)) return `${name(chooser)} still needs ${c.needs.join('/')} — offer at least one.`;
+	// the cutter gets the leftover, so either card might come back to them
+	if (k.must && !(fitsK(a) && fitsK(b))) return `You still need ${k.needs.join('/')} — both cards must fill it, since you get whichever is left.`;
+	return null;
 }
 
 export function cutOffer(s: VersusState, offered: string[]): VersusState {
@@ -424,7 +558,7 @@ export function pick(s: VersusState, id: string): VersusState {
 
 function finishRound(s: VersusState): VersusState {
 	const d = s.draft!;
-	if (d.round + 1 < s.settings.rosterSize) return startRound(s, d.round + 1);
+	if (d.round + 1 < d.blueprint.length) return startRound(s, d.round + 1);
 	return endDraft(s);
 }
 
@@ -432,7 +566,7 @@ function finishRound(s: VersusState): VersusState {
 export function endDraft(s: VersusState): VersusState {
 	const a = teamOvr(s.teams[0]);
 	const b = teamOvr(s.teams[1]);
-	if (Math.abs(a - b) >= EQUALIZER_GAP) {
+	if (s.settings.equalizer && Math.abs(a - b) >= EQUALIZER_GAP) {
 		const side: Side = a < b ? 0 : 1;
 		const eq = equalizerOptions(s, side);
 		if (eq.options.length) return { ...s, phase: 'equalizer', equalizer: { side, ...eq } };

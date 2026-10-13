@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import {
 	actingSide,
 	BAND_INFO,
-	BLUEPRINTS,
 	currentBand,
 	cutOffer,
+	cutOfferProblem,
 	franchiseOptions,
 	landFranchise,
+	fitsNeed,
 	missingPositions,
 	other,
 	pick,
@@ -85,7 +86,7 @@ function RosterColumn({ state, side, active }: { state: VersusState; side: Side;
 	const ids = state.teams[side];
 	const ps = players(ids);
 	const need = missingPositions(ids);
-	const total = state.settings.rosterSize;
+	const total = state.draft?.blueprint.length ?? state.settings.rosterSize;
 	return (
 		<div className={`rounded-2xl p-2.5 border transition-all ${active ? 'bg-white/[0.06]' : 'bg-white/[0.02] border-white/5'}`} style={active ? { borderColor: `${SIDE_COLORS[side]}88`, boxShadow: `0 0 24px ${SIDE_COLORS[side]}22` } : undefined}>
 			<div className='flex items-center justify-between mb-2 px-0.5'>
@@ -120,10 +121,12 @@ function RosterColumn({ state, side, active }: { state: VersusState; side: Side;
 
 export default function DraftScreen({ state, setState }: { state: VersusState; setState: (s: VersusState) => void }) {
 	const d = state.draft!;
-	const { names, style, blind, rosterSize } = state.settings;
+	const { names, style, blind } = state.settings;
 	const actor = actingSide(d);
 	const band = currentBand(state);
-	const blueprint = BLUEPRINTS[rosterSize];
+	const blueprint = d.blueprint;
+	const rosterSize = blueprint.length;
+	const actorNeeds = missingPositions(state.teams[actor]);
 	const [selected, setSelected] = useState<string[]>([]);
 	const [revealKey, setRevealKey] = useState<string | null>(null);
 	const seenPick = useRef<string | null>(d.lastPick ? `${d.lastPick.id}-${d.log.length}` : null);
@@ -153,8 +156,9 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 		else setSelected(s => (s.includes(id) ? s.filter(x => x !== id) : s.length < 2 ? [...s, id] : [s[1], id]));
 	};
 
+	const cutProblem = isCutStage ? cutOfferProblem(state, selected) : null;
 	const confirm = () => {
-		if (selected.length !== needCount) return;
+		if (selected.length !== needCount || cutProblem) return;
 		if (isCutStage) setState(cutOffer(state, selected));
 		else setState(pick(state, selected[0]));
 		setSelected([]);
@@ -230,13 +234,25 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 
 				{/* Pack */}
 				{d.stage !== 'spin' && (
-					<div className='mt-5 flex flex-wrap justify-center gap-3'>
+					<div className='mt-6 flex flex-wrap justify-center gap-x-3 gap-y-5'>
 						{visible.map((id, i) => {
 							const p = getVersusPlayer(id)!;
 							const isSel = selected.includes(id);
 							return (
-								<div key={id} className='vs-deal' style={{ animationDelay: `${i * 90}ms` }}>
+								<div key={id} className='vs-deal relative' style={{ animationDelay: `${i * 90}ms` }}>
 									<VersusCard player={p} width={cardW} selected={isSel} faceDown={blind} onClick={() => toggle(id)} />
+									{(() => {
+										// cut stage: the cutter is building an offer for the other coach
+										const forSide = isCutStage ? other(actor) : actor;
+										const need = fitsNeed(p, isCutStage ? missingPositions(state.teams[forSide]) : actorNeeds);
+										return need ? (
+											<div className='absolute -top-2.5 left-0 right-0 flex justify-center z-30 pointer-events-none'>
+												<span className='text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#052e16] text-green-400 border border-green-500/60 shadow-[0_2px_8px_rgba(0,0,0,0.6)] whitespace-nowrap'>
+													{isCutStage ? `${names[forSide]} needs ${need}` : `Fills ${need}`}
+												</span>
+											</div>
+										) : null;
+									})()}
 								</div>
 							);
 						})}
@@ -253,6 +269,7 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 			{/* Action bar */}
 			{d.stage !== 'spin' && (
 				<div className='fixed bottom-0 left-0 right-0 z-30 p-3 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/95 to-transparent'>
+					{cutProblem && <div className='max-w-3xl mx-auto mb-2 text-center text-xs font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 rounded-xl px-3 py-2'>{cutProblem}</div>}
 					<div className='max-w-3xl mx-auto flex gap-2'>
 						<button
 							onClick={() => setState(reroll(state))}
@@ -264,7 +281,7 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 						</button>
 						<button
 							onClick={confirm}
-							disabled={selected.length !== needCount}
+							disabled={selected.length !== needCount || !!cutProblem}
 							className='flex-1 rounded-2xl py-3.5 font-black uppercase tracking-wider text-white disabled:opacity-35 active:scale-[0.98] transition-all truncate px-3'
 							style={{ background: selected.length === needCount ? `linear-gradient(135deg, ${SIDE_COLORS[actor]}, ${SIDE_COLORS[actor]}bb)` : 'rgba(255,255,255,0.08)', boxShadow: selected.length === needCount ? `0 6px 24px ${SIDE_COLORS[actor]}55` : undefined }}
 						>

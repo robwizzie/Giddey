@@ -3,6 +3,10 @@ import { getPool, getVersusPlayer, PoolMode, VersusPlayer } from './pool';
 import { BOOSTS, BoostId } from './wheels';
 import { ActiveTheme, getTheme, rollThemeParam, Theme, ThemeId, THEMES, DIVISIONS } from './themes';
 import { freshnessWeight, isFreshFor } from './usage';
+import { draftGrades } from './grades';
+import { history } from './history';
+import { currentSeason, nextSeasonTag } from './seasons';
+import { coveredBy, vegasLine } from './vegas';
 
 // ═══════════════════════════════════════════════════════════════
 //  VERSUS DRAFT ENGINE
@@ -67,6 +71,15 @@ export interface Settings {
 	retire: 'off' | 'potg' | 'starters';
 	/** theme draft: off, spin a random one each draft, or always this one */
 	theme: 'off' | 'spin' | ThemeId;
+	/** read every pick aloud with the browser's speech voice */
+	announcer: boolean;
+	/** spin a second-half twist at halftime */
+	halftime: boolean;
+	/** set a point spread before tip-off; an underdog who covers earns a Tier Up */
+	vegas: boolean;
+	/** regular-season length in games (0 = no seasons), then a best-of Finals */
+	season: 0 | 6 | 10 | 16;
+	finals: 3 | 5 | 7;
 }
 
 export const MAX_FAVORITES = 5;
@@ -105,6 +118,11 @@ export const DEFAULT_SETTINGS: Settings = {
 	favoritesRound: false,
 	retire: 'off',
 	theme: 'off',
+	announcer: true,
+	halftime: true,
+	vegas: true,
+	season: 10,
+	finals: 7,
 };
 
 export const BAND_INFO: Record<Band, { label: string; range: [number, number]; color: string }> = {
@@ -371,6 +389,10 @@ export interface LogEntry {
 	round: number;
 	price?: number;
 	blind?: boolean;
+	/** best OVR this coach could have taken instead (for steal / reach callouts) */
+	best?: number;
+	/** what the auction thought he was worth */
+	value?: number;
 }
 
 export interface GameResult {
@@ -386,6 +408,42 @@ export interface GameResult {
 	/** Player of the Game (two ids when the coaches' votes split) */
 	potg?: string[];
 	theme?: ActiveTheme | null;
+	twist?: string | null;
+	halftime?: Halftime | null;
+	line?: Line | null;
+	/** the underdog who covered the spread, if one did */
+	covered?: Side | null;
+	grades?: [Grade, Grade] | null;
+	season?: SeasonTag | null;
+	sabotageOn?: Side | null;
+}
+
+/** Point spread: `fav` is expected to win by `spread` */
+export interface Line {
+	fav: Side;
+	spread: number;
+}
+
+export interface Halftime {
+	id: string;
+	/** coach leading at the half (the twist targets them or helps the other) */
+	leader: Side;
+	tied: boolean;
+}
+
+export interface Grade {
+	letter: string;
+	score: number;
+	take: string;
+}
+
+export interface SeasonTag {
+	n: number;
+	stage: 'regular' | 'finals';
+	/** game number within the stage */
+	g: number;
+	len: number;
+	finals: number;
 }
 
 export interface GameDay {
@@ -393,6 +451,7 @@ export interface GameDay {
 	modifier: string | null;
 	challenges: [string | null, string | null];
 	rewards: [BoostId | null, BoostId | null];
+	halftime?: Halftime | null;
 }
 
 export interface TradeState {
@@ -455,6 +514,8 @@ export interface VersusState {
 	favoriteTurn: Side;
 	/** players a coach can't draft for a while (Retire rule) */
 	retired: Retired[];
+	/** grades for the most recent draft */
+	grades: [Grade, Grade] | null;
 }
 
 export interface Retired {
@@ -497,6 +558,7 @@ export function initialState(settings: Settings = DEFAULT_SETTINGS): VersusState
 		favoritePicks: [null, null],
 		favoriteTurn: 0,
 		retired: [],
+		grades: null,
 	};
 }
 
@@ -1074,10 +1136,16 @@ function addToTeam(s: VersusState, side: Side, id: string, extra: Partial<LogEnt
 	return { ...s, teams, draft: { ...d, lastPick: entry, log: [...d.log, entry] } };
 }
 
+/** Best OVR this coach could have taken from these options */
+function bestOption(s: VersusState, side: Side, options: string[]): number | undefined {
+	const ovrs = options.filter(x => canTake(s, side, x)).map(x => getVersusPlayer(x)?.overall ?? 0);
+	return ovrs.length ? Math.max(...ovrs) : undefined;
+}
+
 export function pick(s: VersusState, id: string): VersusState {
 	const d = s.draft!;
 	const side = actingSide(d);
-	let next = addToTeam(s, side, id);
+	let next = addToTeam(s, side, id, { best: bestOption(s, side, d.offered.length ? d.offered : d.pack) });
 
 	if (d.offered.length) {
 		// Cut mode: the cutter gets whatever is left on the table.
@@ -1120,8 +1188,8 @@ export function secretPick(s: VersusState, id: string): VersusState {
 		// three collisions in a row: open it back up as a normal round
 		return { ...after, draft: { ...nd, pack, stage: collisions >= 3 ? 'pick' : 'secret' } };
 	}
-	let next = addToTeam({ ...s, draft: { ...d, secret } }, d.order[0], a, { blind: true });
-	next = addToTeam(next, d.order[1], b, { blind: true });
+	let next = addToTeam({ ...s, draft: { ...d, secret } }, d.order[0], a, { blind: true, best: bestOption(s, d.order[0], d.pack) });
+	next = addToTeam(next, d.order[1], b, { blind: true, best: bestOption(s, d.order[1], d.pack) });
 	return finishRound(next);
 }
 
@@ -1395,7 +1463,7 @@ export function passBid(s: VersusState): VersusState {
 }
 
 function award(s: VersusState, side: Side, id: string, price: number): VersusState {
-	let next = addToTeam(s, side, id, { price });
+	let next = addToTeam(s, side, id, { price, value: auctionValues(s, side).get(id) });
 	const d = next.draft!;
 	const a = d.auction!;
 	const budgets: [number, number] = [...a.budgets];
@@ -1564,7 +1632,9 @@ export function passTrade(s: VersusState): VersusState {
 
 // ─── earned boosts ──────────────────────────────────────────────
 
-export function toBoosts(s: VersusState): VersusState {
+export function toBoosts(input: VersusState): VersusState {
+	// a fresh draft gets graded once its rosters are final (after trades)
+	const s = input.draft ? { ...input, grades: draftGrades(input) } : input;
 	const queue = s.boostQueue.length ? s.boostQueue : [];
 	if (queue.length) return { ...s, phase: 'boosts', boostOptions: rollBoostOptions(s, queue[0]) };
 	return { ...s, phase: 'reveal' };
@@ -1640,6 +1710,10 @@ export function recordGame(s: VersusState, result: Omit<GameResult, 'game' | 'te
 		const reward = s.gameday.rewards[side];
 		if (result.challenges[side] && reward) earned[side].push(reward);
 	});
+	// Vegas: an underdog who covers the spread earns a Tier Up for the next draft
+	const line = s.settings.vegas ? vegasLine(s, history()) : null;
+	const covered = coveredBy(line, result.score);
+	if (covered !== null) earned[covered].push('tierUp');
 	const game: GameResult = {
 		...result,
 		game: s.gameNo,
@@ -1647,8 +1721,15 @@ export function recordGame(s: VersusState, result: Omit<GameResult, 'game' | 'te
 		teamOvr: [teamOvr(s.teams[0]), teamOvr(s.teams[1])],
 		rosters: [[...s.teams[0]], [...s.teams[1]]],
 		sabotage: s.sabotage?.id ?? null,
+		sabotageOn: s.sabotage && s.sabotage.id !== 'mercy' ? s.sabotage.on : null,
 		potg: result.potg ?? [],
 		theme: s.theme,
+		twist: s.gameday.modifier,
+		halftime: s.gameday.halftime ?? null,
+		line,
+		covered,
+		grades: s.grades,
+		season: nextSeasonTag(history(), s.settings),
 	};
 	// Retire rule: players who just won you a game sit out your next drafts
 	const retired = [...(s.retired ?? [])];
@@ -1678,10 +1759,20 @@ export function nextGame(s: VersusState, redraft: boolean): VersusState {
 	if (redraft) {
 		// loser of the last game gets the coin flip win
 		const last = s.series[s.series.length - 1];
-		const coinWinner: Side = last ? other(last.winner) : (s.coinWinner ?? 0);
+		let coinWinner: Side = last ? other(last.winner) : (s.coinWinner ?? 0);
+		// Finals: the higher seed has home court and picks first
+		const seed = homeCourt(s);
+		if (seed !== null) coinWinner = seed;
 		return beginDraft(freshPreDraft({ ...base, coinWinner }));
 	}
 	return toBoosts({ ...base, draft: null });
+}
+
+/** In the Finals, the higher seed — otherwise null */
+export function homeCourt(s: VersusState): Side | null {
+	const tag = nextSeasonTag(history(), s.settings);
+	if (tag?.stage !== 'finals') return null;
+	return currentSeason(history(), tag)?.seed ?? null;
 }
 
 export function seriesScore(s: VersusState): [number, number] {

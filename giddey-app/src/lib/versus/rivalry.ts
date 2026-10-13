@@ -1,4 +1,5 @@
-import { GameResult, Settings, Side, teamName } from './engine';
+import { GameResult, Grade, Halftime, Line, SeasonTag, Settings, Side, teamName } from './engine';
+import { seatGames } from './history';
 import { getPool } from './pool';
 
 // ═══════════════════════════════════════════════════════════════
@@ -24,6 +25,13 @@ export interface RivalryGame {
 	/** Player of the Game (2 ids when the votes split) */
 	potg?: string[];
 	theme?: string | null;
+	twist?: string | null;
+	halftime?: Halftime | null;
+	line?: Line | null;
+	covered?: Side | null;
+	grades?: [Grade, Grade] | null;
+	season?: SeasonTag | null;
+	sabotageOn?: Side | null;
 }
 
 export function loadRivalry(): RivalryGame[] {
@@ -36,7 +44,7 @@ export function loadRivalry(): RivalryGame[] {
 	}
 }
 
-function save(games: RivalryGame[]) {
+export function saveRivalry(games: RivalryGame[]) {
 	try {
 		localStorage.setItem(KEY, JSON.stringify(games));
 	} catch {
@@ -61,15 +69,21 @@ export function logGame(settings: Settings, g: GameResult): void {
 		sabotage: g.sabotage ?? null,
 		potg: g.potg ?? [],
 		theme: g.theme?.id ?? null,
+		twist: g.twist ?? null,
+		halftime: g.halftime ?? null,
+		line: g.line ?? null,
+		covered: g.covered ?? null,
+		grades: g.grades ?? null,
+		season: g.season ?? null,
+		sabotageOn: g.sabotageOn ?? null,
 	});
-	save(games);
+	saveRivalry(games);
 }
 
 export function clearRivalry(): void {
-	save([]);
+	saveRivalry([]);
 }
 
-const norm = (n: string) => n.trim().toLowerCase();
 
 export interface CoachStats {
 	name: string;
@@ -112,28 +126,7 @@ export interface RivalryStats {
 
 /** Head-to-head between the two current coach names (either seat) */
 export function rivalryStats(all: RivalryGame[], names: [string, string]): RivalryStats {
-	const [a, b] = names.map(norm);
-	// each game re-seated so coach index 0 is names[0]
-	const games = all
-		.filter(g => {
-			const n = g.names.map(norm);
-			return (n[0] === a && n[1] === b) || (n[0] === b && n[1] === a);
-		})
-		.map(g => {
-			if (norm(g.names[0]) === a) return g;
-			const flip = <T,>(x: [T, T]): [T, T] => [x[1], x[0]];
-			return {
-				...g,
-				names: flip(g.names),
-				teams: flip(g.teams),
-				winner: (g.winner === 0 ? 1 : 0) as Side,
-				score: flip(g.score),
-				teamOvr: flip(g.teamOvr),
-				challenges: flip(g.challenges),
-				rosters: flip(g.rosters),
-			};
-		})
-		.sort((x, y) => x.ts - y.ts);
+	const games = seatGames(all, names);
 
 	const coach = (side: Side): CoachStats => {
 		let streak = 0;

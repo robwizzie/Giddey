@@ -5,6 +5,11 @@ import { Retired, Settings, Side } from '@/lib/versus/engine';
 import { getVersusPlayer } from '@/lib/versus/pool';
 import { clearRivalry, loadRivalry, rivalryStats, RivalryStats } from '@/lib/versus/rivalry';
 import { getTheme } from '@/lib/versus/themes';
+import type { RivalryGame } from '@/lib/versus/rivalry';
+import { seatGames } from '@/lib/versus/history';
+import { seasons, SeasonSummary, winsNeeded } from '@/lib/versus/seasons';
+import { achievementsFor } from '@/lib/versus/achievements';
+import GameDetail, { GameRow } from './GameDetail';
 import { getSabotage } from '@/lib/versus/wheels';
 import { SIDE_COLORS } from './Fx';
 
@@ -109,11 +114,46 @@ function PlayerLine({ id, right }: { id: string; right: string }) {
 	);
 }
 
-type Tab = 'overview' | 'players' | 'records';
+type Tab = 'overview' | 'games' | 'players' | 'records' | 'badges';
 
-export default function RivalrySheet({ settings, retired = [], onClose }: { settings: Settings; retired?: Retired[]; onClose: () => void }) {
+/** Title count + the season in progress */
+function SeasonPanel({ list, names }: { list: SeasonSummary[]; names: [string, string] }) {
+	if (!list.length) return null;
+	const cur = list[list.length - 1];
+	const t: [number, number] = [0, 0];
+	for (const x of list) if (x.champion !== null) t[x.champion]++;
+	const reg = cur.regular[0] + cur.regular[1];
+	const inFinals = cur.champion === null && reg >= cur.len;
+	return (
+		<div className='rounded-2xl border border-yellow-400/25 bg-yellow-400/[0.04] p-4 mb-4'>
+			<div className='flex items-center'>
+				{([0, 1] as Side[]).map(side => (
+					<div key={side} className={`flex-1 ${side ? 'text-right' : ''}`}>
+						<div className='text-[10px] font-black uppercase tracking-widest' style={{ color: SIDE_COLORS[side] }}>
+							{names[side]}
+						</div>
+						<div className='text-2xl font-black text-yellow-300'>{'🏆'.repeat(Math.min(t[side], 5)) || <span className='text-white/25 text-base'>No titles</span>}</div>
+					</div>
+				))}
+			</div>
+			<div className='text-[11px] text-white/60 text-center mt-2'>
+				{cur.champion !== null
+					? `${names[cur.champion]} won Season ${cur.n}. Season ${cur.n + 1} starts next game.`
+					: inFinals
+						? `Season ${cur.n} Finals: ${names[0]} ${cur.finalsWins[0]}–${cur.finalsWins[1]} ${names[1]} · first to ${winsNeeded(cur.finals)}`
+						: `Season ${cur.n}: ${names[0]} ${cur.regular[0]}–${cur.regular[1]} ${names[1]} · ${cur.len - reg} game${cur.len - reg === 1 ? '' : 's'} to the Finals`}
+			</div>
+		</div>
+	);
+}
+
+export default function RivalrySheet({ settings, retired = [], onClose, onSync }: { settings: Settings; retired?: Retired[]; onClose: () => void; onSync: () => void }) {
 	const [version, setVersion] = useState(0);
 	const [tab, setTab] = useState<Tab>('overview');
+	const [open, setOpen] = useState<RivalryGame | null>(null);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	const games = useMemo(() => seatGames(loadRivalry(), settings.names), [settings.names, version]);
+	const seasonList = useMemo(() => seasons(games), [games]);
 	const stats = useMemo(() => rivalryStats(loadRivalry(), settings.names), [settings.names, version]);
 	const [a, b] = stats.coaches;
 	const total = a.wins + b.wins;
@@ -125,6 +165,9 @@ export default function RivalrySheet({ settings, retired = [], onClose }: { sett
 			<div className='w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl px-4 pt-4 pb-8 animate-slide-up' onClick={e => e.stopPropagation()}>
 				<div className='flex items-center justify-between mb-4'>
 					<div className='text-lg font-black text-white'>📊 Rivalry</div>
+					<button onClick={onSync} className='ml-auto mr-2 text-xs font-black uppercase tracking-widest text-sky-200 bg-sky-500/15 border border-sky-400/30 rounded-full px-3 py-1.5'>
+						🔄 Sync phones
+					</button>
 					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
 						&times;
 					</button>
@@ -134,6 +177,7 @@ export default function RivalrySheet({ settings, retired = [], onClose }: { sett
 					<div className='text-center py-12 text-white/50'>
 						<div className='text-5xl mb-3'>🏀</div>
 						No games between {settings.names[0]} and {settings.names[1]} yet. Play one and the record starts here — it survives new series.
+						<div className='mt-3 text-xs'>Played on the other phone? Tap 🔄 Sync phones.</div>
 					</div>
 				) : (
 					<>
@@ -162,15 +206,17 @@ export default function RivalrySheet({ settings, retired = [], onClose }: { sett
 							</div>
 						</div>
 
-						<div className='flex gap-1 rounded-xl bg-white/[0.05] p-1 mb-4'>
+						<div className='flex gap-1 rounded-xl bg-white/[0.05] p-1 mb-4 overflow-x-auto [scrollbar-width:none]'>
 							{(
 								[
 									['overview', '📈 Overview'],
+									['games', '🗓️ Games'],
 									['players', '🏀 Players'],
 									['records', '🏆 Records'],
+									['badges', '🏅 Badges'],
 								] as [Tab, string][]
 							).map(([id, label]) => (
-								<button key={id} onClick={() => setTab(id)} className={`flex-1 rounded-lg py-2 text-xs font-black ${tab === id ? 'bg-white text-black' : 'text-white/60'}`}>
+								<button key={id} onClick={() => setTab(id)} className={`flex-1 shrink-0 whitespace-nowrap rounded-lg px-2.5 py-2 text-[11px] font-black ${tab === id ? 'bg-white text-black' : 'text-white/60'}`}>
 									{label}
 								</button>
 							))}
@@ -178,6 +224,7 @@ export default function RivalrySheet({ settings, retired = [], onClose }: { sett
 
 						{tab === 'overview' && (
 							<>
+								<SeasonPanel list={seasonList} names={settings.names} />
 								<LeadChart stats={stats} names={settings.names} />
 						{/* Side by side */}
 						<div className='rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-1 mb-4'>
@@ -215,26 +262,141 @@ export default function RivalrySheet({ settings, retired = [], onClose }: { sett
 						</div>
 
 								{/* Recent */}
-								<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-1.5'>Recent games</div>
+								<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-1.5'>Recent games · tap one for the full box</div>
 								<div className='space-y-1 mb-6'>
-									{stats.recent.map(g => (
-										<div key={g.ts} className='flex items-center gap-2 rounded-lg bg-white/[0.04] px-3 py-2 text-[12px]'>
-											<div className='w-2 h-2 rounded-full shrink-0' style={{ background: SIDE_COLORS[g.winner] }} />
-											<div className='flex-1 min-w-0 truncate text-white'>
-												<span className='font-black'>{g.winnerName}</span> won
-												{g.score[0] !== null && g.score[1] !== null ? ` ${Math.max(g.score[0], g.score[1])}–${Math.min(g.score[0], g.score[1])}` : ''}
-												{g.potg?.length ? <span className='text-yellow-300'> · ⭐ {g.potg.map(id => getVersusPlayer(id)?.lastName).join(' & ')}</span> : null}
-												{g.sabotage && g.sabotage !== 'mercy' ? <span className='text-red-300'> · 😈 {getSabotage(g.sabotage)?.label}</span> : null}
-											</div>
-											<div className='text-white/40 shrink-0'>{new Date(g.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
-										</div>
-									))}
+									{games
+										.slice(-8)
+										.reverse()
+										.map(g => (
+											<GameRow key={g.ts} g={g} names={settings.names} onOpen={() => setOpen(g)} />
+										))}
 								</div>
 							</>
 						)}
 
+						{tab === 'games' && (
+							<div className='space-y-4 mb-6'>
+								{(() => {
+									// newest first, grouped by season
+									const groups: { label: string; games: RivalryGame[] }[] = [];
+									for (const g of [...games].reverse()) {
+										const label = g.season ? `Season ${g.season.n}${g.season.stage === 'finals' ? ' · Finals' : ''}` : 'Exhibition';
+										const last = groups[groups.length - 1];
+										if (last?.label === label) last.games.push(g);
+										else groups.push({ label, games: [g] });
+									}
+									return groups.map((gr, i) => (
+										<div key={`${gr.label}-${i}`}>
+											<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-1.5'>{gr.label}</div>
+											<div className='space-y-1'>
+												{gr.games.map(g => (
+													<GameRow key={g.ts} g={g} names={settings.names} onOpen={() => setOpen(g)} />
+												))}
+											</div>
+										</div>
+									));
+								})()}
+							</div>
+						)}
+
+						{tab === 'badges' && (
+							<div className='grid grid-cols-2 gap-2 mb-6'>
+								{([0, 1] as Side[]).map(side => {
+									const list = achievementsFor(games, side);
+									return (
+										<div key={side} className='rounded-2xl border border-white/10 bg-white/[0.03] p-3 min-w-0'>
+											<div className='text-[10px] font-black uppercase tracking-widest mb-2' style={{ color: SIDE_COLORS[side] }}>
+												{settings.names[side]} · {list.filter(x => x.done).length}/{list.length}
+											</div>
+											<div className='space-y-1.5'>
+												{[...list]
+													.sort((x, y) => Number(y.done) - Number(x.done) || y.have / y.need - x.have / x.need)
+													.map(x => (
+														<div key={x.a.id} className={`flex items-start gap-2 ${x.done ? '' : 'opacity-45'}`} title={x.a.desc}>
+															<div className={`text-lg leading-none ${x.done ? '' : 'grayscale'}`}>{x.a.icon}</div>
+															<div className='min-w-0 flex-1'>
+																<div className='text-[11px] font-black text-white leading-tight'>{x.a.title}</div>
+																<div className='text-[9px] text-white/50 leading-tight'>{x.a.desc}</div>
+																{!x.done && x.need > 1 && (
+																	<div className='h-1 rounded-full bg-white/10 mt-1 overflow-hidden'>
+																		<div className='h-full bg-white/60' style={{ width: `${(x.have / x.need) * 100}%` }} />
+																	</div>
+																)}
+															</div>
+														</div>
+													))}
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						)}
+
 						{tab === 'records' && (
 							<>
+								{seasonList.some(x => x.champion !== null) && (
+									<div className='rounded-2xl border border-yellow-400/30 bg-yellow-400/[0.05] p-4 mb-4'>
+										<div className='text-[11px] font-black uppercase tracking-widest text-yellow-300/80 mb-2'>🏆 Banners</div>
+										<div className='space-y-1.5'>
+											{seasonList
+												.filter(x => x.champion !== null)
+												.reverse()
+												.map(x => (
+													<div key={x.n} className='flex items-center gap-2 text-[12px]'>
+														<div className='w-1.5 h-1.5 rounded-full shrink-0' style={{ background: SIDE_COLORS[x.champion!] }} />
+														<div className='flex-1 min-w-0 truncate text-white'>
+															<span className='font-black'>Season {x.n}</span> · {settings.names[x.champion!]} won the Finals {x.finalsWins[x.champion!]}–{x.finalsWins[x.champion === 0 ? 1 : 0]}
+														</div>
+														{x.finalsMvp && <div className='text-yellow-200/80 shrink-0 text-[11px]'>MVP {getVersusPlayer(x.finalsMvp)?.lastName}</div>}
+													</div>
+												))}
+										</div>
+									</div>
+								)}
+								{(() => {
+									const graded = games.filter(g => g.grades && g.grades[0].score !== g.grades[1].score);
+									const held = graded.filter(g => (g.grades![0].score > g.grades![1].score ? 0 : 1) === g.winner).length;
+									const lined = games.filter(g => g.line && g.score[0] !== null && g.score[1] !== null);
+									const ats: [number, number] = [0, 0];
+									for (const g of lined) ats[g.covered ?? g.line!.fav]++;
+									if (!graded.length && !lined.length) return null;
+									return (
+										<div className='grid grid-cols-2 gap-2 mb-4'>
+											<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-3'>
+												<div className='text-[10px] font-black uppercase tracking-widest text-white/45'>📝 Do grades hold up?</div>
+												{graded.length ? (
+													<>
+														<div className='text-2xl font-black text-white mt-1'>{pct(held, graded.length)}%</div>
+														<div className='text-[11px] text-white/55'>
+															The better-graded draft won {held} of {graded.length}
+														</div>
+													</>
+												) : (
+													<div className='text-xs text-white/40 mt-1'>No graded drafts yet</div>
+												)}
+											</div>
+											<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-3'>
+												<div className='text-[10px] font-black uppercase tracking-widest text-white/45'>📈 Against the spread</div>
+												{lined.length ? (
+													<div className='text-sm text-white mt-1'>
+														<span className='text-2xl font-black' style={{ color: SIDE_COLORS[0] }}>
+															{ats[0]}
+														</span>
+														<span className='text-white/40'> – </span>
+														<span className='text-2xl font-black' style={{ color: SIDE_COLORS[1] }}>
+															{ats[1]}
+														</span>
+														<div className='text-[11px] text-white/55'>
+															Covers · {games.filter(g => g.covered !== null && g.covered !== undefined).length} underdog cover{games.filter(g => g.covered !== null && g.covered !== undefined).length === 1 ? '' : 's'}
+														</div>
+													</div>
+												) : (
+													<div className='text-xs text-white/40 mt-1'>Enter scores to settle lines</div>
+												)}
+											</div>
+										</div>
+									);
+								})()}
 								<RecordRows title='🎴 Record by draft style' rows={stats.byStyle.map(r => ({ label: STYLE_LABEL[r.style] ?? r.style, wins: r.wins }))} />
 								<RecordRows title='🎡 Record by theme' rows={stats.byTheme.map(r => ({ label: `${getTheme(r.theme)?.icon ?? ''} ${getTheme(r.theme)?.label ?? r.theme}`, wins: r.wins }))} />
 						{/* Records */}
@@ -316,6 +478,8 @@ export default function RivalrySheet({ settings, retired = [], onClose }: { sett
 								)}
 							</>
 						)}
+
+						{open && <GameDetail g={open} names={settings.names} onClose={() => setOpen(null)} />}
 
 						<button
 							onClick={() => {

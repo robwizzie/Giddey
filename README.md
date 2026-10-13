@@ -94,6 +94,8 @@ Setup starts with four **quick setups** (Classic, Variety Night, Money Night, Ch
 - A 20/30/45-second **shot clock**: beeps in the last 5 seconds, then a buzzer and an auto-pick.
 - Synthesized sound effects with a mute toggle.
 - A full-screen **BOOM** with the player's headshot for every superstar pick, and a card flip on every other pick.
+- An **announcer** reads every pick aloud using the phone's built-in speech voice ("With the 4th pick, Dave selects… Allen Iverson"), with extra hype for superstars. The 🔊 button mutes it.
+- **Draft grades:** after the draft, each team gets a letter grade and a one-line analyst take ("Walls up at the rim, nobody to stretch the floor"). Picks get stamped 💰 STEAL (3+ OVR better than the other coach's pick that round) or 🤨 REACH (a player 3+ OVR better was on the board).
 - Screen fade transitions, plus vibration on picks, bids, wheel spins, slot stops and the coin flip (on phones that support it).
 
 **Game day**
@@ -105,8 +107,16 @@ Setup starts with four **quick setups** (Classic, Variety Night, Money Night, Ch
 - **Running it back:** if you keep the same squads instead of redrafting, an extra-player reward signs a free agent of that tier, and any other reward upgrades your weakest player. The Equalizer stays off in a draft where someone has earned a reward.
 - Both rosters are listed with headshots.
 - **Player of the Game:** each coach votes for anyone from either team. If the votes split, both players get the award.
+- **Vegas line:** a point spread set from the team ratings, the quarter length and recent head-to-head margins. Enter the score to settle it; an underdog who covers earns ⬆️ Tier Up for the next draft.
+- **Halftime wheel:** tap who's leading at the half, and the trailing team spins a second-half twist (Bonus Bucket, Bench the Best, Heat Check, Zone Only and more).
 - One-tap **share image** (1080×1920) of both squads for iMessage or Instagram.
 - After each game the loser spins the **sabotage wheel** to inflict something on the winner next game.
+
+**Seasons**
+- Play a 6, 10 or 16-game regular season, then a best-of-3, 5 or 7 Finals.
+- The better regular-season record gets **home court** and picks first in every Finals draft.
+- A championship banner and a Finals MVP are awarded when the Finals are won.
+- Season tags are saved with each game, so standings and titles are worked out from the log and sync between phones.
 
 **Team identity and rivalry**
 - Each coach picks a team name, emoji and color.
@@ -120,6 +130,11 @@ Setup starts with four **quick setups** (Classic, Variety Night, Money Night, Ch
   - a Player of the Game leaderboard
   - each coach's most-used players, plus the best players they've never used
   - who is currently retired
+  - a **Games** list grouped by season; tap any game to see both rosters, the theme, twist, halftime spin, line, grades and Player of the Game
+  - championship banners, whether the better draft grade wins, and the record against the spread
+  - 20 **achievements** (Heater, Giant Killer, Sweep, Comeback from 0–2, Kaleidoscope, Every Style…). Titles and badge counts show next to each coach's name.
+- **Sync between phones:** the site has no server, so 🔄 Sync phones packs the rivalry log and franchise guys into a QR code or share link. The other phone merges any games it's missing; re-importing the same link adds nothing.
+- **Installable:** add Versus to your home screen (a 📲 button on the setup screen, with step-by-step instructions on iPhone). A service worker lets it open offline.
 
 Ratings live in `giddey-app/src/data/2k27-modern.json` and `2k27-alltime.json`, and headshots are matched to NBA.com player IDs in `nba-person-ids.json`.
 

@@ -22,6 +22,8 @@ import {
 } from '@/lib/versus/engine';
 import { ALLTIME_PLAYERS, getPool, getVersusPlayer, MODERN_PLAYERS } from '@/lib/versus/pool';
 import { THEMES } from '@/lib/versus/themes';
+import { CoachBadges } from './Badges';
+import InstallButton from './InstallButton';
 
 const POOLS: { id: PoolSetting; title: string; sub: string; icon: string }[] = [
 	{ id: 'modern', title: 'Modern', sub: 'Current 2K27 rosters', icon: '🏀' },
@@ -566,6 +568,26 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 					<Toggle on={s.shuffleRounds} onChange={v => set('shuffleRounds', v)} title='🔀 Shuffle round order' desc='Tier rounds come in random order instead of superstars first.' />
 				</div>
 			</Section>
+
+			<Section n={8} icon='🎙️' title='Game night' desc='The broadcast around the draft and the game. Change these anytime.'>
+				<div className='space-y-2'>
+					<Toggle on={s.announcer} onChange={v => set('announcer', v)} title='🎙️ Announcer' desc='Your phone reads every pick aloud — “With the 4th pick, Dave selects…” — and goes wild for superstars. Uses the phone’s built-in voice; the 🔊 button mutes it.' />
+					<Toggle on={s.vegas} onChange={v => set('vegas', v)} title='📈 Vegas line' desc='A point spread before tip-off from the team ratings and your recent games. Enter the score to settle it — an underdog who covers earns ⬆️ Tier Up for the next draft.' />
+					<Toggle on={s.halftime} onChange={v => set('halftime', v)} title='🕐 Halftime wheel' desc='At halftime, tap who’s leading and the trailing team spins a second-half twist — bonus points, the leader benches their best player, and more.' />
+				</div>
+			</Section>
+
+			<Section n={9} icon='🏆' title='Season' desc='Play a regular season, then a best-of Finals for the title. Standings live in 📊 Rivalry.'>
+				<div className='space-y-3'>
+					<Seg label='Regular season' value={s.season} onChange={v => set('season', v)} options={[{ v: 0, l: 'Off' }, { v: 6, l: '6 games' }, { v: 10, l: '10 games' }, { v: 16, l: '16 games' }]} />
+					{s.season > 0 && <Seg label='Finals' value={s.finals} onChange={v => set('finals', v)} options={[{ v: 3, l: 'Best of 3' }, { v: 5, l: 'Best of 5' }, { v: 7, l: 'Best of 7' }]} />}
+					<div className='text-[11px] text-white/45'>
+						{s.season > 0
+							? `Every game counts toward the season. After ${s.season} games, the better record gets home court (picks first in every Finals draft), then it's first to ${Math.floor(s.finals / 2) + 1} wins. A new length starts with the next season.`
+							: 'Games still count toward the all-time rivalry record — just no standings or titles.'}
+					</div>
+				</div>
+			</Section>
 		</>
 	);
 }
@@ -584,14 +606,19 @@ export default function SetupScreen({ initial, onStart, onRivalry, onHelp }: { i
 					<span className='text-white/30 mx-3 text-3xl align-middle'>vs</span>
 					<span style={{ color: s.identity[1].color }}>{s.names[1] || 'P2'}</span>
 				</h1>
+				<div className='flex justify-center gap-6 mt-1.5 min-h-[18px]'>
+					<CoachBadges side={0} />
+					<CoachBadges side={1} />
+				</div>
 				<p className='text-sm text-white/50 mt-3 max-w-md mx-auto'>Draft two squads from real 2K27 ratings — as balanced or as broken as you like — spin for the rules, then settle it on the sticks.</p>
-				<div className='mt-4 flex justify-center gap-2'>
+				<div className='mt-4 flex flex-wrap justify-center gap-2'>
 					<button onClick={onHelp} className='text-xs font-black uppercase tracking-widest text-white/80 bg-orange-500/20 hover:bg-orange-500/30 rounded-full px-4 py-2 border border-orange-400/40'>
 						❓ How it works
 					</button>
 					<button onClick={onRivalry} className='text-xs font-black uppercase tracking-widest text-white/70 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2 border border-white/10'>
 						📊 Rivalry record
 					</button>
+					<InstallButton />
 				</div>
 			</div>
 

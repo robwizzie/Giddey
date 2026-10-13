@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { bestLineup, normalizeSettings, other, players, recordGame, RETIRE_DRAFTS, seriesScore, setSabotage, Settings, Side, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
 import { TierBuilder } from './SetupScreen';
 import { getTeamFor, getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
@@ -22,7 +22,16 @@ import {
 	SABOTAGES,
 	rollReward,
 	TWISTS,
+	HALFTIME,
+	getHalftime,
+	halftimeText,
 } from '@/lib/versus/wheels';
+import { history } from '@/lib/versus/history';
+import { coveredBy, vegasLine } from '@/lib/versus/vegas';
+import { nextSeasonTag, seasonLabel } from '@/lib/versus/seasons';
+import { CoverCard, NewBadges, SeasonCard } from './PostGameExtras';
+import { CoachBadges } from './Badges';
+import { announce } from '@/lib/versus/announcer';
 import Wheel from './Wheel';
 import SlotMachine from './SlotMachine';
 import { Confetti, Pill, SectionTitle, SIDE_COLORS } from './Fx';
@@ -189,6 +198,32 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 					);
 				})}
 			</div>
+			{(() => {
+				const ht = state.gameday.halftime;
+				const t = getHalftime(ht?.id);
+				return ht && t?.scoreNote ? <div className='text-[12px] text-sky-200 text-center -mt-2 mb-3'>🕐 {halftimeText(t.scoreNote, names, ht.leader)}</div> : null;
+			})()}
+			{state.settings.vegas &&
+				(() => {
+					const line = vegasLine(state, history());
+					const a = parseInt(score[0], 10);
+					const b = parseInt(score[1], 10);
+					if (isNaN(a) || isNaN(b)) return <div className='text-[11px] text-white/40 text-center -mt-2 mb-3'>📈 Enter both scores to settle the spread ({names[line.fav]} −{line.spread}).</div>;
+					const cov = coveredBy(line, [a, b]);
+					return (
+						<div className='text-[12px] text-center -mt-2 mb-3 font-bold'>
+							{cov !== null ? (
+								<span className='text-emerald-300'>
+									📈 {names[cov]} covers +{line.spread} — ⬆️ Tier Up next draft
+								</span>
+							) : (
+								<span className='text-white/55'>
+									📈 {names[line.fav]} covers −{line.spread}
+								</span>
+							)}
+						</div>
+					);
+				})()}
 			<div className='mb-4'>
 				<div className='text-center text-[11px] font-black uppercase tracking-widest text-white/50 mb-1'>⭐ Player of the Game</div>
 				<div className='text-center text-[11px] text-white/40 mb-2'>Each coach votes — anyone from either team. Split votes? Both get it. Winners earn a ⭐ Hot hand tag in future drafts.</div>
@@ -329,6 +364,103 @@ function RiskPicker({ side, name, onPick }: { side: Side; name: string; onPick: 
 	);
 }
 
+/** Point spread for tonight, with what covering means */
+function LineCard({ state }: { state: VersusState }) {
+	if (!state.settings.vegas) return null;
+	const { names } = state.settings;
+	const line = vegasLine(state, history());
+	const dog = other(line.fav);
+	return (
+		<div className='rounded-xl border border-emerald-400/30 bg-emerald-400/[0.06] p-3 flex items-center gap-3'>
+			<div className='text-2xl'>📈</div>
+			<div className='min-w-0'>
+				<div className='text-xs font-black uppercase tracking-wider text-emerald-300'>
+					Vegas line: <span style={{ color: SIDE_COLORS[line.fav] }}>{names[line.fav]}</span> −{line.spread}
+				</div>
+				<div className='text-[11px] text-white/60 leading-snug'>
+					<span className='font-black' style={{ color: SIDE_COLORS[dog] }}>
+						{names[dog]}
+					</span>{' '}
+					covers by {line.spread < 1 ? 'winning' : `winning or losing by ${Math.floor(line.spread)} or less`} — and earns ⬆️ Tier Up for the next draft. Enter the score to settle it.
+				</div>
+			</div>
+		</div>
+	);
+}
+
+/** Halftime: whoever's behind spins a second-half twist */
+function HalftimeCard({ state, setState }: { state: VersusState; setState: SetState }) {
+	const gd = state.gameday;
+	const { names } = state.settings;
+	const [lead, setLead] = useState<Side | 'tied' | null>(null);
+	const [size] = useState(() => (typeof window === 'undefined' ? 280 : Math.min(300, window.innerWidth - 64)));
+	if (!state.settings.halftime) return null;
+	const ht = gd.halftime;
+	if (ht) {
+		const t = getHalftime(ht.id);
+		if (!t) return null;
+		return (
+			<div className='rounded-xl p-3 border flex gap-3 items-start vs-rise' style={{ borderColor: `${t.color}66`, background: `${t.color}18` }}>
+				<div className='text-2xl'>🕐</div>
+				<div className='text-[12px] text-white/80 leading-snug'>
+					<div className='text-xs font-black uppercase tracking-wider' style={{ color: t.color }}>
+						Second half: {t.label}
+					</div>
+					{halftimeText(t.desc, names, ht.leader)}
+					{ht.tied && <span className='text-white/45'> (Tied at the half — the wheel picked who it hits.)</span>}
+				</div>
+			</div>
+		);
+	}
+	return (
+		<div className='rounded-2xl border border-sky-400/30 bg-sky-400/[0.05] p-4'>
+			<div className='text-[11px] font-black uppercase tracking-widest text-sky-300 text-center mb-1'>🕐 Halftime wheel</div>
+			{lead === null ? (
+				<>
+					<div className='text-sm text-white/65 text-center mb-3'>At the half, pause and tap who&apos;s leading. The team that&apos;s behind spins a second-half twist.</div>
+					<div className='grid grid-cols-3 gap-2'>
+						{([0, 1] as Side[]).map(side => (
+							<button key={side} onClick={() => setLead(side)} className='rounded-xl py-2.5 text-sm font-black border' style={{ borderColor: `${SIDE_COLORS[side]}66`, color: SIDE_COLORS[side], background: `${SIDE_COLORS[side]}14` }}>
+								{names[side]} leads
+							</button>
+						))}
+						<button onClick={() => setLead('tied')} className='rounded-xl py-2.5 text-sm font-black border border-white/15 text-white/70 bg-white/5'>
+							Tied
+						</button>
+					</div>
+				</>
+			) : (
+				<div className='flex flex-col items-center'>
+					<div className='text-sm text-white/65 text-center mb-3'>
+						{lead === 'tied' ? (
+							'Tied up — spin, and the wheel decides who it hits.'
+						) : (
+							<>
+								<span className='font-black' style={{ color: SIDE_COLORS[other(lead)] }}>
+									{names[other(lead)]}
+								</span>{' '}
+								is behind — spin for a way back.
+							</>
+						)}
+					</div>
+					<Wheel
+						items={HALFTIME}
+						size={size}
+						accent='#38bdf8'
+						onResult={i => {
+							const leader: Side = lead === 'tied' ? (Math.random() < 0.5 ? 0 : 1) : lead;
+							setTimeout(() => setState({ ...state, gameday: { ...gd, halftime: { id: HALFTIME[i].id, leader, tied: lead === 'tied' } } }), 900);
+						}}
+					/>
+					<button onClick={() => setLead(null)} className='mt-3 text-xs text-white/35 underline'>
+						← Change
+					</button>
+				</div>
+			)}
+		</div>
+	);
+}
+
 export function GameDayScreen({ state, setState }: { state: VersusState; setState: SetState }) {
 	const gd = state.gameday;
 	const { names, rosterSize } = state.settings;
@@ -358,7 +490,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 	return (
 		<div className='min-h-screen pb-16'>
 			<div className='max-w-3xl mx-auto px-4 pt-6'>
-				<SectionTitle kicker={`Game ${state.gameNo} · Game day`} title={step === 2 ? 'Ball is tipped' : step === 0 ? 'Spin for the rules' : 'Challenge spins'} />
+				<SectionTitle kicker={seasonLabel(nextSeasonTag(history(), state.settings)) || `Game ${state.gameNo} · Game day`} title={step === 2 ? 'Ball is tipped' : step === 0 ? 'Spin for the rules' : 'Challenge spins'} />
 				<StepDots step={step} />
 
 				{step === 0 && (
@@ -448,6 +580,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 							<div className='grid grid-cols-3 text-center bg-white/[0.04]'>
 								<div className='p-3'>
 									<div className='text-[10px] font-black uppercase tracking-widest' style={{ color: SIDE_COLORS[0] }}>{names[0]}</div>
+									<CoachBadges side={0} compact />
 									<div className='text-2xl font-black text-white tabular-nums'>{teamOvr(state.teams[0]).toFixed(1)}</div>
 								</div>
 								<div className='p-3 border-x border-white/10'>
@@ -456,6 +589,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 								</div>
 								<div className='p-3'>
 									<div className='text-[10px] font-black uppercase tracking-widest' style={{ color: SIDE_COLORS[1] }}>{names[1]}</div>
+									<CoachBadges side={1} compact />
 									<div className='text-2xl font-black text-white tabular-nums'>{teamOvr(state.teams[1]).toFixed(1)}</div>
 								</div>
 							</div>
@@ -473,6 +607,8 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 							})()}
 						</div>
 
+						<LineCard state={state} />
+
 						{/* Sabotage in play */}
 						{state.sabotage && <SabotageCard state={state} />}
 
@@ -480,6 +616,8 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 							<ChallengeCard state={state} side={0} />
 							<ChallengeCard state={state} side={1} />
 						</div>
+
+						<HalftimeCard state={state} setState={setState} />
 
 						{!showForm ? (
 							<button onClick={() => setShowForm(true)} className='w-full btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg mt-2'>
@@ -586,6 +724,11 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 	const [w0, w1] = seriesScore(state);
 	const w = last.winner;
 	const [handicapOpen, setHandicapOpen] = useState(false);
+	useEffect(() => {
+		const sc = last.score[0] !== null && last.score[1] !== null ? ` ${Math.max(last.score[0], last.score[1])} to ${Math.min(last.score[0], last.score[1])}` : '';
+		announce(`Ballgame! ${names[w]} wins${sc}.`);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	return (
 		<div className='min-h-screen pb-10'>
 			<Confetti count={90} colors={[SIDE_COLORS[w], '#facc15', '#ffffff']} />
@@ -602,6 +745,10 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 						</div>
 					)}
 				</div>
+
+				<SeasonCard state={state} last={last} />
+				<NewBadges state={state} />
+				<CoverCard state={state} last={last} />
 
 				{(last.potg?.length ?? 0) > 0 && (
 					<div className='rounded-2xl border border-yellow-400/40 bg-yellow-400/[0.07] p-4 mb-4 text-center vs-rise'>
@@ -675,15 +822,15 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 									{c?.title} — {ok ? <span className='text-green-400'>completed</span> : <span className='text-red-400'>missed</span>}
 								</div>
 								{earned.length > 0 ? (
-									earned.map(b => {
+									earned.map((b, i) => {
 										const info = getBoost(b);
 										if (!info) return null;
 										return (
-											<div key={b} className='mt-2 text-sm'>
+											<div key={`${b}-${i}`} className='mt-2 text-sm'>
 												<div className='flex items-center gap-2'>
 													<span className='text-xl'>{info.icon}</span>
 													<span className='font-black text-amber-300'>{info.label}</span>
-													<span className='text-white/45 text-xs'>next draft</span>
+													<span className='text-white/45 text-xs'>{last.covered === side && i === earned.length - 1 ? 'next draft · 📈 covered the spread' : 'next draft'}</span>
 												</div>
 												<div className='text-[11px] text-white/45 mt-0.5'>
 													{info.desc} Run it back instead: {info.runBack.toLowerCase()}.

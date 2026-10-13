@@ -181,3 +181,37 @@ export const SABOTAGES: SabotageItem[] = [
 export function getSabotage(id: string | null | undefined): SabotageItem | undefined {
 	return SABOTAGES.find(x => x.id === id);
 }
+
+// ─── halftime wheel ─────────────────────────────────────────────
+// Second-half twists that give the trailing team a way back.
+// {L} = the coach leading at the half, {T} = the coach trailing.
+
+export interface HalftimeTwist {
+	id: string;
+	label: string;
+	desc: string;
+	color: string;
+	weight: number;
+	/** reminder shown when entering the final score */
+	scoreNote?: string;
+}
+
+export const HALFTIME: HalftimeTwist[] = [
+	{ id: 'bonus', label: 'Bonus Bucket', desc: '{T} gets 5 free points — add them to the final score.', color: '#22c55e', weight: 3, scoreNote: 'Halftime: add 5 points to {T}’s score.' },
+	{ id: 'bench', label: 'Bench the Best', desc: '{L} sits their highest-rated player for all of the 3rd quarter.', color: '#ef4444', weight: 3 },
+	{ id: 'heat', label: 'Heat Check', desc: 'In the 3rd quarter, {T}’s threes are worth 4 — add 1 point per made three.', color: '#f97316', weight: 2, scoreNote: 'Halftime: add 1 point for each three {T} made in Q3.' },
+	{ id: 'zone', label: 'Zone Only', desc: '{L} must play zone defense the whole second half.', color: '#3b82f6', weight: 2 },
+	{ id: 'nosub', label: 'Iron Man', desc: '{L} can’t sub or call a timeout in the 3rd quarter.', color: '#a855f7', weight: 2 },
+	{ id: 'q4', label: 'Comeback Quarter', desc: '{T}’s 4th-quarter points count double.', color: '#ec4899', weight: 2, scoreNote: 'Halftime: add {T}’s 4th-quarter points again.' },
+	{ id: 'nothree', label: 'Inside Only', desc: '{L} can’t shoot threes for the first half of the 3rd quarter.', color: '#eab308', weight: 2 },
+	{ id: 'clean', label: 'Play It Out', desc: 'No help. {T} has to earn it.', color: '#64748b', weight: 1 },
+];
+
+export function getHalftime(id: string | null | undefined): HalftimeTwist | undefined {
+	return HALFTIME.find(x => x.id === id);
+}
+
+/** Fill in the leader / trailer names */
+export function halftimeText(text: string, names: [string, string], leader: 0 | 1): string {
+	return text.replace(/\{L\}/g, names[leader]).replace(/\{T\}/g, names[leader === 0 ? 1 : 0]);
+}

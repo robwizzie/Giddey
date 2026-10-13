@@ -17,7 +17,7 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 	const auction = s.style === 'auction' || s.style === 'block';
 	return [
 		{ icon: '⚙️', title: 'Set up', desc: 'Pick a quick setup or customize. Pin your franchise guys in Coaches.', on: true },
-		{ icon: '🪙', title: 'Coin toss', desc: 'Winner picks first in round 1.', on: true },
+		{ icon: '🪙', title: 'Coin toss', desc: 'Winner picks first in round 1. In the Finals, the higher seed has home court and picks first instead.', on: true },
 		{
 			icon: '🎡',
 			title: 'Theme',
@@ -26,9 +26,13 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 		},
 		{ icon: '🔒', title: 'Keepers', desc: 'On a mid-series redraft, each coach keeps one player.', on: s.keepers },
 		{ icon: '💙', title: 'Favorites round', desc: 'Each coach grabs one of their pinned franchise guys before the draft.', on: s.favoritesRound },
-		{ icon: auction ? '🔨' : '🎴', title: STYLE_NAMES[s.style] ?? 'Draft', desc: 'Build your roster tier by tier. Card tags show who is fresh and who you overuse.', on: true },
+		{ icon: auction ? '🔨' : '🎴', title: STYLE_NAMES[s.style] ?? 'Draft', desc: 'Build your roster tier by tier. Card tags show who is fresh and who you overuse. Great value picks get stamped 💰 STEAL, bad ones 🤨 REACH.', on: true },
+		{ icon: '🎙️', title: 'Announcer', desc: 'Your phone reads every pick aloud and loses it for superstars. 🔊 mutes it.', on: s.announcer },
 		{ icon: '⚖️', title: 'Balance', desc: 'Equalizer swap if the teams finish far apart, then the trade window.', on: s.equalizer || s.trades },
+		{ icon: '📝', title: 'Draft grades', desc: 'Each team gets a letter grade and an analyst take. They’re saved, so the rivalry page shows whether the better grade wins.', on: true },
+		{ icon: '📈', title: 'Vegas line', desc: 'A point spread from the ratings and your recent games. An underdog who covers earns ⬆️ Tier Up for the next draft.', on: s.vegas },
 		{ icon: '🏀', title: 'Game day', desc: 'Spin quarter length and the scoring twist, then each coach picks a challenge and a risk level.', on: true },
+		{ icon: '🕐', title: 'Halftime wheel', desc: 'Tap who leads at the half; the team that’s behind spins a second-half twist.', on: s.halftime },
 		{ icon: '⭐', title: 'Result + Player of the Game', desc: 'Enter the winner and score, then each coach votes Player of the Game.', on: true },
 		{
 			icon: '🎖️',
@@ -37,6 +41,12 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 			on: s.retire !== 'off',
 		},
 		{ icon: '🔁', title: 'Run it back or redraft', desc: 'Challenge rewards (keepers, tier-ups, extra stars) apply to the next draft.', on: true },
+		{
+			icon: '🏆',
+			title: 'Season & Finals',
+			desc: s.season ? `${s.season}-game regular season, then a best-of-${s.finals} Finals. The champion's banner and Finals MVP go up in 📊 Rivalry.` : 'Off — games still count toward the all-time record.',
+			on: s.season > 0,
+		},
 	];
 }
 
@@ -81,8 +91,15 @@ export default function HelpSheet({ settings, onClose }: { settings: Settings; o
 
 				<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>What gets tracked</div>
 				<div className='rounded-xl bg-white/[0.04] border border-white/10 p-3 text-[12px] text-white/60 leading-relaxed'>
-					Every game you record is saved to the 📊 Rivalry record on this device, matched by coach names, so it survives new series. It tracks wins, the head-to-head swing, records by draft style, Player of the Game
-					awards, who each of you leans on, the best players you&apos;ve never used, and who is retired. Usage only counts games between the two coaches playing now, so keep your names the same each night.
+					Every game you record is saved to the 📊 Rivalry record on this device, matched by coach names, so keep your names the same each night. Tap any game to see its rosters, rules, line and grades. It also tracks
+					seasons and titles, 🏅 badges, records by draft style, Player of the Game awards, the spread, who each of you leans on and who&apos;s retired.
+					<div className='mt-2'>
+						<span className='font-black text-white'>Two phones?</span> 📊 Rivalry → 🔄 Sync phones sends your record as a QR code or link; the other phone merges whatever it&apos;s missing. Badges, seasons and
+						freshness all update.
+					</div>
+					<div className='mt-2'>
+						<span className='font-black text-white'>📲 Install:</span> add Versus to your home screen from the setup screen. It opens full-screen and works offline.
+					</div>
 				</div>
 			</div>
 		</div>

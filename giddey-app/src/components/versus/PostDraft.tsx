@@ -25,6 +25,8 @@ import { BAND_INFO } from '@/lib/versus/engine';
 import VersusCard, { RosterRow } from './VersusCard';
 import Scoreboard, { FairnessMeter } from './Scoreboard';
 import { Confetti, SectionTitle, SIDE_COLORS } from './Fx';
+import { GradeCards } from './GradeCards';
+import { announce } from '@/lib/versus/announcer';
 
 type SetState = (s: VersusState) => void;
 
@@ -269,6 +271,13 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 	const f = fairness(state.teams[0], state.teams[1]);
 	const [copied, setCopied] = useState(false);
 	const [sharing, setSharing] = useState<string | null>(null);
+	const grades = state.grades;
+	useEffect(() => {
+		if (!grades) return;
+		const say = (l: string) => l.replace('+', ' plus').replace('-', ' minus');
+		announce(`The grades are in. ${names[0]} gets ${/^[AE]/.test(grades[0].letter) ? 'an' : 'a'} ${say(grades[0].letter)}. ${names[1]}, ${/^[AE]/.test(grades[1].letter) ? 'an' : 'a'} ${say(grades[1].letter)}.`);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	const share = async () => {
 		setSharing('Rendering…');
 		const r = await shareSquads(state);
@@ -312,6 +321,14 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 					<FairnessMeter a={state.teams[0]} b={state.teams[1]} />
 					<div className='text-center text-[11px] text-white/45 mt-1'>{f >= 90 ? 'Dead even. This one comes down to the sticks.' : f >= 75 ? 'Slight edge — the underdog has the challenge wheel.' : 'Lopsided. Spin hard, underdog.'}</div>
 				</div>
+
+				{grades && (
+					<div className='mb-6'>
+						<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-2 text-center'>📝 Draft grades</div>
+						<GradeCards grades={grades} names={names} state={state} />
+						<div className='text-center text-[10px] text-white/35 mt-1.5'>Saved with the game — the rivalry page tracks whether the better grade actually wins.</div>
+					</div>
+				)}
 
 				{/* Position matchups */}
 				<div className='rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden mb-4'>

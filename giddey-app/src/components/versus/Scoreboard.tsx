@@ -2,6 +2,7 @@
 
 import { fairness, seriesScore, teamOvr, VersusState } from '@/lib/versus/engine';
 import { SIDE_COLORS } from './Fx';
+import { CoachBadges } from './Badges';
 
 export function FairnessMeter({ a, b, compact }: { a: string[]; b: string[]; compact?: boolean }) {
 	const oa = teamOvr(a);
@@ -43,7 +44,7 @@ export default function Scoreboard({ state, sub }: { state: VersusState; sub?: R
 								<div className='text-[10px] font-black uppercase tracking-widest truncate' style={{ color: SIDE_COLORS[i] }}>
 									{state.settings.identity?.[i]?.emoji ? `${state.settings.identity[i].emoji} ` : ''}
 									{names[i]}
-									{hasSeries && <span className='text-white/40'> · {i ? w1 : w0}W</span>}
+									{hasSeries && <span className='text-white/40'> · {i ? w1 : w0}W</span>} <CoachBadges side={i as 0 | 1} compact />
 								</div>
 								<div className='text-2xl font-black text-white leading-none tabular-nums'>{ovr[i] ? ovr[i].toFixed(1) : '—'}</div>
 							</div>

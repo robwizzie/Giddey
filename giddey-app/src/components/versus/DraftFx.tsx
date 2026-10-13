@@ -7,6 +7,8 @@ import { getPlayerHeadshotUrls } from '@/lib/images';
 import { CATEGORY_INFO, Category, lineupChemistry } from '@/lib/versus/chemistry';
 import { buzz, play } from '@/lib/versus/sound';
 import { playerTags, TagChip } from './Tags';
+import { announce, pickLine } from '@/lib/versus/announcer';
+import { pickCallout } from '@/lib/versus/grades';
 import { getBoost } from '@/lib/versus/wheels';
 import Headshot from '@/components/Headshot';
 import VersusCard from './VersusCard';
@@ -124,6 +126,18 @@ function isBoom(state: VersusState, side: Side, p: VersusPlayer): boolean {
 	return p.overall >= 95 || bandOf(state.settings, side, p.id) === 'superstar';
 }
 
+/** "STEAL" / "REACH" stamp on a pick */
+export function CalloutBadge({ kind, text }: { kind: 'steal' | 'reach'; text: string }) {
+	const steal = kind === 'steal';
+	return (
+		<div className='mt-3 vs-slam' style={{ animationDelay: '900ms' }}>
+			<span className={`inline-block rounded-lg px-3 py-1 text-sm font-black uppercase tracking-wider border-2 ${steal ? 'text-green-300 border-green-400 bg-green-500/15' : 'text-amber-300 border-amber-400 bg-amber-500/15'}`} style={{ transform: 'rotate(-3deg)' }}>
+				{steal ? '💰' : '🤨'} {text}
+			</span>
+		</div>
+	);
+}
+
 /** Full-screen "BOOM" for superstar picks */
 function BoomReveal({ state, side, player: p, pickNo, price, onDone }: { state: VersusState; side: Side; player: VersusPlayer; pickNo: number; price?: number; onDone: () => void }) {
 	useEffect(() => {
@@ -187,13 +201,20 @@ export function PickReveal({ state, onDone }: { state: VersusState; onDone: () =
 	const p = getVersusPlayer(lp.id)!;
 	const pickNo = state.draft!.log.length;
 	const boom = isBoom(state, lp.side, p);
+	const call = pickCallout(state, lp);
+	// the announcer reads every pick once (each reveal is keyed by pick)
+	useEffect(() => {
+		const line = pickLine({ pickNo, coach: state.settings.names[lp.side], player: `${p.firstName} ${p.lastName}`, price: lp.price, superstar: boom, callout: call?.kind ?? null });
+		announce(line.text, { hype: line.hype });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	useEffect(() => {
 		if (boom) return;
 		play('reveal');
 		buzz(25);
-		const t = setTimeout(onDone, 1900);
+		const t = setTimeout(onDone, state.settings.announcer ? 2600 : 1900);
 		return () => clearTimeout(t);
-	}, [onDone, boom]);
+	}, [onDone, boom, state.settings.announcer]);
 	if (boom) return <BoomReveal state={state} side={lp.side} player={p} pickNo={pickNo} price={lp.price} onDone={onDone} />;
 	return (
 		<div className='fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm' onClick={onDone}>
@@ -216,6 +237,7 @@ export function PickReveal({ state, onDone }: { state: VersusState; onDone: () =
 						<TagChip key={t.text} tag={t} />
 					))}
 				</div>
+				{call && <CalloutBadge kind={call.kind} text={call.text} />}
 			</div>
 		</div>
 	);
@@ -229,6 +251,11 @@ export function BlindReveal({ state, picks, collision, onDone }: { state: Versus
 		const t = setTimeout(onDone, collision ? 2600 : 2400);
 		return () => clearTimeout(t);
 	}, [onDone, collision]);
+	useEffect(() => {
+		if (collision) announce(`Collision! You both went for ${getVersusPlayer(collision)?.lastName}. Nobody gets him.`);
+		else if (picks) announce(`Blind bids are in. ${state.settings.names[state.draft!.order[0]]} takes ${getVersusPlayer(picks[0])?.lastName}, and ${state.settings.names[state.draft!.order[1]]} takes ${getVersusPlayer(picks[1])?.lastName}.`);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	const { names } = state.settings;
 	if (collision) {
 		const p = getVersusPlayer(collision)!;

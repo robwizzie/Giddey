@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { bestLineup, other, recordGame, seriesScore, Side, teamOvr, VersusState } from '@/lib/versus/engine';
+import { bestLineup, other, players, recordGame, seriesScore, Side, teamOvr, VersusState } from '@/lib/versus/engine';
+import { getTeamFor, VersusPlayer } from '@/lib/versus/pool';
+import { getPlayerHeadshotUrls } from '@/lib/images';
+import Headshot from '@/components/Headshot';
 import {
 	BOOSTS,
 	BoostId,
@@ -147,6 +150,77 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 			>
 				Lock in result
 			</button>
+		</div>
+	);
+}
+
+function MiniPlayer({ player: p, slot, tag }: { player: VersusPlayer; slot: string; tag?: string }) {
+	const team = getTeamFor(p);
+	return (
+		<div className='flex items-center gap-1.5 py-1'>
+			<div className='w-6 text-[9px] font-black text-white/40 shrink-0'>{slot}</div>
+			<div className='relative w-8 h-8 rounded-full overflow-hidden shrink-0 border border-white/15' style={{ background: `linear-gradient(135deg, ${team.primaryColor}, ${team.secondaryColor})` }}>
+				<Headshot
+					urls={getPlayerHeadshotUrls(p.id.replace(/^at_/, ''), p.firstName, p.lastName, p.era)}
+					alt=''
+					className='absolute inset-0 w-full h-full'
+					style={{ objectFit: 'cover', objectPosition: 'top center' }}
+					fallback={<div className='absolute inset-0 flex items-center justify-center text-[10px] font-black text-white'>{p.firstName[0]}{p.lastName[0]}</div>}
+				/>
+			</div>
+			<div className='min-w-0 flex-1'>
+				<div className={`${p.lastName.length > 10 ? 'text-[10.5px]' : 'text-[12px]'} font-bold text-white truncate leading-tight`} title={`${p.firstName} ${p.lastName}`}>
+					{p.lastName}
+				</div>
+				<div className='text-[9px] text-white/40 truncate leading-tight'>
+					{tag ? <span className='font-black uppercase text-amber-400'>{tag}</span> : <>{p.position}/{p.secondaryPosition} · {p.era === 'alltime' ? `${p.eraLabel ?? ''} ${team.abbreviation}`.trim() : team.abbreviation}</>}
+				</div>
+			</div>
+			<div className={`tier-${p.tier} rounded w-7 h-6 flex items-center justify-center text-[11px] font-black text-white shrink-0`} style={{ animation: 'none' }}>
+				{p.overall}
+			</div>
+		</div>
+	);
+}
+
+/** Both squads, starters + bench, visible the whole game day */
+function GameRosters({ state }: { state: VersusState }) {
+	const { names } = state.settings;
+	// players benched for Q1 by a Late Scratch boost
+	const sitting = new Set<string>();
+	([0, 1] as Side[]).forEach(side => {
+		if (state.honor[side].includes('starSit')) {
+			const best = players(state.teams[other(side)]).sort((a, b) => b.overall - a.overall)[0];
+			if (best) sitting.add(best.id);
+		}
+	});
+	return (
+		<div className='mt-8'>
+			<div className='text-[11px] font-black uppercase tracking-widest text-white/45 text-center mb-3'>Tonight&apos;s rosters</div>
+			<div className='grid grid-cols-2 gap-2'>
+				{([0, 1] as Side[]).map(side => {
+					const lu = bestLineup(state.teams[side]);
+					return (
+						<div key={side} className='rounded-2xl p-2.5 border min-w-0' style={{ borderColor: `${SIDE_COLORS[side]}55`, background: `linear-gradient(160deg, ${SIDE_COLORS[side]}18, transparent 60%)` }}>
+							<div className='flex items-baseline justify-between mb-1 px-0.5'>
+								<div className='text-xs font-black uppercase tracking-wider truncate' style={{ color: SIDE_COLORS[side] }}>{names[side]}</div>
+								<div className='text-sm font-black text-white tabular-nums'>{teamOvr(state.teams[side]).toFixed(1)}</div>
+							</div>
+							<div className='divide-y divide-white/5'>
+								{lu.starters.map(st => st.player && <MiniPlayer key={st.slot} player={st.player} slot={st.slot} tag={sitting.has(st.player.id) ? 'Sits Q1' : st.fit === 'out' ? 'OOP' : undefined} />)}
+							</div>
+							{lu.bench.length > 0 && (
+								<>
+									<div className='text-[9px] font-black uppercase tracking-widest text-white/30 mt-2 mb-0.5 px-0.5'>Bench</div>
+									<div className='divide-y divide-white/5'>
+										{lu.bench.map(p => <MiniPlayer key={p.id} player={p} slot='BN' tag={sitting.has(p.id) ? 'Sits Q1' : undefined} />)}
+									</div>
+								</>
+							)}
+						</div>
+					);
+				})}
+			</div>
 		</div>
 	);
 }
@@ -317,6 +391,8 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 						)}
 					</div>
 				)}
+
+				<GameRosters state={state} />
 			</div>
 
 			{pending && (

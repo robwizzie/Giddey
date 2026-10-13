@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { VersusPlayer, getTeamFor } from '@/lib/versus/pool';
-import { getPlayerHeadshotUrl, getTeamLogoUrl } from '@/lib/images';
+import { getPlayerHeadshotUrls, getTeamLogoUrl } from '@/lib/images';
+import Headshot from '@/components/Headshot';
 
 const SECTIONS: Record<string, { upper: string; lower: string; accent: string }> = {
 	'dark-matter': { upper: '#1a0533', lower: '#090115', accent: '#8b5cf6' },
@@ -32,11 +32,10 @@ interface Props {
 }
 
 export default function VersusCard({ player: p, width = 120, selected, dimmed, faceDown, onClick, className = '', style }: Props) {
-	const [imgFailed, setImgFailed] = useState(false);
 	const team = getTeamFor(p);
 	const sec = SECTIONS[p.tier];
 	const h = Math.round(width * 1.4);
-	const headshot = getPlayerHeadshotUrl(p.id.replace(/^at_/, ''), p.firstName, p.lastName);
+	const headshots = getPlayerHeadshotUrls(p.id.replace(/^at_/, ''), p.firstName, p.lastName, p.era);
 	const nameFont = Math.max(9, Math.round(width * 0.105));
 	const lastName = p.lastName.toUpperCase();
 	const scaledName = lastName.length > 10 ? Math.round(nameFont * Math.max(0.68, 10 / lastName.length)) : nameFont;
@@ -82,25 +81,21 @@ export default function VersusCard({ player: p, width = 120, selected, dimmed, f
 					className='absolute pointer-events-none'
 					style={{ left: '4%', top: '28%', width: '36%', height: '50%', objectFit: 'contain', opacity: 0.85 }}
 				/>
-				{!imgFailed ? (
-					<img
-						src={headshot}
-						alt={`${p.firstName} ${p.lastName}`}
-						referrerPolicy='no-referrer'
-						draggable={false}
-						onError={() => setImgFailed(true)}
-						className='absolute right-0 bottom-0 pointer-events-none'
-						style={{ width: '66%', height: '92%', objectFit: 'cover', objectPosition: 'top center', filter: 'drop-shadow(-3px 2px 8px rgba(0,0,0,0.7))' }}
-					/>
-				) : (
-					<div
-						className='absolute right-[6%] bottom-[8%] rounded-full flex items-center justify-center font-black text-white'
-						style={{ width: '52%', aspectRatio: '1', background: `linear-gradient(135deg, ${team.primaryColor}, ${team.secondaryColor})`, fontSize: width * 0.16, border: '2px solid rgba(255,255,255,0.25)' }}
-					>
-						{p.firstName[0]}
-						{p.lastName[0]}
-					</div>
-				)}
+				<Headshot
+					urls={headshots}
+					alt={`${p.firstName} ${p.lastName}`}
+					className='absolute right-0 bottom-0 pointer-events-none'
+					style={{ width: '66%', height: '92%', objectFit: 'cover', objectPosition: 'top center', filter: 'drop-shadow(-3px 2px 8px rgba(0,0,0,0.7))' }}
+					fallback={
+						<div
+							className='absolute right-[6%] bottom-[8%] rounded-full flex items-center justify-center font-black text-white'
+							style={{ width: '52%', aspectRatio: '1', background: `linear-gradient(135deg, ${team.primaryColor}, ${team.secondaryColor})`, fontSize: width * 0.16, border: '2px solid rgba(255,255,255,0.25)' }}
+						>
+							{p.firstName[0]}
+							{p.lastName[0]}
+						</div>
+					}
+				/>
 				{/* OVR */}
 				<div className='absolute top-1.5 left-1.5 z-10 flex flex-col items-center'>
 					<div

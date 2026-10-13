@@ -500,3 +500,65 @@ html, body {
     padding-bottom: 6px;
   }
 }
+
+/* ================================
+   VERSUS MODE
+   ================================ */
+.vs-bg {
+  background:
+    radial-gradient(ellipse 60% 40% at 0% 0%, rgba(249, 115, 22, 0.12), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(56, 189, 248, 0.12), transparent 70%),
+    linear-gradient(180deg, #0a0e17 0%, #0d1220 100%);
+}
+
+@keyframes vsHubPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.07); }
+}
+
+@keyframes vsConfetti {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), 105vh) rotate(var(--rot)); opacity: 0.9; }
+}
+.vs-confetti { animation: vsConfetti 2s cubic-bezier(0.25, 0.6, 0.4, 1) forwards; }
+
+@keyframes vsDeal {
+  from { opacity: 0; transform: translateY(40px) rotate(-6deg) scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+.vs-deal { animation: vsDeal 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes vsRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.vs-rise { animation: vsRise 0.45s ease-out both; }
+
+@keyframes vsPickFlip {
+  0% { opacity: 0; transform: perspective(800px) rotateY(180deg) scale(0.6); }
+  60% { opacity: 1; transform: perspective(800px) rotateY(-10deg) scale(1.08); }
+  100% { transform: perspective(800px) rotateY(0) scale(1); }
+}
+.vs-pick-flip { animation: vsPickFlip 0.8s cubic-bezier(0.2, 0.8, 0.3, 1) 0.2s both; }
+
+@keyframes vsPop {
+  0% { opacity: 0; transform: scale(0.5); }
+  60% { opacity: 1; transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.vs-pop { animation: vsPop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
+
+@keyframes vsClock {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.vs-clock { animation: vsClock 0.35s ease-out both; }
+
+.vs-card-back::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 8px, transparent 8px 16px);
+}

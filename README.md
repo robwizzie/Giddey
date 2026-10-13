@@ -52,6 +52,26 @@ The **Center** slot is the most connected position on the board (4 neighbors), m
 - **Draft odds** that shift each round — early picks have better chances at elite tiers
 - **PWA ready** — add to your home screen for a native app feel
 
+## Versus Mode — 2K27 Draft Night
+
+A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people building teams to play against each other in NBA 2K27.
+
+- **Real 2K27 ratings.** 209 current players and 136 All-Time legends. Choose Modern, All-Time, or both.
+- **Three draft styles.**
+  - **Pack Snake:** a pack drops each round and both coaches pick from it.
+  - **I Cut, You Choose:** one coach offers two cards and the other takes one.
+  - **Franchise Wheel:** spin a franchise and the pack comes from that team.
+- **Built-in balance.**
+  - Both coaches draft from the same tier each round.
+  - The coach with the lower team OVR picks first.
+  - An **Equalizer** pick fires if the teams finish 1.5+ OVR apart.
+  - A live fairness meter tracks the gap.
+- **Extras:** Mystery packs, rerolls, a one-offer trade window, and copyable rosters for setting up in 2K.
+- **Game-day wheels.** Spin for quarter length (always 5–8 min) and an optional rule twist. Each coach also spins a personal challenge; completing it earns a boost for the next game (Upgrade Pack, Bench Heist, Draft Priority, Clock Control, Late Scratch…).
+- **Series tracking.** Record results, then run it back with the same squads or redraft. The loser of the last game wins the next coin toss.
+
+Ratings live in `giddey-app/src/data/2k27-modern.json` and `2k27-alltime.json`.
+
 ## Tech Stack
 
 - Next.js 16 (App Router) / React 19 / TypeScript / Tailwind CSS 4

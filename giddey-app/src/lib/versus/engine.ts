@@ -1,6 +1,8 @@
 import { Position } from '@/lib/types';
 import { getPool, getVersusPlayer, PoolMode, VersusPlayer } from './pool';
 import { BOOSTS, BoostId } from './wheels';
+import { ActiveTheme, getTheme, rollThemeParam, Theme, ThemeId, THEMES, DIVISIONS } from './themes';
+import { freshnessWeight, isFreshFor } from './usage';
 
 // ═══════════════════════════════════════════════════════════════
 //  VERSUS DRAFT ENGINE
@@ -13,7 +15,7 @@ export type Side = 0 | 1;
 export type DraftStyle = 'snake' | 'cut' | 'franchise' | 'auction' | 'block';
 export type Band = 'superstar' | 'star' | 'starter' | 'rotation' | 'deep';
 export type PoolSetting = PoolMode | 'erawars';
-export type Phase = 'setup' | 'coin' | 'keepers' | 'draft' | 'equalizer' | 'trade' | 'boosts' | 'reveal' | 'gameday' | 'postgame';
+export type Phase = 'setup' | 'coin' | 'theme' | 'keepers' | 'favorites' | 'draft' | 'equalizer' | 'trade' | 'boosts' | 'reveal' | 'gameday' | 'postgame';
 
 export interface Identity {
 	team: string;
@@ -53,7 +55,22 @@ export interface Settings {
 	/** auction budget per coach ($); budget2 is coach 2's in handicap mode */
 	budget: number;
 	budget2: number;
+	/** how hard packs lean toward players you haven't been using */
+	freshness: 'off' | 'light' | 'strong';
+	/** each roster needs this many players that coach has never used */
+	freshFaces: 0 | 1 | 2 | 3;
+	/** each coach's pinned franchise guys */
+	favorites: [string[], string[]];
+	/** before the draft, each coach grabs one available franchise guy */
+	favoritesRound: boolean;
+	/** players who win you a game sit out your next 2 drafts */
+	retire: 'off' | 'potg' | 'starters';
+	/** theme draft: off, spin a random one each draft, or always this one */
+	theme: 'off' | 'spin' | ThemeId;
 }
+
+export const MAX_FAVORITES = 5;
+export const RETIRE_DRAFTS = 2;
 
 export const SIDE_PALETTE = ['#f97316', '#38bdf8', '#22c55e', '#e11d48', '#a855f7', '#facc15', '#14b8a6', '#f472b6'];
 
@@ -82,6 +99,12 @@ export const DEFAULT_SETTINGS: Settings = {
 	shotClock: 30,
 	budget: 200,
 	budget2: 200,
+	freshness: 'light',
+	freshFaces: 0,
+	favorites: [[], []],
+	favoritesRound: false,
+	retire: 'off',
+	theme: 'off',
 };
 
 export const BAND_INFO: Record<Band, { label: string; range: [number, number]; color: string }> = {
@@ -133,6 +156,69 @@ export function unionPool(settings: Settings): PoolMode {
 	return settings.pool === 'erawars' ? 'mixed' : settings.pool;
 }
 
+// ─── theme-aware pools ──────────────────────────────────────────
+
+const poolCache = new Map<string, VersusPlayer[]>();
+
+/** Everyone this coach may draft this time: their pool, narrowed by the theme */
+export function poolOf(s: VersusState, side: Side): VersusPlayer[] {
+	const mode = poolFor(s.settings, side);
+	const theme = getTheme(s.theme?.id);
+	if (!theme?.filter) return getPool(mode);
+	const key = `${mode}|${theme.id}|${s.theme?.param ?? ''}|${theme.split ? side : ''}`;
+	let hit = poolCache.get(key);
+	if (!hit) {
+		hit = getPool(mode).filter(p => theme.filter!(p, side, s.theme?.param));
+		poolCache.set(key, hit);
+	}
+	return hit;
+}
+
+/** Same pool for both coaches (so they can share packs / an auction board) */
+export function sameSlice(s: VersusState): boolean {
+	return poolFor(s.settings, 0) === poolFor(s.settings, 1) && !getTheme(s.theme?.id)?.split;
+}
+
+/** Union of both coaches' pools, best first */
+export function boardPool(s: VersusState): VersusPlayer[] {
+	if (sameSlice(s)) return poolOf(s, 0);
+	const seen = new Set<string>();
+	return [...poolOf(s, 0), ...poolOf(s, 1)].filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true))).sort((a, b) => b.overall - a.overall);
+}
+
+/**
+ * Why a coach can't take a player right now (null = fine):
+ * retired from their side, a franchise they already have in One Per
+ * Franchise, or a used player when they still owe Fresh Faces.
+ */
+export function ineligibleReason(s: VersusState, side: Side, id: string): string | null {
+	const r = s.retired?.find(x => x.id === id && x.side === side && x.left > 0);
+	if (r) return `Retired for you · ${r.left} draft${r.left === 1 ? '' : 's'}`;
+	if (getTheme(s.theme?.id)?.onePerFranchise) {
+		const p = getVersusPlayer(id);
+		if (p && players(s.teams[side]).some(x => x.teamId === p.teamId && x.id !== id)) return 'Already have this franchise';
+	}
+	if (mustFresh(s, side) && !isFreshFor(side, id)) return 'Need a fresh face';
+	return null;
+}
+
+export const canTake = (s: VersusState, side: Side, id: string) => ineligibleReason(s, side, id) === null;
+
+/** Fresh Faces still owed by this coach */
+export function freshNeeded(s: VersusState, side: Side): number {
+	const need = s.settings.freshFaces ?? 0;
+	if (!need) return 0;
+	const have = s.teams[side].filter(id => isFreshFor(side, id)).length;
+	return Math.max(0, need - have);
+}
+
+/** Every remaining pick has to be a fresh face */
+export function mustFresh(s: VersusState, side: Side): boolean {
+	const owed = freshNeeded(s, side);
+	if (!owed || !s.draft) return false;
+	return rosterTarget(s, side) - s.teams[side].length <= owed;
+}
+
 /** Fill gaps from older saved settings and recompute derived fields */
 export function normalizeSettings(raw: Partial<Settings> & { rosterSize?: number }): Settings {
 	const legacy: Record<number, Record<Band, number>> = {
@@ -146,7 +232,8 @@ export function normalizeSettings(raw: Partial<Settings> & { rosterSize?: number
 		{ ...DEFAULT_SETTINGS.identity[0], ...(raw.identity?.[0] ?? {}) },
 		{ ...DEFAULT_SETTINGS.identity[1], ...(raw.identity?.[1] ?? {}) },
 	];
-	const s: Settings = { ...DEFAULT_SETTINGS, ...raw, tiers, tiers2, identity, rosterSize: 0 };
+	const favorites: [string[], string[]] = [[...(raw.favorites?.[0] ?? [])], [...(raw.favorites?.[1] ?? [])]];
+	const s: Settings = { ...DEFAULT_SETTINGS, ...raw, tiers, tiers2, identity, favorites, rosterSize: 0 };
 	// one shared auction board can't split eras
 	if ((s.style === 'auction' || s.style === 'block') && s.pool === 'erawars') s.pool = 'mixed';
 	return { ...s, rosterSize: Math.min(rosterTotal(tiers), s.handicap ? rosterTotal(tiers2) : rosterTotal(tiers)) };
@@ -263,6 +350,8 @@ export interface DraftState {
 	lastCollision: string | null;
 	auction: { budgets: [number, number]; nominator: Side; lot: AuctionLot | null; block?: BlockState } | null;
 	keepers: [string | null, string | null];
+	/** franchise guys grabbed in the Favorites round */
+	favorites?: [string | null, string | null];
 	/** tier counts each coach drafts this time (settings + challenge rewards) */
 	tiers?: [Record<Band, number>, Record<Band, number>];
 	/** challenge rewards in effect this draft, for the banner */
@@ -294,6 +383,9 @@ export interface GameResult {
 	/** filled in for the rivalry log */
 	rosters?: [string[], string[]];
 	sabotage?: string | null;
+	/** Player of the Game (two ids when the coaches' votes split) */
+	potg?: string[];
+	theme?: ActiveTheme | null;
 }
 
 export interface GameDay {
@@ -355,7 +447,24 @@ export interface VersusState {
 	pendingSabotage: Sabotage | null;
 	/** challenge rewards that apply to the next draft */
 	draftMods: [DraftMods, DraftMods];
+	/** theme for the current / upcoming draft */
+	theme: ActiveTheme | null;
+	/** pre-draft steps already done for the upcoming draft */
+	pre: { theme: boolean; keepers: boolean; favorites: boolean };
+	favoritePicks: [string | null, string | null];
+	favoriteTurn: Side;
+	/** players a coach can't draft for a while (Retire rule) */
+	retired: Retired[];
 }
+
+export interface Retired {
+	id: string;
+	side: Side;
+	/** drafts left on the bench */
+	left: number;
+}
+
+export const PRE_NONE = { theme: false, keepers: false, favorites: false };
 
 export const EMPTY_GAMEDAY: GameDay = { quarter: null, modifier: null, challenges: [null, null], rewards: [null, null] };
 
@@ -383,6 +492,11 @@ export function initialState(settings: Settings = DEFAULT_SETTINGS): VersusState
 		sabotage: null,
 		pendingSabotage: null,
 		draftMods: NO_MODS,
+		theme: null,
+		pre: PRE_NONE,
+		favoritePicks: [null, null],
+		favoriteTurn: 0,
+		retired: [],
 	};
 }
 
@@ -419,6 +533,24 @@ export function shuffle<T>(arr: T[]): T[] {
 		[a[i], a[j]] = [a[j], a[i]];
 	}
 	return a;
+}
+
+/** k distinct items, each draw proportional to its weight */
+export function weightedSample<T>(items: T[], weights: number[], k: number): T[] {
+	const pool = items.map((it, i) => ({ it, w: Math.max(0.0001, weights[i] ?? 1) }));
+	const out: T[] = [];
+	while (out.length < k && pool.length) {
+		const total = pool.reduce((n, x) => n + x.w, 0);
+		let r = Math.random() * total;
+		let idx = 0;
+		for (; idx < pool.length - 1; idx++) {
+			r -= pool[idx].w;
+			if (r <= 0) break;
+		}
+		out.push(pool[idx].it);
+		pool.splice(idx, 1);
+	}
+	return out;
 }
 
 export function players(ids: string[]): VersusPlayer[] {
@@ -597,10 +729,13 @@ export function bandOf(settings: Settings, side: Side, id: string): Band {
  * their own needs); otherwise it's a shared pack for both.
  */
 export function makePack(s: VersusState, band: Band, size: number, exclude: string[] = [], franchise: string | null = null, forSide?: Side): string[] {
-	const pool = getPool(forSide !== undefined ? poolFor(s.settings, forSide) : poolFor(s.settings, 0));
+	const pool = poolOf(s, forSide ?? 0);
 	const taken = draftedSet(s);
 	exclude.forEach(id => taken.add(id));
-	const scoredSides = (forSide !== undefined ? [forSide] : ([0, 1] as Side[])).map(side => sideNeeds(s, side));
+	const sidesInPlay = forSide !== undefined ? [forSide] : ([0, 1] as Side[]).filter(side => rosterTarget(s, side) - s.teams[side].length > 0);
+	const scoredSides = sidesInPlay.map(side => ({ side, ...sideNeeds(s, side) }));
+	// a side-only pack never shows players that coach can't take
+	if (forSide !== undefined) [...pool].forEach(p => !canTake(s, forSide, p.id) && taken.add(p.id));
 
 	const rankOf = new Map(pool.map((p, i) => [p.id, i]));
 	const [lo, hi] = BAND_INFO[band].range;
@@ -632,21 +767,33 @@ export function makePack(s: VersusState, band: Band, size: number, exclude: stri
 		}
 		// A coach running out of picks must see someone who fits — pull the closest-ranked fit in if the band has none
 		for (const n of scoredSides) {
-			if (!n.must || candidates.some(p => fitsNeed(p, n.needs))) continue;
+			if (!n.must || candidates.some(p => fitsNeed(p, n.needs) && canTake(s, n.side, p.id))) continue;
 			const fit = pool
-				.filter(p => !taken.has(p.id) && fitsNeed(p, n.needs) && !candidates.includes(p))
+				.filter(p => !taken.has(p.id) && fitsNeed(p, n.needs) && canTake(s, n.side, p.id) && !candidates.includes(p))
 				.sort(byBandDistance)
 				.slice(0, 2);
 			candidates = [...candidates, ...fit];
 		}
+	}
+	// Fresh Faces / retirements / one-per-franchise: every coach needs players they're allowed to take
+	for (const n of scoredSides) {
+		if (candidates.filter(p => canTake(s, n.side, p.id)).length >= 2) continue;
+		const ok = pool
+			.filter(p => !taken.has(p.id) && canTake(s, n.side, p.id) && !candidates.includes(p))
+			.sort(byBandDistance)
+			.slice(0, 2);
+		candidates = [...candidates, ...ok];
 	}
 	if (candidates.length <= size) return [...candidates].sort((a, b) => b.overall - a.overall).map(p => p.id);
 
 	const scorePack = (pack: VersusPlayer[]) => {
 		let score = 0;
 		for (const n of scoredSides) {
+			const allowed = pack.filter(p => canTake(s, n.side, p.id)).length;
+			if (allowed === 0) score -= 2000;
+			else if (allowed === 1 && pack.length > 1 && forSide === undefined) score -= 200;
 			if (!n.needs.length) continue;
-			const fits = pack.filter(p => fitsNeed(p, n.needs));
+			const fits = pack.filter(p => fitsNeed(p, n.needs) && canTake(s, n.side, p.id));
 			const distinct = new Set(fits.map(p => fitsNeed(p, n.needs))).size;
 			// two fits per coach so the second picker isn't left with nothing
 			score += Math.min(fits.length, 2) * (n.urgent ? 30 : 12) + distinct * 4;
@@ -656,10 +803,12 @@ export function makePack(s: VersusState, band: Band, size: number, exclude: stri
 		return score;
 	};
 
+	// freshness boost: never-used players come up more, overused ones less
+	const weights = candidates.map(p => freshnessWeight(p.id, s.settings.freshness ?? 'off'));
 	let best: VersusPlayer[] = [];
 	let bestScore = -Infinity;
 	for (let i = 0; i < 40; i++) {
-		const pack = shuffle(candidates).slice(0, size);
+		const pack = weightedSample(candidates, weights, size);
 		const score = scorePack(pack) + Math.random(); // tie-break randomly
 		if (score > bestScore) {
 			bestScore = score;
@@ -678,11 +827,11 @@ export function franchiseOptions(s: VersusState): string[] {
 	const taken = draftedSet(s);
 	const d = s.draft;
 	const acting = d ? (d.solo ? [d.order[0]] : d.order) : ([0, 1] as Side[]);
-	const left = (side: Side) => getPool(poolFor(s.settings, side)).filter(p => !taken.has(p.id));
+	const left = (side: Side) => poolOf(s, side).filter(p => !taken.has(p.id) && canTake(s, side, p.id));
 	const counts = new Map<string, number>();
-	for (const p of getPool(unionPool(s.settings))) if (!taken.has(p.id)) counts.set(p.teamId, (counts.get(p.teamId) ?? 0) + 1);
+	for (const p of boardPool(s)) if (!taken.has(p.id)) counts.set(p.teamId, (counts.get(p.teamId) ?? 0) + 1);
 	let all = [...counts.entries()].filter(([, n]) => n >= 2).map(([t]) => t);
-	if (s.settings.pool === 'erawars') {
+	if (!sameSlice(s)) {
 		const both = all.filter(t => acting.every(side => left(side).some(p => p.teamId === t)));
 		if (both.length >= 2) all = both;
 	}
@@ -721,7 +870,7 @@ export function bandFor(d: DraftState, side: Side): Band | undefined {
 export function isSharedRound(s: VersusState, d: DraftState = s.draft!): boolean {
 	const b0 = bandFor(d, 0);
 	const b1 = bandFor(d, 1);
-	return !d.solo && !!b0 && b0 === b1 && poolFor(s.settings, 0) === poolFor(s.settings, 1);
+	return !d.solo && !!b0 && b0 === b1 && sameSlice(s);
 }
 
 export function currentBand(s: VersusState): Band {
@@ -738,8 +887,10 @@ function packFor(s: VersusState, side: Side, size: number, exclude: string[] = [
 	const band = bandFor(d, side) ?? 'deep';
 	const shared = isSharedRound(s);
 	let pack = makePack(s, band, size, exclude, d.franchise, shared ? undefined : side);
-	// franchise ran dry for this coach — fall back to the band
-	if (d.franchise && pack.length < (shared ? 2 : 1)) pack = makePack(s, band, size, exclude, null, shared ? undefined : side);
+	const acting: Side[] = shared ? [0, 1] : [side];
+	const playable = (ids: string[]) => acting.every(x => ids.some(id => canTake(s, x, id)));
+	// franchise ran dry (or has nobody this coach may take) — fall back to the band
+	if (d.franchise && (pack.length < (shared ? 2 : 1) || !playable(pack))) pack = makePack(s, band, size, exclude, null, shared ? undefined : side);
 	return pack;
 }
 
@@ -774,7 +925,9 @@ export function startRound(s: VersusState, round: number): VersusState {
 	}
 	if (s.settings.style === 'cut' && shared) {
 		// Chooser acts first (order[0]); the cutter (order[1]) builds the offer.
-		return { ...next, draft: { ...base, pack: packFor(next, order[0], Math.max(3, s.settings.packSize)), stage: 'cut', turn: 1 } };
+		const cut: VersusState = { ...next, draft: { ...base, pack: packFor(next, order[0], Math.max(3, s.settings.packSize)), stage: 'cut', turn: 1 } };
+		// no fair split possible (rules leave too few takeable cards) → play the round as a normal pick
+		if (hasValidCut(cut)) return cut;
 	}
 	return { ...next, draft: { ...base, pack: packFor(next, order[0], s.settings.packSize) } };
 }
@@ -783,28 +936,38 @@ export function startRound(s: VersusState, round: number): VersusState {
  * Start a fresh draft. `keep` seeds each roster with a keeper; that keeper
  * uses up one of the coach's rounds in their tier (or the closest one).
  */
-export function startDraft(s: VersusState, keep: [string | null, string | null] = [null, null]): VersusState {
-	const teams: [string[], string[]] = [keep[0] ? [keep[0]] : [], keep[1] ? [keep[1]] : []];
+/** Players a coach starts the draft with (keeper, franchise guy) */
+function seedsOf(keep: [string | null, string | null], favs: [string | null, string | null], side: Side): string[] {
+	return [keep[side], favs[side]].filter((x): x is string => !!x);
+}
+
+/**
+ * Start a fresh draft. Keepers and franchise guys are already on the
+ * roster; each one uses up the coach's round in their tier (or the closest).
+ */
+export function startDraft(s: VersusState, keep: [string | null, string | null] = [null, null], favs: [string | null, string | null] = [null, null]): VersusState {
+	const teams: [string[], string[]] = [seedsOf(keep, favs, 0), seedsOf(keep, favs, 1)];
 	const mods = s.draftMods ?? NO_MODS;
 	const tiers = ([0, 1] as Side[]).map(side => effectiveTiers(s.settings, side, mods[side].rewards)) as [Record<Band, number>, Record<Band, number>];
 	const blueprints = ([0, 1] as Side[]).map(side => {
-		const bp = buildBlueprint(s.settings, side, tiers[side]);
-		const k = keep[side];
-		if (!k || !bp.length) return bp;
-		const band = bandOf(s.settings, side, k);
-		const target = BANDS.indexOf(band);
-		// drop the round whose tier is closest to the keeper's
-		let bestIdx = 0;
-		bp.forEach((b, i) => {
-			if (Math.abs(BANDS.indexOf(b) - target) < Math.abs(BANDS.indexOf(bp[bestIdx]) - target)) bestIdx = i;
-		});
-		return bp.filter((_, i) => i !== bestIdx);
+		let bp = buildBlueprint(s.settings, side, tiers[side]);
+		for (const seed of teams[side]) {
+			if (!bp.length) break;
+			const target = BANDS.indexOf(bandOf(s.settings, side, seed));
+			// drop the round whose tier is closest to the seeded player's
+			let bestIdx = 0;
+			bp.forEach((b, i) => {
+				if (Math.abs(BANDS.indexOf(b) - target) < Math.abs(BANDS.indexOf(bp[bestIdx]) - target)) bestIdx = i;
+			});
+			bp = bp.filter((_, i) => i !== bestIdx);
+		}
+		return bp;
 	}) as [Band[], Band[]];
 	const targets: [number, number] = [rosterTotal(tiers[0]), rosterTotal(tiers[1])];
 
 	// blind-bid round: a shared round after the first
 	let blindRound: number | null = null;
-	if (s.settings.blindBid && s.settings.style !== 'auction' && s.settings.style !== 'block' && poolFor(s.settings, 0) === poolFor(s.settings, 1)) {
+	if (s.settings.blindBid && s.settings.style !== 'auction' && s.settings.style !== 'block' && sameSlice(s)) {
 		const eligible = blueprints[0].map((b, i) => i).filter(i => i > 0 && blueprints[0][i] && blueprints[0][i] === blueprints[1][i]);
 		if (eligible.length) blindRound = eligible[Math.floor(Math.random() * eligible.length)];
 	}
@@ -829,11 +992,12 @@ export function startDraft(s: VersusState, keep: [string | null, string | null] 
 		lastCollision: null,
 		auction: null,
 		keepers: keep,
+		favorites: favs,
 		tiers,
 		rewards: [mods[0].rewards, mods[1].rewards],
 	};
 	// rewards are spent once the draft starts
-	const base: VersusState = { ...s, phase: 'draft', teams, draft, equalizer: null, trade: null, keeperPicks: [null, null], draftMods: NO_MODS };
+	const base: VersusState = { ...s, phase: 'draft', teams, draft, equalizer: null, trade: null, keeperPicks: [null, null], favoritePicks: [null, null], draftMods: NO_MODS };
 	if (s.settings.style === 'auction' || s.settings.style === 'block') return startAuction(base);
 	if (!roundsTotal(draft)) return endDraft(base);
 	return startRound(base, 0);
@@ -880,12 +1044,21 @@ function rawCutProblem(s: VersusState, offered: string[]): string | null {
 	const c = sideNeeds(s, chooser);
 	const k = sideNeeds(s, cutter);
 	const name = (side: Side) => s.settings.names[side];
+	// the cutter keeps whichever card is left, so both must be ones they can take
+	if (!canTake(s, cutter, a.id) || !canTake(s, cutter, b.id)) return `You can't take ${!canTake(s, cutter, a.id) ? a.lastName : b.lastName} (${ineligibleReason(s, cutter, !canTake(s, cutter, a.id) ? a.id : b.id)}) — you'd get him if he's left over.`;
+	if (!canTake(s, chooser, a.id) && !canTake(s, chooser, b.id)) return `${name(chooser)} can't take either of these.`;
 	const fitsC = (p: VersusPlayer) => !!fitsNeed(p, c.needs);
 	const fitsK = (p: VersusPlayer) => !!fitsNeed(p, k.needs);
 	if (c.must && !fitsC(a) && !fitsC(b)) return `${name(chooser)} still needs ${c.needs.join('/')} — offer at least one.`;
 	// the cutter gets the leftover, so either card might come back to them
 	if (k.must && !(fitsK(a) && fitsK(b))) return `You still need ${k.needs.join('/')} — both cards must fill it, since you get whichever is left.`;
 	return null;
+}
+
+export function hasValidCut(s: VersusState): boolean {
+	const pack = s.draft!.pack;
+	for (let i = 0; i < pack.length; i++) for (let j = i + 1; j < pack.length; j++) if (!rawCutProblem(s, [pack[i], pack[j]])) return true;
+	return false;
 }
 
 export function cutOffer(s: VersusState, offered: string[]): VersusState {
@@ -915,7 +1088,13 @@ export function pick(s: VersusState, id: string): VersusState {
 
 	if (d.turn === 0 && !d.solo) {
 		const nd = next.draft!;
-		if (isSharedRound(next, nd)) return { ...next, draft: { ...nd, turn: 1, pack: d.pack.filter(x => x !== id) } };
+		if (isSharedRound(next, nd)) {
+			const rest = d.pack.filter(x => x !== id);
+			const after: VersusState = { ...next, draft: { ...nd, turn: 1, pack: rest } };
+			// nothing left they're allowed to take — deal the second coach their own pack
+			if (rest.some(x => canTake(after, d.order[1], x))) return after;
+			return { ...after, draft: { ...after.draft!, pack: makePack(after, bandFor(nd, d.order[1]) ?? 'deep', s.settings.packSize, rest, null, d.order[1]) } };
+		}
 		// split round (handicap / Era Wars): the other coach gets their own pack
 		const after = { ...next, draft: { ...nd, turn: 1 as const } };
 		return { ...after, draft: { ...after.draft, pack: packFor(after, d.order[1], s.settings.packSize) } };
@@ -953,7 +1132,9 @@ function finishRound(s: VersusState): VersusState {
 }
 
 /** After the last pick: equalizer if lopsided, then trades / boosts / reveal */
-export function endDraft(s: VersusState): VersusState {
+export function endDraft(input: VersusState): VersusState {
+	// a finished draft counts down every retirement
+	const s: VersusState = { ...input, retired: (input.retired ?? []).map(r => ({ ...r, left: r.left - 1 })).filter(r => r.left > 0) };
 	const a = teamOvr(s.teams[0]);
 	const b = teamOvr(s.teams[1]);
 	// a coach who earned a reward keeps the edge — no Equalizer to cancel it out
@@ -981,8 +1162,8 @@ export function equalizerOptions(s: VersusState, side: Side): { options: string[
 	const theirs = teamOvr(s.teams[other(side)]);
 	const taken = draftedSet(s);
 	const without = s.teams[side].filter(id => id !== weakest.id);
-	const scored = getPool(poolFor(s.settings, side))
-		.filter(p => !taken.has(p.id) && p.overall > weakest.overall)
+	const scored = poolOf(s, side)
+		.filter(p => !taken.has(p.id) && p.overall > weakest.overall && canTake(s, side, p.id))
 		.map(p => ({ p, gap: Math.abs(teamOvr([...without, p.id]) - theirs) }))
 		.sort((x, y) => x.gap - y.gap)
 		.slice(0, 10);
@@ -1010,10 +1191,11 @@ export function auctionValues(s: VersusState, side: Side): Map<string, number> {
 	const mode = poolFor(s.settings, side);
 	const slots = rosterSizeFor(s.settings, 0) + rosterSizeFor(s.settings, 1);
 	const money = budgetFor(s.settings, 0) + budgetFor(s.settings, 1);
-	const key = `${mode}|${slots}|${money}`;
+	const key = `${mode}|${slots}|${money}|${s.theme?.id ?? ''}|${s.theme?.param ?? ''}|${side}`;
 	const hit = valueCache.get(key);
 	if (hit) return hit;
-	const pool = getPool(mode);
+	const pool = poolOf(s, side);
+	if (!pool.length) return new Map();
 	const n = Math.min(pool.length, Math.round(slots * 1.6));
 	const floor = pool[Math.min(pool.length - 1, n)].overall - 1;
 	const weights = pool.slice(0, slots).map(p => Math.pow(Math.max(0, p.overall - floor), 2.2));
@@ -1029,13 +1211,13 @@ function startAuction(s: VersusState): VersusState {
 	const d = s.draft!;
 	const first = s.firstPickBoost ?? s.coinWinner ?? 0;
 	const budgets: [number, number] = [budgetFor(s.settings, 0), budgetFor(s.settings, 1)];
-	// keepers cost their value, but always leave $1 per open slot
+	// keepers and franchise guys cost their value, but always leave $1 per open slot
 	([0, 1] as Side[]).forEach(side => {
-		const k = d.keepers[side];
-		if (!k) return;
-		const price = auctionValues(s, side).get(k) ?? 1;
-		const open = d.targets[side] - s.teams[side].length;
-		budgets[side] = Math.max(open, budgets[side] - price);
+		for (const k of s.teams[side]) {
+			const price = auctionValues(s, side).get(k) ?? 1;
+			const open = d.targets[side] - s.teams[side].length;
+			budgets[side] = Math.max(open, budgets[side] - price);
+		}
 	});
 	const started: VersusState = { ...s, draft: { ...d, stage: 'nominate', order: [first, other(first)], auction: { budgets, nominator: first, lot: null } } };
 	if (s.settings.style !== 'block') return started;
@@ -1045,10 +1227,8 @@ function startAuction(s: VersusState): VersusState {
 	// each coach's tier slots, minus the round a keeper already used
 	const slots = ([0, 1] as Side[]).map(side => {
 		const t = { ...(d.tiers?.[side] ?? tiersFor(s.settings, side)) };
-		const k = d.keepers[side];
-		if (k) {
-			const kb = bandOf(s.settings, side, k);
-			const target = BANDS.indexOf(kb);
+		for (const k of s.teams[side]) {
+			const target = BANDS.indexOf(bandOf(s.settings, side, k));
 			// same rule as the snake draft: drop the closest tier that has a slot
 			const b = BANDS.filter(x => t[x] > 0).sort((x, y) => Math.abs(BANDS.indexOf(x) - target) - Math.abs(BANDS.indexOf(y) - target))[0];
 			if (b) t[b]--;
@@ -1094,6 +1274,7 @@ function drawLot(s: VersusState): VersusState {
 export function canBid(s: VersusState, side: Side): boolean {
 	const a = s.draft!.auction!;
 	if (slotsLeft(s, side) <= 0) return false;
+	if (a.lot && !canTake(s, side, a.lot.id)) return false;
 	const band = a.lot?.band;
 	if (!a.block || !band) return true;
 	return a.block.slots[side][band] > 0;
@@ -1172,7 +1353,7 @@ export function maxBid(s: VersusState, side: Side): number {
 /** Players a coach may nominate (or bid on): undrafted and in a pool both can draft from */
 export function auctionBoard(s: VersusState): VersusPlayer[] {
 	const taken = draftedSet(s);
-	return getPool(unionPool(s.settings)).filter(p => !taken.has(p.id));
+	return boardPool(s).filter(p => !taken.has(p.id));
 }
 
 export function nominate(s: VersusState, id: string, bid: number): VersusState {
@@ -1180,9 +1361,10 @@ export function nominate(s: VersusState, id: string, bid: number): VersusState {
 	const a = d.auction!;
 	const by = a.nominator;
 	const opp = other(by);
+	if (!canTake(s, by, id)) return s;
 	const opening = Math.max(1, Math.min(bid, maxBid(s, by)));
-	// the other coach is full (or broke) — it's theirs at the opening price
-	if (slotsLeft(s, opp) <= 0 || maxBid(s, opp) <= opening) return award(s, by, id, opening);
+	// the other coach is full, broke or not allowed him — it's theirs at the opening price
+	if (slotsLeft(s, opp) <= 0 || maxBid(s, opp) <= opening || !canTake(s, opp, id)) return award(s, by, id, opening);
 	return { ...s, draft: { ...d, stage: 'bid', auction: { ...a, lot: { id, bid: opening, high: by, turn: opp } } } };
 }
 
@@ -1249,7 +1431,107 @@ export function chooseKeeper(s: VersusState, id: string | null): VersusState {
 	const order = keeperOrder(s);
 	const next = order[order.indexOf(s.keeperTurn) + 1];
 	if (next !== undefined) return { ...s, keeperPicks: picks, keeperTurn: next };
-	return startDraft({ ...s, keeperPicks: picks }, picks);
+	return beginDraft({ ...s, keeperPicks: picks, pre: { ...s.pre, keepers: true } });
+}
+
+// ─── pre-draft: theme → keepers → favorites ─────────────────────
+
+/** Players a coach could grab in the Favorites round right now */
+export function availableFavorites(s: VersusState, side: Side): string[] {
+	const pool = new Set(poolOf(s, side).map(p => p.id));
+	const blocked = new Set([...s.keeperPicks, ...s.favoritePicks].filter(Boolean) as string[]);
+	return (s.settings.favorites?.[side] ?? []).filter(id => pool.has(id) && !blocked.has(id) && !s.retired?.some(r => r.id === id && r.side === side && r.left > 0));
+}
+
+function favoriteOrder(s: VersusState): Side[] {
+	if (!s.settings.favoritesRound) return [];
+	const first = s.coinWinner ?? 0;
+	return ([first, other(first)] as Side[]).filter(side => availableFavorites(s, side).length > 0);
+}
+
+export function chooseFavorite(s: VersusState, id: string | null): VersusState {
+	const picks: [string | null, string | null] = [...s.favoritePicks];
+	picks[s.favoriteTurn] = id;
+	const next = { ...s, favoritePicks: picks };
+	// the second coach goes only if they still have someone available
+	const later = favoriteOrder(next).filter(side => side !== s.favoriteTurn && next.favoritePicks[side] === null);
+	const first = s.coinWinner ?? 0;
+	if (s.favoriteTurn === first && later.length) return { ...next, favoriteTurn: later[0] };
+	return beginDraft({ ...next, pre: { ...next.pre, favorites: true } });
+}
+
+/** Rough roster size per coach for the upcoming draft (rewards included) */
+function upcomingSize(s: VersusState, side: Side): number {
+	return rosterTotal(effectiveTiers(s.settings, side, (s.draftMods ?? NO_MODS)[side].rewards));
+}
+
+/** Can this theme fill both rosters with this pool, style and roster size? */
+export function themeFits(s: VersusState, theme: Theme, param?: string): boolean {
+	if (theme.split && (s.settings.style === 'auction' || s.settings.style === 'block' || s.settings.pool === 'erawars')) return false;
+	// every pack comes from one franchise — the rule would lock you out after round 1
+	if (theme.onePerFranchise && s.settings.style === 'franchise') return false;
+	const t: VersusState = { ...s, theme: { id: theme.id, param } };
+	const sizes: [number, number] = [upcomingSize(s, 0), upcomingSize(s, 1)];
+	if (sameSlice(t)) return poolOf(t, 0).length >= (sizes[0] + sizes[1]) * 1.6;
+	return ([0, 1] as Side[]).every(side => poolOf(t, side).length >= sizes[side] * 2);
+}
+
+/** Themes that can land on the wheel right now */
+export function themeOptions(s: VersusState): Theme[] {
+	return THEMES.filter(theme => {
+		if (theme.id === 'division') return DIVISIONS.some(d => themeFits(s, theme, d));
+		if (theme.id === 'eastWest') return themeFits(s, theme, 'Eastern');
+		return themeFits(s, theme);
+	});
+}
+
+/** Roll the theme's detail (which division / which conference) — only ones that fit */
+export function pickThemeParam(s: VersusState, id: ThemeId): string | undefined {
+	const theme = getTheme(id);
+	if (theme?.id === 'division') {
+		const ok = DIVISIONS.filter(d => themeFits(s, theme, d));
+		return ok[Math.floor(Math.random() * ok.length)];
+	}
+	return rollThemeParam(id);
+}
+
+/** Lock in the theme for this draft and continue the pre-draft steps */
+export function setTheme(s: VersusState, id: ThemeId | null, param?: string): VersusState {
+	let active: ActiveTheme | null = null;
+	const theme = getTheme(id);
+	if (theme) active = { id: theme.id, param: param ?? pickThemeParam(s, theme.id) };
+	return beginDraft({ ...s, theme: active, pre: { ...s.pre, theme: true } });
+}
+
+/**
+ * Walk the pre-draft steps that apply — theme wheel, keepers, favorites —
+ * then start the draft. Every step calls back in here when it's done.
+ */
+export function beginDraft(input: VersusState): VersusState {
+	let s: VersusState = { ...input, pre: input.pre ?? PRE_NONE, draft: null };
+	if (!s.pre.theme) {
+		const mode = s.settings.theme ?? 'off';
+		if (mode === 'spin' && themeOptions(s).length) return { ...s, phase: 'theme' };
+		const fixed = mode !== 'off' && mode !== 'spin' ? getTheme(mode) : undefined;
+		if (fixed && themeOptions(s).some(t => t.id === fixed.id)) return setTheme(s, fixed.id);
+		s = { ...s, theme: null, pre: { ...s.pre, theme: true } };
+	}
+	if (!s.pre.keepers) {
+		const order = keeperOrder(s);
+		if (order.length) return { ...s, phase: 'keepers', keeperPicks: [null, null], keeperTurn: order[0] };
+		s = { ...s, keeperPicks: [null, null], pre: { ...s.pre, keepers: true } };
+	}
+	if (!s.pre.favorites) {
+		const order = favoriteOrder(s);
+		if (order.length) return { ...s, phase: 'favorites', favoritePicks: [null, null], favoriteTurn: order[0] };
+		s = { ...s, favoritePicks: [null, null], pre: { ...s.pre, favorites: true } };
+	}
+	return startDraft(s, s.keeperPicks, s.favoritePicks);
+}
+
+/** Fresh pre-draft state — call before beginDraft for every new draft */
+export function freshPreDraft(s: VersusState): VersusState {
+	return { ...s, pre: PRE_NONE, keeperPicks: [null, null], favoritePicks: [null, null], theme: null };
 }
 
 // ─── trades ─────────────────────────────────────────────────────
@@ -1310,12 +1592,11 @@ export function distributeBoosts(s: VersusState, redraft: boolean): VersusState 
 
 export function rollBoostOptions(s: VersusState, q: QueuedBoost): string[] {
 	const taken = draftedSet(s);
-	const pool = getPool(poolFor(s.settings, q.side)).filter(p => !taken.has(p.id));
+	const pool = poolOf(s, q.side).filter(p => !taken.has(p.id) && canTake(s, q.side, p.id));
 	if (q.boost === 'sign') {
 		// 3 free agents from that tier
 		const band = q.band ?? 'rotation';
-		const mode = poolFor(s.settings, q.side);
-		const ids = new Set(bandSlice(getPool(mode), band).map(p => p.id));
+		const ids = new Set(bandSlice(poolOf(s, q.side), band).map(p => p.id));
 		const inBand = pool.filter(p => ids.has(p.id));
 		return shuffle(inBand.length >= 3 ? inBand : pool.slice(0, 12))
 			.slice(0, 3)
@@ -1366,8 +1647,24 @@ export function recordGame(s: VersusState, result: Omit<GameResult, 'game' | 'te
 		teamOvr: [teamOvr(s.teams[0]), teamOvr(s.teams[1])],
 		rosters: [[...s.teams[0]], [...s.teams[1]]],
 		sabotage: s.sabotage?.id ?? null,
+		potg: result.potg ?? [],
+		theme: s.theme,
 	};
-	return { ...s, series: [...s.series, game], earned, phase: 'postgame', pendingSabotage: null };
+	// Retire rule: players who just won you a game sit out your next drafts
+	const retired = [...(s.retired ?? [])];
+	const w = result.winner;
+	const toRetire =
+		s.settings.retire === 'potg'
+			? (result.potg ?? []).filter(id => s.teams[w].includes(id))
+			: s.settings.retire === 'starters'
+				? bestLineup(s.teams[w]).starters.map(x => x.player?.id).filter((x): x is string => !!x)
+				: [];
+	for (const id of toRetire) {
+		const i = retired.findIndex(r => r.id === id && r.side === w);
+		if (i >= 0) retired[i] = { ...retired[i], left: RETIRE_DRAFTS };
+		else retired.push({ id, side: w, left: RETIRE_DRAFTS });
+	}
+	return { ...s, series: [...s.series, game], earned, retired, phase: 'postgame', pendingSabotage: null };
 }
 
 export function setSabotage(s: VersusState, id: string): VersusState {
@@ -1382,10 +1679,7 @@ export function nextGame(s: VersusState, redraft: boolean): VersusState {
 		// loser of the last game gets the coin flip win
 		const last = s.series[s.series.length - 1];
 		const coinWinner: Side = last ? other(last.winner) : (s.coinWinner ?? 0);
-		const withCoin = { ...base, coinWinner };
-		const order = keeperOrder(withCoin);
-		if (order.length) return { ...withCoin, phase: 'keepers', keeperPicks: [null, null], keeperTurn: order[0], draft: null };
-		return startDraft({ ...base, coinWinner });
+		return beginDraft(freshPreDraft({ ...base, coinWinner }));
 	}
 	return toBoosts({ ...base, draft: null });
 }

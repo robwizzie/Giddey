@@ -5,11 +5,13 @@ import {
 	actingSide,
 	BAND_INFO,
 	bandFor,
+	canTake,
 	cutOffer,
 	cutOfferProblem,
 	DraftState,
 	fitsNeed,
 	franchiseOptions,
+	freshNeeded,
 	isSharedRound,
 	landFranchise,
 	missingPositions,
@@ -25,8 +27,10 @@ import {
 } from '@/lib/versus/engine';
 import { getVersusPlayer } from '@/lib/versus/pool';
 import { TEAMS_MAP } from '@/lib/teams';
-import { play } from '@/lib/versus/sound';
+import { buzz, play } from '@/lib/versus/sound';
 import VersusCard, { RosterRow } from './VersusCard';
+import { TaggedCard } from './Tags';
+import { themeTitle } from '@/lib/versus/themes';
 import Wheel from './Wheel';
 import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
@@ -77,8 +81,8 @@ export function RosterColumn({ state, side, active }: { state: VersusState; side
 							key={p.id}
 							player={p}
 							highlight={state.draft?.lastPick?.id === p.id && i === ps.length - 1}
-							tag={keeper === p.id ? 'Keeper' : price !== undefined ? `$${price}` : undefined}
-							tagColor={keeper === p.id ? '#7c3aed' : '#15803d'}
+							tag={keeper === p.id ? 'Keeper' : state.draft?.favorites?.[side] === p.id ? '💙 Fav' : price !== undefined ? `$${price}` : undefined}
+							tagColor={keeper === p.id ? '#7c3aed' : state.draft?.favorites?.[side] === p.id ? '#1d4ed8' : '#15803d'}
 						/>
 					);
 				})}
@@ -86,6 +90,11 @@ export function RosterColumn({ state, side, active }: { state: VersusState; side
 					<div key={i} className='h-11 rounded-lg border border-dashed border-white/10' />
 				))}
 			</div>
+			{(state.settings.freshFaces ?? 0) > 0 && (
+				<div className={`mt-2 text-[10px] font-black ${freshNeeded(state, side) ? 'text-lime-300' : 'text-green-400'}`}>
+					🌱 Fresh faces {state.settings.freshFaces - freshNeeded(state, side)}/{state.settings.freshFaces}
+				</div>
+			)}
 			{need.length > 0 && ids.length > 0 && (
 				<div className='flex flex-wrap gap-1 mt-2'>
 					<span className='text-[9px] text-white/40 font-bold uppercase self-center'>Needs</span>
@@ -192,8 +201,9 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 	const clockKey = `${d.round}-${d.turn}-${d.stage}-${d.log.length}-${d.collisions}`;
 
 	const autoAct = () => {
-		const fits = visible.filter(id => fitsNeed(getVersusPlayer(id)!, actorNeeds));
-		const best = (fits.length ? fits : visible)[0];
+		const allowed = visible.filter(id => canTake(state, actor, id));
+		const fits = allowed.filter(id => fitsNeed(getVersusPlayer(id)!, actorNeeds));
+		const best = (fits.length ? fits : allowed.length ? allowed : visible)[0];
 		setViolation(isCutStage ? 'Shot clock violation — auto-split' : 'Shot clock violation — auto-pick');
 		setTimeout(() => setViolation(null), 2200);
 		if (isCutStage) {
@@ -212,7 +222,9 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 	const left = useShotClock(clockKey, clockOn ? shotClock : 0, overlay, autoAct);
 
 	const toggle = (id: string) => {
+		if (!canTake(state, actor, id)) return;
 		play('tick');
+		buzz(12);
 		if (needCount === 1) setSelected(s => (s[0] === id ? [] : [id]));
 		else setSelected(s => (s.includes(id) ? s.filter(x => x !== id) : s.length < 2 ? [...s, id] : [s[1], id]));
 	};
@@ -282,6 +294,11 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 						{d.franchise ? ` · ${TEAMS_MAP[d.franchise].name}` : ''}
 					</div>
 				</div>
+				{state.theme && (
+					<div className='mt-2 text-center text-[11px] font-black uppercase tracking-widest text-white/60'>
+						🎡 Theme: <span className='text-white'>{themeTitle(state.theme, state.settings.names)}</span>
+					</div>
+				)}
 
 				{/* On the clock */}
 				<div
@@ -333,7 +350,9 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 							const need = fitsNeed(p, isCutStage ? missingPositions(state.teams[forSide]) : actorNeeds);
 							return (
 								<div key={id} className='vs-deal relative' style={{ animationDelay: `${i * 90}ms` }}>
-									<VersusCard player={p} width={cardW} selected={isSel} faceDown={blind} onClick={() => toggle(id)} />
+									<TaggedCard state={state} side={actor} id={id} hideTags={blind}>
+										<VersusCard player={p} width={cardW} selected={isSel} faceDown={blind} onClick={() => toggle(id)} />
+									</TaggedCard>
 									{need && (
 										<div className='absolute -top-2.5 left-0 right-0 flex justify-center z-30 pointer-events-none'>
 											<span className='text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#052e16] text-green-400 border border-green-500/60 shadow-[0_2px_8px_rgba(0,0,0,0.6)] whitespace-nowrap'>

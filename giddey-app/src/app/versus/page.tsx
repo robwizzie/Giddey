@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { initialState, migrateState, nextGame, normalizeSettings, Settings, sideColor, startDraft, VersusState, DEFAULT_SETTINGS } from '@/lib/versus/engine';
-import { logGame } from '@/lib/versus/rivalry';
+import { beginDraft, freshPreDraft, initialState, migrateState, nextGame, normalizeSettings, Settings, sideColor, VersusState, DEFAULT_SETTINGS } from '@/lib/versus/engine';
+import { loadRivalry, logGame } from '@/lib/versus/rivalry';
+import { buildUsage, setUsage } from '@/lib/versus/usage';
+import { ThemeScreen, FavoritesScreen } from '@/components/versus/PreDraft';
+import HelpSheet from '@/components/versus/HelpSheet';
 import { isMuted, onMuteChange, setMuted, play } from '@/lib/versus/sound';
 import SetupScreen, { SettingsForm, settingsValid } from '@/components/versus/SetupScreen';
 import DraftScreen from '@/components/versus/DraftScreen';
@@ -79,17 +82,20 @@ function MuteButton() {
 	);
 }
 
-function TopBar({ onReset, showReset, onSettings, onRivalry }: { onReset: () => void; showReset: boolean; onSettings: () => void; onRivalry: () => void }) {
+function TopBar({ onReset, showReset, onSettings, onRivalry, onHelp }: { onReset: () => void; showReset: boolean; onSettings: () => void; onRivalry: () => void; onHelp: () => void }) {
 	return (
 		<header className='w-full bg-[#111]/80 border-b border-white/10 px-4 py-2.5 shrink-0'>
 			<div className='max-w-3xl mx-auto flex items-center justify-between'>
 				<Link href='/' className='flex items-center gap-2 no-underline'>
 					<img src='/logo.png' alt='Giddey' className='w-8 h-8 rounded-lg' />
-					<span className='text-lg font-black tracking-tight text-white'>GIDDEY</span>
+					<span className='hidden min-[430px]:inline text-lg font-black tracking-tight text-white'>GIDDEY</span>
 					<span className='text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-gradient-to-r from-orange-500 to-sky-500 text-white'>Versus</span>
 				</Link>
 				<div className='flex items-center gap-1.5'>
 					<MuteButton />
+					<button onClick={onHelp} className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='How Versus works' title='How it works'>
+						❓
+					</button>
 					<button onClick={onRivalry} className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='Rivalry record' title='Rivalry record'>
 						📊
 					</button>
@@ -113,6 +119,7 @@ export default function VersusPage() {
 	const [state, setStateRaw] = useState<VersusState | null>(null);
 	const [showSettings, setShowSettings] = useState(false);
 	const [showRivalry, setShowRivalry] = useState(false);
+	const [showHelp, setShowHelp] = useState(false);
 	const current = useRef<VersusState | null>(null);
 
 	useEffect(() => {
@@ -121,10 +128,23 @@ export default function VersusPage() {
 		setStateRaw(s);
 	}, []);
 
+	// who's played with whom drives freshness, tags, Fresh Faces and hot hands —
+	// rebuild whenever the coach names change (new games rebuild in setState)
+	const n0 = state?.settings.names[0];
+	const n1 = state?.settings.names[1];
+	useEffect(() => {
+		if (n0 === undefined || n1 === undefined) return;
+		setUsage(buildUsage(loadRivalry(), [n0, n1]));
+	}, [n0, n1]);
+
 	const setState = useCallback((s: VersusState) => {
 		// a newly recorded game goes into the permanent rivalry log
 		const prev = current.current;
-		if (prev && s.series.length > prev.series.length) logGame(s.settings, s.series[s.series.length - 1]);
+		if (prev && s.series.length > prev.series.length) {
+			logGame(s.settings, s.series[s.series.length - 1]);
+			setUsage(buildUsage(loadRivalry(), s.settings.names));
+		}
+		const screenChanged = !prev || prev.phase !== s.phase;
 		current.current = s;
 		setStateRaw(s);
 		try {
@@ -132,7 +152,7 @@ export default function VersusPage() {
 		} catch {
 			/* storage full or blocked — the session just won't survive a refresh */
 		}
-		window.scrollTo({ top: 0, behavior: 'smooth' });
+		if (screenChanged) window.scrollTo({ top: 0, behavior: 'smooth' });
 	}, []);
 
 	const reset = () => {
@@ -148,9 +168,13 @@ export default function VersusPage() {
 	const showReset = state.phase !== 'setup';
 	const wrap = (node: React.ReactNode) => (
 		<div className='min-h-screen vs-bg'>
-			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} />
-			{node}
-			{showRivalry && <RivalrySheet settings={state.settings} onClose={() => setShowRivalry(false)} />}
+			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} />
+			{/* keyed by phase so every screen change animates in */}
+			<div key={state.phase} className='vs-screen'>
+				{node}
+			</div>
+			{showHelp && <HelpSheet settings={state.settings} onClose={() => setShowHelp(false)} />}
+			{showRivalry && <RivalrySheet settings={state.settings} retired={state.retired} onClose={() => setShowRivalry(false)} />}
 			{showSettings && (
 				<SettingsSheet
 					state={state}
@@ -173,7 +197,7 @@ export default function VersusPage() {
 
 	switch (state.phase) {
 		case 'setup':
-			return wrap(<SetupScreen initial={state.settings ?? DEFAULT_SETTINGS} onRivalry={() => setShowRivalry(true)} onStart={(settings: Settings) => setState({ ...state, settings, phase: 'coin', coinWinner: null })} />);
+			return wrap(<SetupScreen initial={state.settings ?? DEFAULT_SETTINGS} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onStart={(settings: Settings) => setState({ ...state, settings, phase: 'coin', coinWinner: null })} />);
 		case 'coin':
 			return wrap(
 				<div className='max-w-3xl mx-auto px-4 pt-10 flex flex-col items-center animate-fade-in'>
@@ -186,7 +210,7 @@ export default function VersusPage() {
 								<div className='text-3xl font-black' style={{ color: SIDE_COLORS[state.coinWinner] }}>
 									{state.settings.names[state.coinWinner]} picks first
 								</div>
-								<button onClick={() => setState(startDraft({ ...state }))} className='mt-5 btn-primary text-white font-black uppercase tracking-wider px-10 py-4 rounded-2xl text-lg'>
+								<button onClick={() => setState(beginDraft(freshPreDraft({ ...state })))} className='mt-5 btn-primary text-white font-black uppercase tracking-wider px-10 py-4 rounded-2xl text-lg'>
 									Start the draft →
 								</button>
 							</div>
@@ -197,6 +221,10 @@ export default function VersusPage() {
 					</button>
 				</div>
 			);
+		case 'theme':
+			return wrap(<ThemeScreen state={state} setState={setState} />);
+		case 'favorites':
+			return wrap(<FavoritesScreen state={state} setState={setState} />);
 		case 'keepers':
 			return wrap(<KeepersScreen state={state} setState={setState} />);
 		case 'draft':

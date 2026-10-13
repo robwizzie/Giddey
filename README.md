@@ -56,6 +56,8 @@ The **Center** slot is the most connected position on the board (4 neighbors), m
 
 A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people building teams to play against each other in NBA 2K27. Ratings are the real 2K27 launch overalls: 209 current players and 136 All-Time legends.
 
+Setup starts with four **quick setups** (Classic, Variety Night, Money Night, Chaos). Below them are seven numbered sections, each with a one-line explanation. The ❓ button opens a step-by-step guide to the night, which marks the steps your current settings turn off and explains every card tag.
+
 **Drafting**
 - **Pools:**
   - Modern
@@ -78,21 +80,31 @@ A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people
   - A **blind bid round**: both coaches pick in secret, and if they take the same player nobody gets him
   - **Keepers** when you redraft
   - A one-offer trade window
+- **Theme drafts:** spin a theme wheel before each draft, or lock one in for every draft. Themes include Throwback, 80s & 90s Night, Young Guns, Division Night, East vs West, One Per Franchise, No One Over 95 and Underdog Night. A theme only lands if it leaves enough players for your roster build and draft style.
+
+**Player variety**
+- **Freshness boost** (Off / Light / Strong): players neither of you has used come up more often, and the ones you keep taking come up less.
+- **Card tags:** 🆕 Never drafted, 🔥 Your 4th time, 🌱 Fresh face, ⭐ Hot hand (a past Player of the Game), 💙 Your guy / 🎯 their guy, and 🔒 Locked with the reason.
+- **Fresh Faces** (0–3 per roster): each roster must include players that coach has never used. Once your remaining picks run short, only fresh faces can be taken.
+- **Franchise guys:** each coach pins up to 5 favorites. With the **Favorites round** on, each coach grabs one before every draft.
+- **Retire winners:** after a win, the winner's Player of the Game (or the whole winning starting five) can't be drafted by that coach for the next 2 drafts. The other coach can still take them.
 
 **Draft night presentation**
 - The commissioner's podium intro.
 - A 20/30/45-second **shot clock**: beeps in the last 5 seconds, then a buzzer and an auto-pick.
 - Synthesized sound effects with a mute toggle.
-- A full-screen **BOOM** with the player's headshot for every superstar pick.
+- A full-screen **BOOM** with the player's headshot for every superstar pick, and a card flip on every other pick.
+- Screen fade transitions, plus vibration on picks, bids, wheel spins, slot stops and the coin flip (on phones that support it).
 
 **Game day**
-- **Rules:** one slot-machine pull sets the quarter length (2–5 min) and a rule twist for both teams.
+- **Rules:** one slot-machine pull sets the quarter length (2–5 min) and a scoring twist that pushes the score up: Pace & Space, Make It Rain, Showtime, No Defensive Settings, 4th Quarter Double, Bucket Getters (plus the occasional Straight Up).
 - **Challenges:** each coach picks a risk level (Easy, Medium or Hard), then spins a challenge of that difficulty. Completing it banks a reward for the **next draft**, and harder challenges pay more:
   - **Easy:** 🔒 Keeper, ⬆️ Tier Up (your lowest pick moves up a tier), or ➕ +1 Rotation player
   - **Medium:** ⏫ Double Tier Up, 🎯 Guaranteed All-Star, or ➕ +1 Starter
   - **Hard:** 💎 Guaranteed Superstar, 🌟 +1 All-Star, or 👑 +1 Superstar
 - **Running it back:** if you keep the same squads instead of redrafting, an extra-player reward signs a free agent of that tier, and any other reward upgrades your weakest player. The Equalizer stays off in a draft where someone has earned a reward.
 - Both rosters are listed with headshots.
+- **Player of the Game:** each coach votes for anyone from either team. If the votes split, both players get the award.
 - One-tap **share image** (1080×1920) of both squads for iMessage or Instagram.
 - After each game the loser spins the **sabotage wheel** to inflict something on the winner next game.
 
@@ -103,7 +115,11 @@ A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people
   - challenge hit rate
   - biggest blowout and closest game
   - how often the better-drafted team actually wins, and the biggest upsets
-  - each coach's most-drafted players
+  - a head-to-head chart of the series lead over time
+  - records by draft style and by theme
+  - a Player of the Game leaderboard
+  - each coach's most-used players, plus the best players they've never used
+  - who is currently retired
 
 Ratings live in `giddey-app/src/data/2k27-modern.json` and `2k27-alltime.json`, and headshots are matched to NBA.com player IDs in `nba-person-ids.json`.
 

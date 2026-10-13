@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Position } from '@/lib/types';
-import { auctionBoard, auctionValues, BAND_INFO, BANDS, canBid, fitsNeed, lotsRemaining, maxBid, missingPositions, nominate, other, passBid, raise, Side, slotsLeft, VersusState } from '@/lib/versus/engine';
+import { auctionBoard, auctionValues, BAND_INFO, BANDS, canBid, canTake, ineligibleReason, fitsNeed, lotsRemaining, maxBid, missingPositions, nominate, other, passBid, raise, Side, slotsLeft, VersusState } from '@/lib/versus/engine';
 import { getTeamFor, getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
-import { play } from '@/lib/versus/sound';
+import { buzz, play } from '@/lib/versus/sound';
+import { playerTags, TagChip, TaggedCard } from './Tags';
 import VersusCard from './VersusCard';
 import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
@@ -14,10 +15,16 @@ import { CommissionerIntro, PickReveal, RewardBanner, ShotClockRing, useShotCloc
 const POSITIONS: (Position | 'ALL' | 'NEED')[] = ['ALL', 'NEED', 'PG', 'SG', 'SF', 'PF', 'C'];
 const introsShown = new Set<string>();
 
-function BoardRow({ p, value, need, selected, onClick }: { p: VersusPlayer; value: number; need: Position | null; selected: boolean; onClick: () => void }) {
+function BoardRow({ p, value, need, selected, onClick, state, side }: { p: VersusPlayer; value: number; need: Position | null; selected: boolean; onClick: () => void; state: VersusState; side: Side }) {
 	const team = getTeamFor(p);
+	const lock = ineligibleReason(state, side, p.id);
+	const tags = playerTags(state, side, p.id, 1);
 	return (
-		<button onClick={onClick} className={`w-full flex items-center gap-2 rounded-xl px-2 py-1.5 text-left transition-colors ${selected ? 'bg-white/15 ring-2 ring-white/70' : 'bg-white/[0.04] hover:bg-white/[0.08]'}`}>
+		<button
+			onClick={onClick}
+			disabled={!!lock}
+			className={`w-full flex items-center gap-2 rounded-xl px-2 py-1.5 text-left transition-colors disabled:opacity-35 ${selected ? 'bg-white/15 ring-2 ring-white/70' : 'bg-white/[0.04] hover:bg-white/[0.08]'}`}
+		>
 			<div className={`tier-${p.tier} rounded-md w-9 h-9 flex items-center justify-center text-sm font-black text-white shrink-0`} style={{ animation: 'none' }}>
 				{p.overall}
 			</div>
@@ -26,8 +33,13 @@ function BoardRow({ p, value, need, selected, onClick }: { p: VersusPlayer; valu
 					{p.firstName} {p.lastName}
 				</div>
 				<div className='text-[10px] text-white/45 truncate leading-tight'>
-					{p.position}/{p.secondaryPosition} · {p.era === 'alltime' ? `${p.eraLabel ?? ''} ${team.name}`.trim() : team.abbreviation}
+					{lock ? `🔒 ${lock}` : `${p.position}/${p.secondaryPosition} · ${p.era === 'alltime' ? `${p.eraLabel ?? ''} ${team.name}`.trim() : team.abbreviation}`}
 				</div>
+				{tags.length > 0 && !lock && (
+					<div className='mt-0.5'>
+						<TagChip tag={tags[0]} small />
+					</div>
+				)}
 			</div>
 			{need && <span className='text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30 shrink-0'>Fills {need}</span>}
 			<div className='text-right shrink-0 w-12'>
@@ -115,8 +127,9 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 		setTimeout(() => setViolation(null), 2200);
 		if (lot) setState(passBid(state));
 		else {
-			const fits = auctionBoard(state).filter(p => fitsNeed(p, needs));
-			const p = (fits.length ? fits : auctionBoard(state))[0];
+			const allowed = auctionBoard(state).filter(p => canTake(state, actor, p.id));
+			const fits = allowed.filter(p => fitsNeed(p, needs));
+			const p = (fits.length ? fits : allowed)[0];
 			if (p) setState(nominate(state, p.id, 1));
 		}
 	});
@@ -127,6 +140,7 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 	const lotValue = lot ? (auctionValues(state, actor).get(lot.id) ?? 1) : 0;
 	const bid = (amt: number) => {
 		play('coin');
+		buzz(15);
 		setState(raise(state, amt));
 	};
 
@@ -212,7 +226,9 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 						)}
 						<div className='flex items-center justify-center gap-4 w-full'>
 							<div className='vs-deal shrink-0' key={lot.id}>
-								<VersusCard player={lotP} width={128} faceDown={lot.mystery} />
+								<TaggedCard state={state} side={actor} id={lot.id} hideTags={lot.mystery}>
+									<VersusCard player={lotP} width={128} faceDown={lot.mystery} />
+								</TaggedCard>
 							</div>
 							<div className='text-center min-w-0'>
 								<div className='text-[10px] font-black uppercase tracking-widest text-white/45'>{lot.high === null ? 'Opening bid' : 'Current bid'}</div>
@@ -237,7 +253,12 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 							<div className='mt-3 text-[11px] text-white/50 text-center'>
 								{([0, 1] as Side[])
 									.filter(x => !canBid(state, x))
-									.map(x => `${names[x]} has no ${lot.band ? BAND_INFO[lot.band].label : ''} slot left`)
+									.map(x => {
+										const why = ineligibleReason(state, x, lot.id);
+										if (why) return `${names[x]}: ${why.toLowerCase()}`;
+										if (slotsLeft(state, x) <= 0) return `${names[x]}'s roster is full`;
+										return `${names[x]} has no ${lot.band ? BAND_INFO[lot.band].label : ''} slot left`;
+									})
 									.join(' · ')}
 							</div>
 						)}
@@ -292,6 +313,8 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 									value={values.get(p.id) ?? 1}
 									need={fitsNeed(p, needs)}
 									selected={chosen === p.id}
+									state={state}
+									side={actor}
 									onClick={() => {
 										play('tick');
 										setChosen(chosen === p.id ? null : p.id);

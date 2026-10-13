@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { play } from '@/lib/versus/sound';
+import { buzz, play } from '@/lib/versus/sound';
 
 /**
  * Each coach's color. Mutable on purpose: the Versus page calls
@@ -73,6 +73,7 @@ export function CoinFlip({ names, onResult }: { names: [string, string]; onResul
 		setTimeout(() => {
 			setFlipping(false);
 			play('coin');
+			buzz([30, 40, 60]);
 			setWinner(w);
 			onResult(w);
 		}, 2300);

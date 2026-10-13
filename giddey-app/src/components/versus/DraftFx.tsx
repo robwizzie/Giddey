@@ -6,6 +6,7 @@ import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { getPlayerHeadshotUrls } from '@/lib/images';
 import { CATEGORY_INFO, Category, lineupChemistry } from '@/lib/versus/chemistry';
 import { buzz, play } from '@/lib/versus/sound';
+import { playerTags, TagChip } from './Tags';
 import { getBoost } from '@/lib/versus/wheels';
 import Headshot from '@/components/Headshot';
 import VersusCard from './VersusCard';
@@ -189,6 +190,7 @@ export function PickReveal({ state, onDone }: { state: VersusState; onDone: () =
 	useEffect(() => {
 		if (boom) return;
 		play('reveal');
+		buzz(25);
 		const t = setTimeout(onDone, 1900);
 		return () => clearTimeout(t);
 	}, [onDone, boom]);
@@ -208,6 +210,11 @@ export function PickReveal({ state, onDone }: { state: VersusState; onDone: () =
 				</div>
 				<div className='text-sm text-white/50'>
 					{p.overall} OVR · {p.position}/{p.secondaryPosition}
+				</div>
+				<div className='flex justify-center gap-1 mt-2'>
+					{playerTags(state, lp.side, p.id, 3).map(t => (
+						<TagChip key={t.text} tag={t} />
+					))}
 				</div>
 			</div>
 		</div>

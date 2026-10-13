@@ -611,3 +611,22 @@ html, body {
   50% { opacity: 0.2; }
 }
 .vs-blink { animation: vsBlink 0.35s ease-in-out infinite; }
+
+/* Versus: every screen change fades in. Opacity only — a transform here would
+   make the screens' fixed bottom bars jump while the animation runs. */
+@keyframes vsScreen {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+.vs-screen {
+	animation: vsScreen 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+	.vs-screen {
+		animation: none;
+	}
+}

@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { bestLineup, normalizeSettings, other, players, recordGame, seriesScore, setSabotage, Settings, Side, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
+import { bestLineup, normalizeSettings, other, players, recordGame, RETIRE_DRAFTS, seriesScore, setSabotage, Settings, Side, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
 import { TierBuilder } from './SetupScreen';
-import { getTeamFor, VersusPlayer } from '@/lib/versus/pool';
+import { getTeamFor, getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
+import { hotHand } from '@/lib/versus/usage';
+import { buzz } from '@/lib/versus/sound';
 import { getPlayerHeadshotUrls } from '@/lib/images';
 import Headshot from '@/components/Headshot';
 import {
@@ -77,9 +79,47 @@ function ChallengeCard({ state, side }: { state: VersusState; side: Side }) {
 	);
 }
 
+/** One coach's Player of the Game vote — anyone from either roster */
+function PotgVote({ state, side, value, onChange }: { state: VersusState; side: Side; value: string | null; onChange: (id: string | null) => void }) {
+	const { names } = state.settings;
+	const both = [...players(state.teams[0]).map(p => ({ p, team: 0 as Side })), ...players(state.teams[1]).map(p => ({ p, team: 1 as Side }))].sort((a, b) => b.p.overall - a.p.overall);
+	return (
+		<div className='rounded-xl bg-black/25 p-2.5'>
+			<div className='text-[10px] font-black uppercase tracking-wider mb-1.5' style={{ color: SIDE_COLORS[side] }}>
+				{names[side]}&apos;s vote
+			</div>
+			<div className='flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none]'>
+				{both.map(({ p, team }) => {
+					const on = value === p.id;
+					return (
+						<button
+							key={p.id}
+							onClick={() => {
+								buzz(10);
+								onChange(on ? null : p.id);
+							}}
+							className={`shrink-0 rounded-lg px-2 py-1.5 text-left border-2 transition-all ${on ? 'scale-105' : 'opacity-80'}`}
+							style={{ borderColor: on ? '#facc15' : `${SIDE_COLORS[team]}55`, background: on ? 'rgba(250,204,21,0.15)' : `${SIDE_COLORS[team]}14` }}
+						>
+							<div className='text-[11px] font-black text-white whitespace-nowrap'>
+								{on ? '⭐ ' : ''}
+								{p.lastName}
+							</div>
+							<div className='text-[9px] text-white/45 whitespace-nowrap'>
+								{p.overall} · {names[team]}
+							</div>
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
 function ResultForm({ state, setState }: { state: VersusState; setState: SetState }) {
 	const { names } = state.settings;
 	const [winner, setWinner] = useState<Side | null>(null);
+	const [votes, setVotes] = useState<[string | null, string | null]>([null, null]);
 	const [score, setScore] = useState<[string, string]>(['', '']);
 	const [done, setDone] = useState<[boolean | null, boolean | null]>([null, null]);
 
@@ -94,6 +134,14 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 	};
 
 	const ready = winner !== null && done[0] !== null && done[1] !== null;
+	// agree → one Player of the Game; split votes → both get the award
+	const potg = [...new Set(votes.filter((v): v is string => !!v))];
+	const retireNote =
+		state.settings.retire === 'potg'
+			? `🎖️ Retire rule: a Player of the Game on the winning team sits out that coach's next ${RETIRE_DRAFTS} drafts.`
+			: state.settings.retire === 'starters'
+				? `🎖️ Retire rule: the winner's starting five sit out that coach's next ${RETIRE_DRAFTS} drafts.`
+				: null;
 	return (
 		<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-4 animate-slide-up'>
 			<div className='text-center text-sm font-black uppercase tracking-widest text-white/60 mb-3'>Final buzzer 🚨</div>
@@ -141,15 +189,26 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 					);
 				})}
 			</div>
+			<div className='mb-4'>
+				<div className='text-center text-[11px] font-black uppercase tracking-widest text-white/50 mb-1'>⭐ Player of the Game</div>
+				<div className='text-center text-[11px] text-white/40 mb-2'>Each coach votes — anyone from either team. Split votes? Both get it. Winners earn a ⭐ Hot hand tag in future drafts.</div>
+				<div className='space-y-2'>
+					{([0, 1] as Side[]).map(i => (
+						<PotgVote key={i} state={state} side={i} value={votes[i]} onChange={id => setVotes(v => (i ? [v[0], id] : [id, v[1]]))} />
+					))}
+				</div>
+				{retireNote && <div className='text-[11px] text-amber-200/80 text-center mt-2'>{retireNote}</div>}
+			</div>
 			<button
 				disabled={!ready}
 				onClick={() => {
 					const sc: [number | null, number | null] = [score[0] ? parseInt(score[0], 10) : null, score[1] ? parseInt(score[1], 10) : null];
-					setState(recordGame(state, { winner: winner!, score: sc, challenges: done }));
+					buzz([20, 40, 60]);
+					setState(recordGame(state, { winner: winner!, score: sc, challenges: done, potg }));
 				}}
 				className='w-full btn-green rounded-2xl py-3.5 font-black uppercase tracking-wider text-white disabled:opacity-35'
 			>
-				Lock in result
+				{ready && !potg.length ? 'Lock in result (no POTG vote)' : 'Lock in result'}
 			</button>
 		</div>
 	);
@@ -170,7 +229,8 @@ function MiniPlayer({ player: p, slot, tag }: { player: VersusPlayer; slot: stri
 				/>
 			</div>
 			<div className='min-w-0 flex-1'>
-				<div className={`${p.lastName.length > 10 ? 'text-[10.5px]' : 'text-[12px]'} font-bold text-white truncate leading-tight`} title={`${p.firstName} ${p.lastName}`}>
+				<div className={`${p.lastName.length > 10 ? 'text-[10.5px]' : 'text-[12px]'} font-bold text-white truncate leading-tight`} title={`${p.firstName} ${p.lastName}${hotHand(p.id) ? ` — Player of the Game ×${hotHand(p.id)}` : ''}`}>
+					{hotHand(p.id) > 0 && <span className='mr-0.5'>⭐</span>}
 					{p.lastName}
 				</div>
 				<div className='text-[9px] text-white/40 truncate leading-tight'>
@@ -542,6 +602,42 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 						</div>
 					)}
 				</div>
+
+				{(last.potg?.length ?? 0) > 0 && (
+					<div className='rounded-2xl border border-yellow-400/40 bg-yellow-400/[0.07] p-4 mb-4 text-center vs-rise'>
+						<div className='text-[11px] font-black uppercase tracking-widest text-yellow-300/80 mb-1'>⭐ Player of the Game{last.potg!.length > 1 ? ' (split vote)' : ''}</div>
+						<div className='flex justify-center gap-4 flex-wrap'>
+							{last.potg!.map(id => {
+								const p = getVersusPlayer(id);
+								if (!p) return null;
+								const side: Side = last.rosters?.[1]?.includes(id) ? 1 : 0;
+								return (
+									<div key={id}>
+										<div className='text-2xl font-black text-white'>
+											{p.firstName} {p.lastName}
+										</div>
+										<div className='text-[11px] font-bold' style={{ color: SIDE_COLORS[side] }}>
+											{p.overall} OVR · {names[side]} · {hotHand(id) > 1 ? `${hotHand(id)}× all-time` : 'first award'}
+										</div>
+									</div>
+								);
+							})}
+						</div>
+					</div>
+				)}
+				{(() => {
+					const fresh = (state.retired ?? []).filter(r => r.left === RETIRE_DRAFTS && last.rosters?.[r.side]?.includes(r.id));
+					if (!fresh.length) return null;
+					return (
+						<div className='rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-4 mb-4'>
+							<div className='text-[11px] font-black uppercase tracking-widest text-amber-300/80 mb-1'>🎖️ Retired from {names[w]}&apos;s side</div>
+							<div className='text-sm text-white font-bold'>{fresh.map(r => getVersusPlayer(r.id)?.lastName).filter(Boolean).join(', ')}</div>
+							<div className='text-[11px] text-white/50 mt-0.5'>
+								{names[w]} can&apos;t draft {fresh.length === 1 ? 'him' : 'them'} for the next {RETIRE_DRAFTS} drafts. {names[other(w)]} still can — run it back keeps current squads as they are.
+							</div>
+						</div>
+					);
+				})()}
 
 				{/* Series */}
 				<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4'>

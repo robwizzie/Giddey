@@ -43,14 +43,15 @@ export interface Twist {
 	weight: number;
 }
 
+// Every twist pushes the pace and the score up — no slow-it-down rules.
 export const TWISTS: Twist[] = [
-	{ id: 'straight', label: 'Straight Up', desc: 'Default rules. No excuses.', color: '#64748b', weight: 4 },
-	{ id: 'hof', label: 'Hall of Fame', desc: 'Set difficulty to Hall of Fame for both sides.', color: '#eab308', weight: 2 },
-	{ id: 'nofatigue', label: 'Fatigue Off', desc: 'Turn fatigue off — ride your stars all game.', color: '#22c55e', weight: 2 },
-	{ id: 'notimeouts', label: 'No Timeouts', desc: 'Neither coach may call a timeout. Play through it.', color: '#ef4444', weight: 2 },
-	{ id: 'benchmob', label: 'Bench Mob Q2', desc: 'Both teams play the 2nd quarter with bench-only lineups (5-man rosters: lowest-rated 3 must be on the floor).', color: '#3b82f6', weight: 1 },
-	{ id: 'starsit', label: 'Late Arrivals', desc: 'Both teams’ highest-rated player sits the 1st quarter.', color: '#a855f7', weight: 1 },
-	{ id: 'clutch', label: 'Clutch Rule', desc: 'Every made shot in the final minute of Q4 must come from your lowest-rated starter or it doesn’t count.', color: '#ec4899', weight: 1 },
+	{ id: 'straight', label: 'Straight Up', desc: 'Default rules. Just hoop.', color: '#64748b', weight: 3 },
+	{ id: 'pace', label: 'Pace & Space', desc: 'Fatigue off. Ride your stars and run every possession.', color: '#22c55e', weight: 3 },
+	{ id: 'rain', label: 'Make It Rain', desc: 'Both teams must take at least 10 threes. Missed quota = opponent gets 6 bonus points.', color: '#3b82f6', weight: 2 },
+	{ id: 'showtime', label: 'Showtime', desc: 'Push the pace: every defensive rebound goes straight into a fast break, no walking it up.', color: '#f97316', weight: 2 },
+	{ id: 'nodef', label: 'No Defensive Settings', desc: 'No defensive adjustments, double teams or matchup changes. Offense wins.', color: '#a855f7', weight: 2 },
+	{ id: 'q4double', label: '4th Quarter Double', desc: 'Points scored in the 4th quarter count double — track the Q4 score and add it again at the end.', color: '#ec4899', weight: 2 },
+	{ id: 'buckets', label: 'Bucket Getters', desc: 'Drop the difficulty to Pro so shots fall. Expect a shootout.', color: '#eab308', weight: 1 },
 ];
 
 export type Difficulty = 'easy' | 'medium' | 'hard';

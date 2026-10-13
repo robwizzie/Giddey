@@ -17,8 +17,11 @@ import {
 	Side,
 	SIDE_PALETTE,
 	TIER_PRESETS,
+	MAX_FAVORITES,
+	RETIRE_DRAFTS,
 } from '@/lib/versus/engine';
-import { ALLTIME_PLAYERS, MODERN_PLAYERS } from '@/lib/versus/pool';
+import { ALLTIME_PLAYERS, getPool, getVersusPlayer, MODERN_PLAYERS } from '@/lib/versus/pool';
+import { THEMES } from '@/lib/versus/themes';
 
 const POOLS: { id: PoolSetting; title: string; sub: string; icon: string }[] = [
 	{ id: 'modern', title: 'Modern', sub: 'Current 2K27 rosters', icon: '🏀' },
@@ -222,40 +225,197 @@ export function settingsValid(s: Settings): boolean {
 	return !!a && !!b && a.toLowerCase() !== b.toLowerCase() && rosterTotal(s.tiers) >= MIN_ROSTER && (!s.handicap || rosterTotal(s.tiers2) >= MIN_ROSTER);
 }
 
+/** A numbered settings section with a one-line explanation */
+function Section({ n, icon, title, desc, children, locked }: { n: number; icon: string; title: string; desc: string; children: React.ReactNode; locked?: boolean }) {
+	return (
+		<section className={`mb-7 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
+			<div className='flex items-start gap-3 mb-3'>
+				<div className='w-7 h-7 rounded-full bg-white/10 border border-white/15 text-xs font-black text-white flex items-center justify-center shrink-0'>{n}</div>
+				<div className='min-w-0'>
+					<div className='text-base font-black text-white leading-tight'>
+						{icon} {title}
+					</div>
+					<div className='text-[12px] text-white/50 leading-snug'>{desc}</div>
+				</div>
+			</div>
+			{children}
+		</section>
+	);
+}
+
+/** One-tap setups that set many options at once (names, colors and favorites are kept) */
+const QUICK_SETUPS: { id: string; icon: string; title: string; desc: string; patch: Partial<Settings> }[] = [
+	{
+		id: 'classic',
+		icon: '🏀',
+		title: 'Classic',
+		desc: 'Balanced snake draft, no extras',
+		patch: { style: 'snake', pool: 'mixed', theme: 'off', freshness: 'light', freshFaces: 0, favoritesRound: false, retire: 'off', blindBid: false, blind: false, keepers: false, equalizer: true, underdogFirst: true, handicap: false },
+	},
+	{
+		id: 'variety',
+		icon: '🌈',
+		title: 'Variety Night',
+		desc: 'New faces every draft',
+		patch: { style: 'snake', pool: 'mixed', theme: 'spin', freshness: 'strong', freshFaces: 2, favoritesRound: true, retire: 'potg', equalizer: true, underdogFirst: true, handicap: false },
+	},
+	{
+		id: 'money',
+		icon: '🔨',
+		title: 'Money Night',
+		desc: 'Auction Block, $200 each',
+		patch: { style: 'block', pool: 'mixed', theme: 'off', freshness: 'light', budget: 200, budget2: 200, handicap: false },
+	},
+	{
+		id: 'chaos',
+		icon: '💥',
+		title: 'Chaos',
+		desc: 'Franchise wheel, blind bids, mystery packs',
+		patch: { style: 'franchise', pool: 'mixed', theme: 'spin', blindBid: true, blind: true, shuffleRounds: true, freshness: 'strong', handicap: false },
+	},
+];
+
+/** Search every player and pin up to 5 franchise guys per coach */
+function FavoritesPicker({ s, setS, side, onClose }: { s: Settings; setS: SetS; side: Side; onClose: () => void }) {
+	const [q, setQ] = useState('');
+	const pinned = s.favorites[side];
+	const all = getPool('mixed');
+	const list = q.trim() ? all.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 40) : all.slice(0, 40);
+	const toggle = (id: string) =>
+		setS(prev => {
+			const favorites: Settings['favorites'] = [[...prev.favorites[0]], [...prev.favorites[1]]];
+			const mine = favorites[side];
+			favorites[side] = mine.includes(id) ? mine.filter(x => x !== id) : mine.length >= MAX_FAVORITES ? mine : [...mine, id];
+			return { ...prev, favorites };
+		});
+	return (
+		<div className='fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
+			<div className='w-full max-w-lg max-h-[88vh] flex flex-col bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl p-4 animate-slide-up' onClick={e => e.stopPropagation()}>
+				<div className='flex items-center justify-between mb-1'>
+					<div className='text-lg font-black text-white'>💙 {s.names[side] || `Coach ${side + 1}`}&apos;s franchise guys</div>
+					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
+						&times;
+					</button>
+				</div>
+				<div className='text-xs text-white/50 mb-3'>
+					Pin up to {MAX_FAVORITES} players you love. They get a 💙 tag, and with the Favorites round on you grab one before every draft. ({pinned.length}/{MAX_FAVORITES})
+				</div>
+				{pinned.length > 0 && (
+					<div className='flex flex-wrap gap-1.5 mb-3'>
+						{pinned.map(id => {
+							const p = getVersusPlayer(id);
+							return p ? (
+								<button key={id} onClick={() => toggle(id)} className='text-xs font-bold text-white rounded-full px-2.5 py-1 border' style={{ borderColor: s.identity[side].color, background: `${s.identity[side].color}22` }}>
+									{p.firstName} {p.lastName} ✕
+								</button>
+							) : null;
+						})}
+					</div>
+				)}
+				<input
+					value={q}
+					onChange={e => setQ(e.target.value)}
+					placeholder='Search all 345 players…'
+					className='w-full rounded-xl bg-white/[0.06] border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-white/30 placeholder:text-white/30 mb-2'
+				/>
+				<div className='overflow-y-auto space-y-1 flex-1 min-h-0'>
+					{list.map(p => {
+						const on = pinned.includes(p.id);
+						return (
+							<button key={p.id} onClick={() => toggle(p.id)} disabled={!on && pinned.length >= MAX_FAVORITES} className={`w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-left disabled:opacity-30 ${on ? 'bg-white/15' : 'bg-white/[0.04] hover:bg-white/[0.08]'}`}>
+								<div className={`tier-${p.tier} rounded-md w-8 h-8 flex items-center justify-center text-[13px] font-black text-white shrink-0`} style={{ animation: 'none' }}>
+									{p.overall}
+								</div>
+								<div className='min-w-0 flex-1'>
+									<div className='text-sm font-bold text-white truncate'>
+										{p.firstName} {p.lastName}
+									</div>
+									<div className='text-[10px] text-white/45'>
+										{p.position}/{p.secondaryPosition} · {p.era === 'alltime' ? `${p.eraLabel} legend` : p.teamId}
+									</div>
+								</div>
+								<div className='text-lg'>{on ? '💙' : '＋'}</div>
+							</button>
+						);
+					})}
+				</div>
+				<button onClick={onClose} className='mt-3 btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white'>
+					Done
+				</button>
+			</div>
+		</div>
+	);
+}
+
 /**
- * Every Versus setting. Used by the setup screen and the in-series settings sheet.
- * `lockDraft` greys out draft settings while a draft is running (names stay editable).
+ * Every Versus setting, in the order you'd set them up. Used by the setup
+ * screen and the in-series settings sheet. `lockDraft` greys out draft
+ * settings while a draft is running (names, colors and favorites stay editable).
  */
 export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; lockDraft?: boolean }) {
 	const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS(prev => normalizeSettings({ ...prev, [k]: v }));
+	const [favFor, setFavFor] = useState<Side | null>(null);
 	const counts: Record<PoolSetting, string> = {
 		modern: `${MODERN_PLAYERS.length} players`,
 		alltime: `${ALLTIME_PLAYERS.length} players`,
 		mixed: `${MODERN_PLAYERS.length + ALLTIME_PLAYERS.length} players`,
 		erawars: 'Split pools',
 	};
-	const lock = lockDraft ? 'opacity-40 pointer-events-none' : '';
+	const auction = s.style === 'auction' || s.style === 'block';
+	const activeQuick = QUICK_SETUPS.find(q => Object.entries(q.patch).every(([k, v]) => (s as unknown as Record<string, unknown>)[k] === v));
 	return (
 		<>
-			{/* Coaches */}
-			<div className='grid grid-cols-2 gap-3 mb-6'>
-				<IdentityEditor s={s} setS={setS} side={0} />
-				<IdentityEditor s={s} setS={setS} side={1} />
-			</div>
-
 			{lockDraft && (
 				<div className='rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-200 text-xs p-3 mb-4'>
-					A draft is in progress — draft settings unlock once it&apos;s over and apply to the next draft. Names and colors update right away.
+					A draft is in progress — draft settings unlock once it&apos;s over and apply to the next draft. Names, colors and franchise guys update right away.
 				</div>
 			)}
 
-			<div className={lock}>
-				{/* Pool */}
-				<Label>Player pool</Label>
+			{/* Quick setups */}
+			<div className={`mb-7 ${lockDraft ? 'opacity-40 pointer-events-none' : ''}`}>
+				<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>⚡ Quick setup — or customize everything below</div>
+				<div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
+					{QUICK_SETUPS.map(q => (
+						<button
+							key={q.id}
+							onClick={() => setS(prev => normalizeSettings({ ...prev, ...q.patch }))}
+							className={`rounded-2xl p-3 text-left border transition-all ${activeQuick?.id === q.id ? 'border-orange-400 bg-orange-500/15' : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]'}`}
+						>
+							<div className='text-2xl'>{q.icon}</div>
+							<div className='text-sm font-black text-white'>{q.title}</div>
+							<div className='text-[10px] text-white/45 leading-tight'>{q.desc}</div>
+						</button>
+					))}
+				</div>
+			</div>
+
+			<Section n={1} icon='🧑‍🤝‍🧑' title='Coaches' desc='Names, team identity, and the franchise guys you each love.'>
+				<div className='grid grid-cols-2 gap-3'>
+					{([0, 1] as Side[]).map(side => (
+						<div key={side} className='space-y-2'>
+							<IdentityEditor s={s} setS={setS} side={side} />
+							<button onClick={() => setFavFor(side)} className='w-full rounded-xl px-3 py-2 text-left bg-white/[0.04] border border-white/10 hover:bg-white/[0.07]'>
+								<div className='text-[10px] font-black uppercase tracking-widest text-white/50'>💙 Fav guys {s.favorites[side].length}/{MAX_FAVORITES}</div>
+								<div className='text-[11px] text-white/75 truncate'>
+									{s.favorites[side].length
+										? s.favorites[side]
+												.map(id => getVersusPlayer(id)?.lastName)
+												.filter(Boolean)
+												.join(', ')
+										: 'Tap to pin your favorites'}
+								</div>
+							</button>
+						</div>
+					))}
+				</div>
+			</Section>
+			{favFor !== null && <FavoritesPicker s={s} setS={setS} side={favFor} onClose={() => setFavFor(null)} />}
+
+			<Section n={2} icon='🏀' title='Player pool' desc='Who can be drafted. Themes narrow it down further for one draft.' locked={lockDraft}>
 				<div className='grid grid-cols-4 gap-2 mb-2'>
 					{POOLS.map(p => {
 						const on = s.pool === p.id;
-						const disabled = p.id === 'erawars' && (s.style === 'auction' || s.style === 'block');
+						const disabled = p.id === 'erawars' && auction;
 						return (
 							<button
 								key={p.id}
@@ -287,10 +447,30 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 						</div>
 					</div>
 				)}
-				<div className='mb-6' />
+				<div className='mt-3'>
+					<Label>🎡 Theme drafts</Label>
+					<div className='flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 [scrollbar-width:none]'>
+						{[{ id: 'off', icon: '⛔', label: 'Off' }, { id: 'spin', icon: '🎡', label: 'Spin each draft' }, ...THEMES.map(t => ({ id: t.id, icon: t.icon, label: t.label }))].map(o => (
+							<button
+								key={o.id}
+								onClick={() => set('theme', o.id as Settings['theme'])}
+								className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black border ${s.theme === o.id ? 'bg-white text-black border-white' : 'bg-white/5 text-white/70 border-white/10'}`}
+							>
+								{o.icon} {o.label}
+							</button>
+						))}
+					</div>
+					<div className='text-[11px] text-white/45 mt-1.5'>
+						{s.theme === 'off'
+							? 'Every draft uses the whole pool.'
+							: s.theme === 'spin'
+								? 'Before each draft you spin a theme wheel — 90s legends only, one division, East vs West, nobody over 95… Only themes with enough players for your roster size land.'
+								: `Every draft: ${THEMES.find(t => t.id === s.theme)?.desc}`}
+					</div>
+				</div>
+			</Section>
 
-				{/* Style */}
-				<Label>Draft style</Label>
+			<Section n={3} icon='🎴' title='Draft style' desc='How players get onto your rosters.' locked={lockDraft}>
 				<div className='space-y-2 mb-2'>
 					{STYLES.map(st => {
 						const on = s.style === st.id;
@@ -310,22 +490,25 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 						);
 					})}
 				</div>
-				{(s.style === 'auction' || s.style === 'block') && (
-					<div className='rounded-xl bg-white/[0.04] border border-white/10 p-3 mb-2 animate-fade-in space-y-3'>
+				{auction && (
+					<div className='rounded-xl bg-white/[0.04] border border-white/10 p-3 animate-fade-in space-y-3'>
 						<Seg label={s.handicap ? `${s.names[0] || 'Coach 1'}'s budget` : 'Budget per coach'} value={s.budget} onChange={v => set('budget', v)} options={[100, 150, 200, 300].map(v => ({ v, l: `$${v}` }))} />
 						{s.handicap && <Seg label={`${s.names[1] || 'Coach 2'}'s budget`} value={s.budget2} onChange={v => set('budget2', v)} options={[100, 150, 200, 300].map(v => ({ v, l: `$${v}` }))} />}
 						<div className='text-[11px] text-white/45'>
 							{s.style === 'block'
-								? 'Lots come from the roster build below, stars first, built around the positions you both need. You can only win as many players of a tier as you have slots for, so neither side can hoard superstars. Every coach keeps $1 per open slot; unsold players are gone, and late lots that must sell go for $1.'
-								: 'Roster size comes from the roster build below; tiers don’t restrict who you can nominate. Every coach keeps $1 per open slot.'}
+								? 'Lots come from your roster build, stars first, built around the positions you both need. You can only win as many players of a tier as you have slots for. Every coach keeps $1 per open slot; unsold players are gone, and late lots that must sell go for $1.'
+								: 'Roster size comes from your roster build; tiers don’t restrict who you can nominate. Every coach keeps $1 per open slot.'}
 						</div>
 					</div>
 				)}
-				<div className='mb-6' />
-			</div>
+				<div className='grid grid-cols-3 gap-2 mt-3'>
+					<Seg label='Cards / pack' value={s.packSize} onChange={v => set('packSize', v)} options={[{ v: 3, l: '3' }, { v: 4, l: '4' }, { v: 5, l: '5' }]} />
+					<Seg label='Rerolls' value={s.rerolls} onChange={v => set('rerolls', v)} options={[{ v: 0, l: '0' }, { v: 1, l: '1' }, { v: 2, l: '2' }]} />
+					<Seg label='Shot clock (s)' value={s.shotClock} onChange={v => set('shotClock', v)} options={[{ v: 0, l: 'Off' }, { v: 20, l: '20' }, { v: 30, l: '30' }, { v: 45, l: '45' }]} />
+				</div>
+			</Section>
 
-			{/* Tier builder(s) */}
-			<div className={lock}>
+			<Section n={4} icon='📋' title='Roster build' desc='How many players of each tier each coach drafts — this is how stacked the teams are.' locked={lockDraft}>
 				<div className='mb-2'>
 					<Toggle
 						on={s.handicap}
@@ -342,34 +525,52 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 				) : (
 					<TierBuilder s={s} setS={setS} />
 				)}
-				<div className='text-[10px] text-white/35 -mt-2 mb-6'>
-					One round per player. Both coaches draft from the same tier each round{s.shuffleRounds ? ', in shuffled order' : ', stars first'}. Big superstar counts thin out the top tier, so later rounds dip into the next-best players.
+				<div className='text-[10px] text-white/35 -mt-2'>
+					One round per player. Both coaches draft from the same tier each round{s.shuffleRounds ? ', in shuffled order' : ', stars first'}.
 				</div>
+			</Section>
 
-				{/* Numbers */}
-				<div className='grid grid-cols-3 gap-2 mb-6'>
-					<Seg label='Pack' value={s.packSize} onChange={v => set('packSize', v)} options={[{ v: 3, l: '3' }, { v: 4, l: '4' }, { v: 5, l: '5' }]} />
-					<Seg label='Rerolls' value={s.rerolls} onChange={v => set('rerolls', v)} options={[{ v: 0, l: '0' }, { v: 1, l: '1' }, { v: 2, l: '2' }]} />
-					<Seg label='Shot clock' value={s.shotClock} onChange={v => set('shotClock', v)} options={[{ v: 0, l: 'Off' }, { v: 20, l: '20' }, { v: 30, l: '30' }, { v: 45, l: '45' }]} />
+			<Section n={5} icon='🌈' title='Player variety' desc='Keep the same guys from showing up every night — and track who you lean on.' locked={lockDraft}>
+				<div className='space-y-3'>
+					<div>
+						<Seg label='🆕 Freshness boost' value={s.freshness} onChange={v => set('freshness', v)} options={[{ v: 'off', l: 'Off' }, { v: 'light', l: 'Light' }, { v: 'strong', l: 'Strong' }]} />
+						<div className='text-[11px] text-white/45 mt-1'>Players neither of you has used come up more often; the ones you keep taking come up less. Cards are tagged 🆕 Never drafted or 🔥 Your 4th time.</div>
+					</div>
+					<div>
+						<Seg label='🌱 Fresh faces per roster' value={s.freshFaces} onChange={v => set('freshFaces', v)} options={[{ v: 0, l: 'Off' }, { v: 1, l: '1' }, { v: 2, l: '2' }, { v: 3, l: '3' }]} />
+						<div className='text-[11px] text-white/45 mt-1'>Each roster must include this many players that coach has never used. Once your remaining picks run short, only fresh faces can be taken.</div>
+					</div>
+					<div>
+						<Seg label='🎖️ Retire winners' value={s.retire} onChange={v => set('retire', v)} options={[{ v: 'off', l: 'Off' }, { v: 'potg', l: 'Player of Game' }, { v: 'starters', l: 'Winning 5' }]} />
+						<div className='text-[11px] text-white/45 mt-1'>
+							{s.retire === 'off' ? 'Winners can be drafted again right away.' : `After a win, ${s.retire === 'potg' ? 'your Player of the Game' : 'your starting five'} can't be drafted by you for the next ${RETIRE_DRAFTS} drafts — your opponent still can.`}
+						</div>
+					</div>
+					<Toggle on={s.favoritesRound} onChange={v => set('favoritesRound', v)} title='💙 Favorites round' desc='Before every draft, each coach grabs one of their pinned franchise guys (if he’s still available). Pin them in section 1.' />
 				</div>
+			</Section>
 
-				{/* Toggles */}
-				<Label>Balance &amp; chaos</Label>
+			<Section n={6} icon='⚖️' title='Balance' desc='Keep the teams close so it comes down to the sticks.' locked={lockDraft}>
 				<div className='space-y-2'>
-					<Toggle on={s.underdogFirst} onChange={v => set('underdogFirst', v)} title='Underdog picks first' desc='Whoever has the lower team OVR gets first dibs each round. Keeps it tight.' />
+					<Toggle on={s.underdogFirst} onChange={v => set('underdogFirst', v)} title='Underdog picks first' desc='Whoever has the lower team OVR gets first dibs each round.' />
 					<Toggle on={s.equalizer} onChange={v => set('equalizer', v)} title='Equalizer' desc='If the teams finish 1.5+ OVR apart, the underdog swaps their weakest player for a better free agent.' />
-					<Toggle on={s.blindBid} onChange={v => set('blindBid', v)} title='🙈 Blind bid round' desc='One random round where you both pick in secret from the same pack. Pick the same guy and nobody gets him.' />
-					<Toggle on={s.keepers} onChange={v => set('keepers', v)} title='🔒 Keepers' desc='When you redraft mid-series, each coach keeps one player from their last team.' />
-					<Toggle on={s.blind} onChange={v => set('blind', v)} title='Mystery packs' desc='Cards are face-down — you only see tier and position until you draft.' />
-					<Toggle on={s.shuffleRounds} onChange={v => set('shuffleRounds', v)} title='Shuffle round order' desc='Tier rounds come in random order instead of superstars first.' />
 					<Toggle on={s.trades} onChange={v => set('trades', v)} title='Trade window' desc='After the draft, each coach gets one 1-for-1 trade offer.' />
 				</div>
-			</div>
+			</Section>
+
+			<Section n={7} icon='💥' title='Chaos' desc='Extra twists for draft night. All optional.' locked={lockDraft}>
+				<div className='space-y-2'>
+					<Toggle on={s.blindBid} onChange={v => set('blindBid', v)} title='🙈 Blind bid round' desc='One random round where you both pick in secret from the same pack. Pick the same guy and nobody gets him.' />
+					<Toggle on={s.keepers} onChange={v => set('keepers', v)} title='🔒 Keepers' desc='When you redraft mid-series, each coach keeps one player from their last team.' />
+					<Toggle on={s.blind} onChange={v => set('blind', v)} title='🎁 Mystery packs' desc='Cards are face-down — you only see tier and position until you draft.' />
+					<Toggle on={s.shuffleRounds} onChange={v => set('shuffleRounds', v)} title='🔀 Shuffle round order' desc='Tier rounds come in random order instead of superstars first.' />
+				</div>
+			</Section>
 		</>
 	);
 }
 
-export default function SetupScreen({ initial, onStart, onRivalry }: { initial: Settings; onStart: (s: Settings) => void; onRivalry: () => void }) {
+export default function SetupScreen({ initial, onStart, onRivalry, onHelp }: { initial: Settings; onStart: (s: Settings) => void; onRivalry: () => void; onHelp: () => void }) {
 	const [s, setS] = useState<Settings>(() => normalizeSettings(initial));
 	return (
 		<div className='w-full max-w-2xl mx-auto px-4 pb-28 animate-fade-in'>
@@ -384,9 +585,14 @@ export default function SetupScreen({ initial, onStart, onRivalry }: { initial: 
 					<span style={{ color: s.identity[1].color }}>{s.names[1] || 'P2'}</span>
 				</h1>
 				<p className='text-sm text-white/50 mt-3 max-w-md mx-auto'>Draft two squads from real 2K27 ratings — as balanced or as broken as you like — spin for the rules, then settle it on the sticks.</p>
-				<button onClick={onRivalry} className='mt-4 text-xs font-black uppercase tracking-widest text-white/70 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2 border border-white/10'>
-					📊 Rivalry record
-				</button>
+				<div className='mt-4 flex justify-center gap-2'>
+					<button onClick={onHelp} className='text-xs font-black uppercase tracking-widest text-white/80 bg-orange-500/20 hover:bg-orange-500/30 rounded-full px-4 py-2 border border-orange-400/40'>
+						❓ How it works
+					</button>
+					<button onClick={onRivalry} className='text-xs font-black uppercase tracking-widest text-white/70 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2 border border-white/10'>
+						📊 Rivalry record
+					</button>
+				</div>
 			</div>
 
 			<SettingsForm s={s} setS={setS} />

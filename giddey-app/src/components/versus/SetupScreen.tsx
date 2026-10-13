@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { BLUEPRINTS, BAND_INFO, DraftStyle, Settings } from '@/lib/versus/engine';
-import { ALLTIME_PLAYERS, MODERN_PLAYERS, PoolMode } from '@/lib/versus/pool';
+import { BAND_INFO, BANDS, Band, DraftStyle, MAX_PER_TIER, MAX_ROSTER, MIN_ROSTER, normalizeSettings, rosterTotal, Settings, TIER_PRESETS } from '@/lib/versus/engine';
+import { ALLTIME_PLAYERS, getPool, MODERN_PLAYERS, PoolMode } from '@/lib/versus/pool';
 import { SIDE_COLORS } from './Fx';
 
 const POOLS: { id: PoolMode; title: string; sub: string; icon: string }[] = [
@@ -50,28 +50,105 @@ function Toggle({ on, onChange, title, desc }: { on: boolean; onChange: (v: bool
 	);
 }
 
-export default function SetupScreen({ initial, onStart, seriesActive }: { initial: Settings; onStart: (s: Settings) => void; seriesActive: boolean }) {
-	const [s, setS] = useState<Settings>(initial);
+/** OVR range a tier covers in the chosen pool (bands are pool percentiles) */
+function bandRange(pool: PoolMode, band: Band): [number, number] {
+	const ps = getPool(pool);
+	const [lo, hi] = BAND_INFO[band].range;
+	const slice = ps.slice(Math.floor(lo * ps.length), Math.max(Math.floor(lo * ps.length) + 1, Math.ceil(hi * ps.length)));
+	return [slice[slice.length - 1]?.overall ?? 0, slice[0]?.overall ?? 0];
+}
+
+function TierBuilder({ s, setS, locked }: { s: Settings; setS: React.Dispatch<React.SetStateAction<Settings>>; locked?: boolean }) {
+	const total = rosterTotal(s.tiers);
+	const setTier = (b: Band, n: number) => setS(prev => normalizeSettings({ ...prev, tiers: { ...prev.tiers, [b]: n } }));
+	const preset = TIER_PRESETS.find(p => BANDS.every(b => p.tiers[b] === s.tiers[b]));
+	return (
+		<div className={`mb-6 ${locked ? 'opacity-40 pointer-events-none' : ''}`}>
+			<div className='flex items-baseline justify-between mb-1.5'>
+				<div className='text-[11px] font-bold uppercase tracking-wider text-white/45'>Roster build · per coach</div>
+				<div className={`text-[11px] font-black ${total < MIN_ROSTER ? 'text-red-400' : 'text-white/60'}`}>
+					{total} players{total < MIN_ROSTER ? ` · need ${MIN_ROSTER}+` : ''}
+				</div>
+			</div>
+			{/* presets */}
+			<div className='flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 mb-1 [scrollbar-width:none]'>
+				{TIER_PRESETS.map(p => {
+					const on = preset?.id === p.id;
+					return (
+						<button
+							key={p.id}
+							onClick={() => setS(prev => normalizeSettings({ ...prev, tiers: { ...p.tiers } }))}
+							className={`shrink-0 rounded-xl px-3 py-2 text-left border transition-all ${on ? 'border-orange-400 bg-orange-500/15' : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]'}`}
+						>
+							<div className='text-sm font-black text-white whitespace-nowrap'>
+								{p.icon} {p.label}
+							</div>
+							<div className='text-[10px] text-white/45 whitespace-nowrap'>{p.desc}</div>
+						</button>
+					);
+				})}
+			</div>
+			{/* steppers */}
+			<div className='rounded-2xl border border-white/10 bg-black/30 divide-y divide-white/5'>
+				{BANDS.map(b => {
+					const n = s.tiers[b];
+					const [lo, hi] = bandRange(s.pool, b);
+					return (
+						<div key={b} className='flex items-center gap-3 px-3 py-2.5'>
+							<div className='w-2.5 h-8 rounded-full shrink-0' style={{ background: BAND_INFO[b].color }} />
+							<div className='flex-1 min-w-0'>
+								<div className='text-sm font-black text-white'>{BAND_INFO[b].label}</div>
+								<div className='text-[10px] text-white/45'>
+									{lo === hi ? `${hi}` : `${lo}–${hi}`} OVR in this pool
+								</div>
+							</div>
+							<button
+								onClick={() => setTier(b, Math.max(0, n - 1))}
+								disabled={n <= 0}
+								className='w-9 h-9 rounded-xl bg-white/10 text-white text-lg font-black disabled:opacity-25 active:scale-95'
+								aria-label={`Fewer ${BAND_INFO[b].label}`}
+							>
+								−
+							</button>
+							<div className='w-6 text-center text-xl font-black text-white tabular-nums'>{n}</div>
+							<button
+								onClick={() => setTier(b, n + 1)}
+								disabled={n >= MAX_PER_TIER || total >= MAX_ROSTER}
+								className='w-9 h-9 rounded-xl bg-white/10 text-white text-lg font-black disabled:opacity-25 active:scale-95'
+								aria-label={`More ${BAND_INFO[b].label}`}
+							>
+								+
+							</button>
+						</div>
+					);
+				})}
+			</div>
+			{/* round strip */}
+			<div className='flex gap-0.5 mt-2'>
+				{BANDS.flatMap(b => Array.from({ length: s.tiers[b] }, (_, i) => <div key={`${b}${i}`} className='flex-1 h-1.5 rounded-full' style={{ background: BAND_INFO[b].color }} />))}
+			</div>
+			<div className='text-[10px] text-white/35 mt-1.5'>
+				One round per player. Both coaches draft from the same tier each round{s.shuffleRounds ? ', in shuffled order' : ', stars first'}. Big superstar counts thin out the top tier, so later superstar rounds dip into the next-best players.
+			</div>
+		</div>
+	);
+}
+
+export function settingsValid(s: Settings): boolean {
+	const a = s.names[0].trim();
+	const b = s.names[1].trim();
+	return !!a && !!b && a.toLowerCase() !== b.toLowerCase() && rosterTotal(s.tiers) >= MIN_ROSTER;
+}
+
+/**
+ * Every Versus setting. Used by the setup screen and the in-series settings sheet.
+ * `lockDraft` greys out draft settings while a draft is running (names stay editable).
+ */
+export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: React.Dispatch<React.SetStateAction<Settings>>; lockDraft?: boolean }) {
 	const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS(prev => ({ ...prev, [k]: v }));
 	const counts: Record<PoolMode, number> = { modern: MODERN_PLAYERS.length, alltime: ALLTIME_PLAYERS.length, mixed: MODERN_PLAYERS.length + ALLTIME_PLAYERS.length };
-	const blueprint = BLUEPRINTS[s.rosterSize];
-	const valid = s.names[0].trim() && s.names[1].trim() && s.names[0].trim() !== s.names[1].trim();
-
 	return (
-		<div className='w-full max-w-2xl mx-auto px-4 pb-28 animate-fade-in'>
-			{/* Hero */}
-			<div className='text-center pt-6 pb-6'>
-				<div className='inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.3em] text-white/50 mb-2'>
-					<span className='w-6 h-px bg-white/30' /> NBA 2K27 Draft Night <span className='w-6 h-px bg-white/30' />
-				</div>
-				<h1 className='text-4xl sm:text-5xl font-black tracking-tight leading-none'>
-					<span style={{ color: SIDE_COLORS[0] }}>{s.names[0] || 'P1'}</span>
-					<span className='text-white/30 mx-3 text-3xl align-middle'>vs</span>
-					<span style={{ color: SIDE_COLORS[1] }}>{s.names[1] || 'P2'}</span>
-				</h1>
-				<p className='text-sm text-white/50 mt-3 max-w-md mx-auto'>Draft two balanced squads from real 2K27 ratings, spin for the rules, then settle it on the sticks.</p>
-			</div>
-
+		<>
 			{/* Names */}
 			<div className='grid grid-cols-2 gap-3 mb-6'>
 				{[0, 1].map(i => (
@@ -94,6 +171,12 @@ export default function SetupScreen({ initial, onStart, seriesActive }: { initia
 				))}
 			</div>
 
+			{lockDraft && (
+				<div className='rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-200 text-xs p-3 mb-4'>
+					A draft is in progress — draft settings unlock once it&apos;s over and apply to the next draft. Names update right away.
+				</div>
+			)}
+			<div className={lockDraft ? 'opacity-40 pointer-events-none' : ''}>
 			{/* Pool */}
 			<div className='text-[11px] font-bold uppercase tracking-wider text-white/45 mb-1.5'>Player Pool</div>
 			<div className='grid grid-cols-3 gap-2 mb-6'>
@@ -136,57 +219,59 @@ export default function SetupScreen({ initial, onStart, seriesActive }: { initia
 				})}
 			</div>
 
+			</div>
+			{/* Tier builder */}
+			<TierBuilder s={s} setS={setS} locked={lockDraft} />
+
+			<div className={lockDraft ? 'opacity-40 pointer-events-none' : ''}>
 			{/* Numbers */}
-			<div className='grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4'>
-				<Seg label='Roster size' value={s.rosterSize} onChange={v => set('rosterSize', v)} options={[{ v: 5, l: '5' }, { v: 8, l: '8' }, { v: 10, l: '10' }]} />
+			<div className='grid grid-cols-2 gap-3 mb-6'>
 				<Seg label='Cards per pack' value={s.packSize} onChange={v => set('packSize', v)} options={[{ v: 3, l: '3' }, { v: 4, l: '4' }, { v: 5, l: '5' }]} />
 				<Seg label='Rerolls each' value={s.rerolls} onChange={v => set('rerolls', v)} options={[{ v: 0, l: '0' }, { v: 1, l: '1' }, { v: 2, l: '2' }]} />
 			</div>
 
-			{/* Blueprint preview */}
-			<div className='rounded-2xl border border-white/10 bg-black/30 p-3 mb-6'>
-				<div className='flex items-center justify-between mb-2'>
-					<div className='text-[11px] font-bold uppercase tracking-wider text-white/45'>Round blueprint</div>
-					<div className='text-[10px] text-white/35'>Both coaches draft from the same tier each round</div>
-				</div>
-				<div className='flex gap-1'>
-					{blueprint.map((b, i) => (
-						<div key={i} className='flex-1 min-w-0'>
-							<div className='h-2 rounded-full' style={{ background: BAND_INFO[b].color }} />
-							<div className='text-[9px] font-bold text-center mt-1 truncate' style={{ color: BAND_INFO[b].color }}>
-								R{i + 1}
-							</div>
-						</div>
-					))}
-				</div>
-				<div className='flex flex-wrap gap-x-3 gap-y-1 mt-2'>
-					{[...new Set(blueprint)].map(b => (
-						<span key={b} className='text-[10px] font-semibold text-white/55 flex items-center gap-1'>
-							<span className='w-2 h-2 rounded-full' style={{ background: BAND_INFO[b].color }} /> {BAND_INFO[b].label}
-						</span>
-					))}
-				</div>
-			</div>
-
 			{/* Toggles */}
 			<div className='text-[11px] font-bold uppercase tracking-wider text-white/45 mb-1.5'>Balance &amp; chaos</div>
-			<div className='space-y-2 mb-8'>
+			<div className='space-y-2'>
 				<Toggle on={s.underdogFirst} onChange={v => set('underdogFirst', v)} title='Underdog picks first' desc='Whoever has the lower team OVR gets first dibs each round. Keeps it tight.' />
 				<Toggle on={s.blind} onChange={v => set('blind', v)} title='Mystery packs' desc='Cards are face-down — you only see tier and position until you draft.' />
 				<Toggle on={s.trades} onChange={v => set('trades', v)} title='Trade window' desc='After the draft, each coach gets one 1-for-1 trade offer.' />
-				<div className='flex items-center gap-2 text-[11px] text-white/45 px-1 pt-1'>
-					<span className='text-green-400'>⚖️</span> Always on: if teams finish 1.5+ OVR apart, the underdog gets an Equalizer pick.
-				</div>
+				<Toggle on={s.equalizer} onChange={v => set('equalizer', v)} title='Equalizer' desc='If the teams finish 1.5+ OVR apart, the underdog swaps their weakest player for a better free agent. Turn off to let lopsided drafts stand.' />
+				<Toggle on={s.shuffleRounds} onChange={v => set('shuffleRounds', v)} title='Shuffle round order' desc='Tier rounds come in random order instead of superstars first.' />
 			</div>
+
+			</div>
+		</>
+	);
+}
+
+export default function SetupScreen({ initial, onStart }: { initial: Settings; onStart: (s: Settings) => void }) {
+	const [s, setS] = useState<Settings>(() => normalizeSettings(initial));
+	return (
+		<div className='w-full max-w-2xl mx-auto px-4 pb-28 animate-fade-in'>
+			{/* Hero */}
+			<div className='text-center pt-6 pb-6'>
+				<div className='inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.3em] text-white/50 mb-2'>
+					<span className='w-6 h-px bg-white/30' /> NBA 2K27 Draft Night <span className='w-6 h-px bg-white/30' />
+				</div>
+				<h1 className='text-4xl sm:text-5xl font-black tracking-tight leading-none'>
+					<span style={{ color: SIDE_COLORS[0] }}>{s.names[0] || 'P1'}</span>
+					<span className='text-white/30 mx-3 text-3xl align-middle'>vs</span>
+					<span style={{ color: SIDE_COLORS[1] }}>{s.names[1] || 'P2'}</span>
+				</h1>
+				<p className='text-sm text-white/50 mt-3 max-w-md mx-auto'>Draft two squads from real 2K27 ratings — as balanced or as broken as you like — spin for the rules, then settle it on the sticks.</p>
+			</div>
+
+			<SettingsForm s={s} setS={setS} />
 
 			{/* CTA */}
 			<div className='fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/95 to-transparent z-30'>
 				<button
-					disabled={!valid}
-					onClick={() => onStart({ ...s, names: [s.names[0].trim(), s.names[1].trim()] })}
+					disabled={!settingsValid(s)}
+					onClick={() => onStart(normalizeSettings({ ...s, names: [s.names[0].trim(), s.names[1].trim()] }))}
 					className='btn-primary w-full max-w-2xl mx-auto block text-white text-lg font-black uppercase tracking-wider py-4 rounded-2xl disabled:opacity-40'
 				>
-					{seriesActive ? 'Save & Back' : 'To the Coin Toss →'}
+					To the Coin Toss →
 				</button>
 			</div>
 		</div>

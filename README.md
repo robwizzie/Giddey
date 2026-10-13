@@ -57,6 +57,9 @@ The **Center** slot is the most connected position on the board (4 neighbors), m
 A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people building teams to play against each other in NBA 2K27.
 
 - **Real 2K27 ratings.** 209 current players and 136 All-Time legends. Choose Modern, All-Time, or both.
+- **Fully customizable rosters.** Pick how many Superstars, All-Stars, Starters, Rotation and Deep Bench players each coach drafts (5–15 total), or use a preset: Balanced, Starting Five, Big Three, Superteams, Underdogs, Full Rotation. Rounds can be shuffled, and the Equalizer can be switched off.
+- **Position-aware packs.** Every pack is built around the positions both coaches still need, with the closest-ranked fit pulled in when a coach is running out of picks. Cards that fill a need are tagged.
+- **Settings any time.** Rename coaches or change draft settings mid-series from ⚙️ Settings.
 - **Three draft styles.**
   - **Pack Snake:** a pack drops each round and both coaches pick from it.
   - **I Cut, You Choose:** one coach offers two cards and the other takes one.

@@ -1,8 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { play } from '@/lib/versus/sound';
 
+/**
+ * Each coach's color. Mutable on purpose: the Versus page calls
+ * setSideColors() with the coaches' chosen colors at the top of every
+ * render, so every component reading SIDE_COLORS[side] picks them up.
+ */
 export const SIDE_COLORS: [string, string] = ['#f97316', '#38bdf8'];
+
+export function setSideColors(colors: [string, string]) {
+	SIDE_COLORS[0] = colors[0];
+	SIDE_COLORS[1] = colors[1];
+}
 
 /** Burst of confetti — remount (change key) to replay */
 export function Confetti({ count = 70, colors = ['#f97316', '#38bdf8', '#facc15', '#a855f7', '#22c55e', '#ffffff'] }: { count?: number; colors?: string[] }) {
@@ -56,10 +67,12 @@ export function CoinFlip({ names, onResult }: { names: [string, string]; onResul
 	const flip = () => {
 		if (flipping || winner !== null) return;
 		const w: 0 | 1 = Math.random() < 0.5 ? 0 : 1;
+		play('whoosh');
 		setFlipping(true);
 		setRot(360 * 8 + (w === 1 ? 180 : 0));
 		setTimeout(() => {
 			setFlipping(false);
+			play('coin');
 			setWinner(w);
 			onResult(w);
 		}, 2300);

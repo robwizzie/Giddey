@@ -562,3 +562,46 @@ html, body {
   border: 1px dashed rgba(255, 255, 255, 0.25);
   background: repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 8px, transparent 8px 16px);
 }
+
+@keyframes vsShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px) rotate(-2deg); }
+  75% { transform: translateX(2px) rotate(2deg); }
+}
+.vs-shake { animation: vsShake 0.3s ease-in-out infinite; }
+
+@keyframes vsBoomShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-10px, 6px); }
+  20% { transform: translate(9px, -8px); }
+  30% { transform: translate(-7px, -4px); }
+  40% { transform: translate(6px, 7px); }
+  50% { transform: translate(-3px, 2px); }
+  60% { transform: translate(2px, -2px); }
+}
+.vs-boom-shake { animation: vsBoomShake 0.7s ease-out both; }
+
+@keyframes vsFlash {
+  0% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+.vs-flash { animation: vsFlash 0.6s ease-out forwards; }
+
+@keyframes vsZoomIn {
+  0% { opacity: 0; transform: scale(1.6); filter: blur(8px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+.vs-zoom-in { animation: vsZoomIn 0.7s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+
+@keyframes vsSlam {
+  0% { opacity: 0; transform: scale(3) rotate(-8deg); }
+  55% { opacity: 1; transform: scale(0.92) rotate(2deg); }
+  75% { transform: scale(1.06) rotate(-1deg); }
+  100% { transform: scale(1) rotate(-3deg); }
+}
+.vs-slam { animation: vsSlam 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.15s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-shake, .vs-boom-shake, .vs-slam, .vs-zoom-in, .vs-confetti { animation: none !important; }
+  .vs-flash { display: none; }
+}

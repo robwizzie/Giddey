@@ -54,26 +54,53 @@ The **Center** slot is the most connected position on the board (4 neighbors), m
 
 ## Versus Mode — 2K27 Draft Night
 
-A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people building teams to play against each other in NBA 2K27.
+A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people building teams to play against each other in NBA 2K27. Ratings are the real 2K27 launch overalls: 209 current players and 136 All-Time legends.
 
-- **Real 2K27 ratings.** 209 current players and 136 All-Time legends. Choose Modern, All-Time, or both.
-- **Fully customizable rosters.** Pick how many Superstars, All-Stars, Starters, Rotation and Deep Bench players each coach drafts (5–15 total), or use a preset: Balanced, Starting Five, Big Three, Superteams, Underdogs, Full Rotation. Rounds can be shuffled, and the Equalizer can be switched off.
-- **Position-aware packs.** Every pack is built around the positions both coaches still need, with the closest-ranked fit pulled in when a coach is running out of picks. Cards that fill a need are tagged.
-- **Settings any time.** Rename coaches or change draft settings mid-series from ⚙️ Settings.
-- **Three draft styles.**
-  - **Pack Snake:** a pack drops each round and both coaches pick from it.
-  - **I Cut, You Choose:** one coach offers two cards and the other takes one.
-  - **Franchise Wheel:** spin a franchise and the pack comes from that team.
-- **Built-in balance.**
-  - Both coaches draft from the same tier each round.
-  - The coach with the lower team OVR picks first.
-  - An **Equalizer** pick fires if the teams finish 1.5+ OVR apart.
-  - A live fairness meter tracks the gap.
-- **Extras:** Mystery packs, rerolls, a one-offer trade window, and copyable rosters for setting up in 2K.
-- **Game-day wheels.** Spin for quarter length (always 5–8 min) and an optional rule twist. Each coach also spins a personal challenge; completing it earns a boost for the next game (Upgrade Pack, Bench Heist, Draft Priority, Clock Control, Late Scratch…).
-- **Series tracking.** Record results, then run it back with the same squads or redraft. The loser of the last game wins the next coin toss.
+**Drafting**
+- **Pools:**
+  - Modern
+  - All-Time
+  - Both
+  - **Era Wars**: one coach drafts today's players and the other drafts legends, with tiers matched by OVR so it stays fair.
+- **Draft styles:**
+  - **Pack Snake**
+  - **I Cut, You Choose**
+  - **Franchise Wheel**
+  - **Auction**: a salary-cap draft where you nominate anyone in the pool and bid on them.
+- **Custom rosters.** Set how many Superstars, All-Stars, Starters, Rotation and Deep Bench players each coach drafts, or pick a preset (Balanced, Starting Five, Big Three, Superteams, Underdogs, Full Rotation).
+- **Handicap mode** gives each coach their own roster build and auction budget. After a game, the loser can set the winner's handicap for the redraft.
+- **Position-aware packs** are built around the spots each coach still needs. A live **lineup balance** readout (shooting, playmaking, rim protection, rebounding, depth) shows what each team is missing.
+- **Optional extras:**
+  - Underdog picks first, plus the **Equalizer** for lopsided drafts
+  - Rerolls
+  - Mystery packs
+  - A **blind bid round**: both coaches pick in secret, and if they take the same player nobody gets him
+  - **Keepers** when you redraft
+  - A one-offer trade window
 
-Ratings live in `giddey-app/src/data/2k27-modern.json` and `2k27-alltime.json`.
+**Draft night presentation**
+- The commissioner's podium intro.
+- A 20/30/45-second **shot clock**: beeps in the last 5 seconds, then a buzzer and an auto-pick.
+- Synthesized sound effects with a mute toggle.
+- A full-screen **BOOM** with the player's headshot for every superstar pick.
+
+**Game day**
+- Wheels for quarter length (always 5–8 min) and a rule twist.
+- Each coach spins a personal challenge that earns a boost for the next game.
+- Both rosters are listed with headshots.
+- One-tap **share image** (1080×1920) of both squads for iMessage or Instagram.
+- After each game the loser spins the **sabotage wheel** to inflict something on the winner next game.
+
+**Team identity and rivalry**
+- Each coach picks a team name, emoji and color.
+- The **Rivalry** page keeps a permanent head-to-head record that survives new series:
+  - wins and streaks
+  - challenge hit rate
+  - biggest blowout and closest game
+  - how often the better-drafted team actually wins, and the biggest upsets
+  - each coach's most-drafted players
+
+Ratings live in `giddey-app/src/data/2k27-modern.json` and `2k27-alltime.json`, and headshots are matched to NBA.com player IDs in `nba-person-ids.json`.
 
 ## Tech Stack
 

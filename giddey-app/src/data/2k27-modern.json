@@ -1,0 +1,1883 @@
+[
+  {
+    "first_name": "Shai",
+    "last_name": "Gilgeous-Alexander",
+    "position": "PG / SG",
+    "ovr": 97,
+    "team": "OKC",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Victor",
+    "last_name": "Wembanyama",
+    "position": "C / PF",
+    "ovr": 97,
+    "team": "SAS",
+    "draft_year": 2023,
+    "verified": true
+  },
+  {
+    "first_name": "Nikola",
+    "last_name": "Jokic",
+    "position": "C",
+    "ovr": 97,
+    "team": "DEN",
+    "draft_year": 2014,
+    "verified": true
+  },
+  {
+    "first_name": "Luka",
+    "last_name": "Doncic",
+    "position": "PG / SG",
+    "ovr": 96,
+    "team": "LAL",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Jalen",
+    "last_name": "Brunson",
+    "position": "PG",
+    "ovr": 96,
+    "team": "NYK",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Giannis",
+    "last_name": "Antetokounmpo",
+    "position": "PF / C",
+    "ovr": 96,
+    "team": "MIA",
+    "draft_year": 2013,
+    "verified": true
+  },
+  {
+    "first_name": "Anthony",
+    "last_name": "Edwards",
+    "position": "SG / SF",
+    "ovr": 95,
+    "team": "MIN",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Cade",
+    "last_name": "Cunningham",
+    "position": "PG / SG",
+    "ovr": 94,
+    "team": "DET",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Stephen",
+    "last_name": "Curry",
+    "position": "PG / SG",
+    "ovr": 93,
+    "team": "GSW",
+    "draft_year": 2009,
+    "verified": true
+  },
+  {
+    "first_name": "Kevin",
+    "last_name": "Durant",
+    "position": "SF / SG",
+    "ovr": 93,
+    "team": "HOU",
+    "draft_year": 2007,
+    "verified": true
+  },
+  {
+    "first_name": "Kawhi",
+    "last_name": "Leonard",
+    "position": "SF / PF",
+    "ovr": 93,
+    "team": "TOR",
+    "draft_year": 2011,
+    "verified": true
+  },
+  {
+    "first_name": "Jayson",
+    "last_name": "Tatum",
+    "position": "PF / SF",
+    "ovr": 93,
+    "team": "BOS",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Donovan",
+    "last_name": "Mitchell",
+    "position": "SG / PG",
+    "ovr": 93,
+    "team": "CLE",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Karl-Anthony",
+    "last_name": "Towns",
+    "position": "C / PF",
+    "ovr": 93,
+    "team": "NYK",
+    "draft_year": 2015,
+    "verified": true
+  },
+  {
+    "first_name": "Tyrese",
+    "last_name": "Maxey",
+    "position": "PG / SG",
+    "ovr": 92,
+    "team": "PHI",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "LeBron",
+    "last_name": "James",
+    "position": "PF / SF",
+    "ovr": 91,
+    "team": "PHI",
+    "draft_year": 2003,
+    "verified": true
+  },
+  {
+    "first_name": "Jaylen",
+    "last_name": "Brown",
+    "position": "SF / PF",
+    "ovr": 91,
+    "team": "PHI",
+    "draft_year": 2016,
+    "verified": true
+  },
+  {
+    "first_name": "Joel",
+    "last_name": "Embiid",
+    "position": "C",
+    "ovr": 91,
+    "team": "PHI",
+    "draft_year": 2014,
+    "verified": true
+  },
+  {
+    "first_name": "Devin",
+    "last_name": "Booker",
+    "position": "PG / SG",
+    "ovr": 91,
+    "team": "PHX",
+    "draft_year": 2015,
+    "verified": true
+  },
+  {
+    "first_name": "Tyrese",
+    "last_name": "Haliburton",
+    "position": "PG / SG",
+    "ovr": 90,
+    "team": "IND",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Anthony",
+    "last_name": "Davis",
+    "position": "PF / C",
+    "ovr": 90,
+    "team": "WAS",
+    "draft_year": 2012,
+    "verified": true
+  },
+  {
+    "first_name": "Jamal",
+    "last_name": "Murray",
+    "position": "PG / SG",
+    "ovr": 89,
+    "team": "DEN",
+    "draft_year": 2016,
+    "verified": true
+  },
+  {
+    "first_name": "Scottie",
+    "last_name": "Barnes",
+    "position": "PF / PG",
+    "ovr": 88,
+    "team": "TOR",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "OG",
+    "last_name": "Anunoby",
+    "position": "SF / PF",
+    "ovr": 88,
+    "team": "NYK",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Deni",
+    "last_name": "Avdija",
+    "position": "SF / PG",
+    "ovr": 88,
+    "team": "POR",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Austin",
+    "last_name": "Reaves",
+    "position": "SG / SF",
+    "ovr": 88,
+    "team": "LAL",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Paolo",
+    "last_name": "Banchero",
+    "position": "PF / SF",
+    "ovr": 87,
+    "team": "ORL",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Jalen",
+    "last_name": "Johnson",
+    "position": "PF / SF",
+    "ovr": 87,
+    "team": "ATL",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Bam",
+    "last_name": "Adebayo",
+    "position": "C / PF",
+    "ovr": 87,
+    "team": "MIA",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Pascal",
+    "last_name": "Siakam",
+    "position": "PF / C",
+    "ovr": 87,
+    "team": "IND",
+    "draft_year": 2016,
+    "verified": true
+  },
+  {
+    "first_name": "James",
+    "last_name": "Harden",
+    "position": "PG / SG",
+    "ovr": 87,
+    "team": "CLE",
+    "draft_year": 2009,
+    "verified": true
+  },
+  {
+    "first_name": "Evan",
+    "last_name": "Mobley",
+    "position": "PF / C",
+    "ovr": 87,
+    "team": "CLE",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Alperen",
+    "last_name": "Sengun",
+    "position": "C / PF",
+    "ovr": 87,
+    "team": "HOU",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Stephon",
+    "last_name": "Castle",
+    "position": "SG / PG",
+    "ovr": 87,
+    "team": "SAS",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "Trae",
+    "last_name": "Young",
+    "position": "PG",
+    "ovr": 87,
+    "team": "WAS",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Kyrie",
+    "last_name": "Irving",
+    "position": "PG / SG",
+    "ovr": 87,
+    "team": "DAL",
+    "draft_year": 2011,
+    "verified": true
+  },
+  {
+    "first_name": "Cooper",
+    "last_name": "Flagg",
+    "position": "SF / PG",
+    "ovr": 87,
+    "team": "DAL",
+    "draft_year": 2025,
+    "verified": true
+  },
+  {
+    "first_name": "Lauri",
+    "last_name": "Markkanen",
+    "position": "PF / SF",
+    "ovr": 86,
+    "team": "UTA",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "LaMelo",
+    "last_name": "Ball",
+    "position": "PG / SG",
+    "ovr": 86,
+    "team": "MIN",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Jaren",
+    "last_name": "Jackson Jr.",
+    "position": "PF / C",
+    "ovr": 86,
+    "team": "UTA",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Amen",
+    "last_name": "Thompson",
+    "position": "SG / PG",
+    "ovr": 86,
+    "team": "HOU",
+    "draft_year": 2023,
+    "verified": true
+  },
+  {
+    "first_name": "Chet",
+    "last_name": "Holmgren",
+    "position": "PF / C",
+    "ovr": 86,
+    "team": "OKC",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Damian",
+    "last_name": "Lillard",
+    "position": "PG",
+    "ovr": 86,
+    "team": "POR",
+    "draft_year": 2012,
+    "verified": true
+  },
+  {
+    "first_name": "Jalen",
+    "last_name": "Duren",
+    "position": "C",
+    "ovr": 85,
+    "team": "DET",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Jalen",
+    "last_name": "Williams",
+    "position": "SF / PF",
+    "ovr": 85,
+    "team": "OKC",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Jimmy",
+    "last_name": "Butler",
+    "position": "PF / SF",
+    "ovr": 85,
+    "team": "GSW",
+    "draft_year": 2011,
+    "verified": true
+  },
+  {
+    "first_name": "Trey",
+    "last_name": "Murphy III",
+    "position": "SG / SF",
+    "ovr": 85,
+    "team": "NOP",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Franz",
+    "last_name": "Wagner",
+    "position": "SF / PF",
+    "ovr": 85,
+    "team": "ORL",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Michael",
+    "last_name": "Porter Jr.",
+    "position": "SF / PF",
+    "ovr": 85,
+    "team": "BKN",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Zion",
+    "last_name": "Williamson",
+    "position": "PF / PG",
+    "ovr": 85,
+    "team": "NOP",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Dylan",
+    "last_name": "Harper",
+    "position": "PG / SG",
+    "ovr": 85,
+    "team": "SAS",
+    "draft_year": 2025,
+    "verified": true
+  },
+  {
+    "first_name": "Jaden",
+    "last_name": "McDaniels",
+    "position": "SF / PF",
+    "ovr": 85,
+    "team": "MIN",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Ausar",
+    "last_name": "Thompson",
+    "position": "SF / SG",
+    "ovr": 85,
+    "team": "DET",
+    "draft_year": 2023,
+    "verified": true
+  },
+  {
+    "first_name": "Tyler",
+    "last_name": "Herro",
+    "position": "SG / PG",
+    "ovr": 85,
+    "team": "MIL",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Domantas",
+    "last_name": "Sabonis",
+    "position": "C",
+    "ovr": 85,
+    "team": "SAC",
+    "draft_year": 2016,
+    "verified": true
+  },
+  {
+    "first_name": "Jarrett",
+    "last_name": "Allen",
+    "position": "C",
+    "ovr": 85,
+    "team": "CLE",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Brandon",
+    "last_name": "Miller",
+    "position": "SG / SF",
+    "ovr": 85,
+    "team": "CHA",
+    "draft_year": 2023,
+    "verified": true
+  },
+  {
+    "first_name": "De’Aaron",
+    "last_name": "Fox",
+    "position": "PG / SG",
+    "ovr": 84,
+    "team": "SAS",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Rudy",
+    "last_name": "Gobert",
+    "position": "C",
+    "ovr": 84,
+    "team": "MIN",
+    "draft_year": 2013,
+    "verified": true
+  },
+  {
+    "first_name": "Ja",
+    "last_name": "Morant",
+    "position": "PG / SG",
+    "ovr": 84,
+    "team": "POR",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Brandon",
+    "last_name": "Ingram",
+    "position": "SF / PF",
+    "ovr": 84,
+    "team": "LAC",
+    "draft_year": 2016,
+    "verified": true
+  },
+  {
+    "first_name": "Josh",
+    "last_name": "Giddey",
+    "position": "PG / SG",
+    "ovr": 84,
+    "team": "CHI",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Norman",
+    "last_name": "Powell",
+    "position": "SG / SF",
+    "ovr": 84,
+    "team": "CHI",
+    "draft_year": 2015,
+    "verified": true
+  },
+  {
+    "first_name": "Darius",
+    "last_name": "Garland",
+    "position": "PG / SG",
+    "ovr": 84,
+    "team": "LAC",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Desmond",
+    "last_name": "Bane",
+    "position": "SG / SF",
+    "ovr": 84,
+    "team": "ORL",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Kon",
+    "last_name": "Knueppel",
+    "position": "SF / SG",
+    "ovr": 84,
+    "team": "CHA",
+    "draft_year": 2025,
+    "verified": true
+  },
+  {
+    "first_name": "Ivica",
+    "last_name": "Zubac",
+    "position": "C",
+    "ovr": 84,
+    "team": "IND",
+    "draft_year": 2016,
+    "verified": true
+  },
+  {
+    "first_name": "Mikal",
+    "last_name": "Bridges",
+    "position": "SG / SF",
+    "ovr": 84,
+    "team": "NYK",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Keyonte",
+    "last_name": "George",
+    "position": "PG / SG",
+    "ovr": 84,
+    "team": "UTA",
+    "draft_year": 2023,
+    "verified": true
+  },
+  {
+    "first_name": "Nickeil",
+    "last_name": "Alexander-Walker",
+    "position": "PG / SG",
+    "ovr": 83,
+    "team": "ATL",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Derrick",
+    "last_name": "White",
+    "position": "SG / PG",
+    "ovr": 83,
+    "team": "BOS",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Aaron",
+    "last_name": "Gordon",
+    "position": "PF / C",
+    "ovr": 83,
+    "team": "DEN",
+    "draft_year": 2014,
+    "verified": true
+  },
+  {
+    "first_name": "Julius",
+    "last_name": "Randle",
+    "position": "PF / C",
+    "ovr": 83,
+    "team": "BKN",
+    "draft_year": 2014,
+    "verified": true
+  },
+  {
+    "first_name": "C.J.",
+    "last_name": "McCollum",
+    "position": "PG / SG",
+    "ovr": 83,
+    "team": "ATL",
+    "draft_year": 2013,
+    "verified": true
+  },
+  {
+    "first_name": "VJ",
+    "last_name": "Edgecombe",
+    "position": "SG / PG",
+    "ovr": 83,
+    "team": "PHI",
+    "draft_year": 2025,
+    "verified": true
+  },
+  {
+    "first_name": "Alexandre",
+    "last_name": "Sarr",
+    "position": "C / PF",
+    "ovr": 83,
+    "team": "WAS",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "DeMar",
+    "last_name": "DeRozan",
+    "position": "SF / PF",
+    "ovr": 83,
+    "team": "DEN",
+    "draft_year": 2009,
+    "verified": true
+  },
+  {
+    "first_name": "Kevin",
+    "last_name": "Porter Jr.",
+    "position": "PG / SG",
+    "ovr": 83,
+    "team": "MIL",
+    "draft_year": 2019,
+    "verified": false
+  },
+  {
+    "first_name": "Paul",
+    "last_name": "George",
+    "position": "PF / SF",
+    "ovr": 82,
+    "team": "BOS",
+    "draft_year": 2010,
+    "verified": true
+  },
+  {
+    "first_name": "Josh",
+    "last_name": "Hart",
+    "position": "PF / SF",
+    "ovr": 82,
+    "team": "NYK",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Naz",
+    "last_name": "Reid",
+    "position": "C / PF",
+    "ovr": 82,
+    "team": "CHA",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Jrue",
+    "last_name": "Holiday",
+    "position": "PG / SG",
+    "ovr": 82,
+    "team": "POR",
+    "draft_year": 2009,
+    "verified": true
+  },
+  {
+    "first_name": "Isaiah",
+    "last_name": "Hartenstein",
+    "position": "C",
+    "ovr": 82,
+    "team": "OKC",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Ajay",
+    "last_name": "Mitchell",
+    "position": "PG / SG",
+    "ovr": 82,
+    "team": "OKC",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "Dillon",
+    "last_name": "Brooks",
+    "position": "PF / SF",
+    "ovr": 82,
+    "team": "PHX",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Payton",
+    "last_name": "Pritchard",
+    "position": "PG / SG",
+    "ovr": 82,
+    "team": "BOS",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Zach",
+    "last_name": "LaVine",
+    "position": "SG / SF",
+    "ovr": 82,
+    "team": "SAC",
+    "draft_year": 2014,
+    "verified": true
+  },
+  {
+    "first_name": "R.J.",
+    "last_name": "Barrett",
+    "position": "SG / SF",
+    "ovr": 82,
+    "team": "TOR",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Dejounte",
+    "last_name": "Murray",
+    "position": "PG / SG",
+    "ovr": 82,
+    "team": "NOP",
+    "draft_year": 2016,
+    "verified": true
+  },
+  {
+    "first_name": "Donovan",
+    "last_name": "Clingan",
+    "position": "C",
+    "ovr": 82,
+    "team": "POR",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "Immanuel",
+    "last_name": "Quickley",
+    "position": "PG / SG",
+    "ovr": 82,
+    "team": "TOR",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Toumani",
+    "last_name": "Camara",
+    "position": "PF / SF",
+    "ovr": 82,
+    "team": "POR",
+    "draft_year": 2023,
+    "verified": false
+  },
+  {
+    "first_name": "Jusuf",
+    "last_name": "Nurkic",
+    "position": "C",
+    "ovr": 82,
+    "team": "UTA",
+    "draft_year": 2014,
+    "verified": false
+  },
+  {
+    "first_name": "Ryan",
+    "last_name": "Rollins",
+    "position": "SG / PG",
+    "ovr": 82,
+    "team": "MIL",
+    "draft_year": 2022,
+    "verified": false
+  },
+  {
+    "first_name": "Bennedict",
+    "last_name": "Mathurin",
+    "position": "SF / SG",
+    "ovr": 82,
+    "team": "NOP",
+    "draft_year": 2022,
+    "verified": false
+  },
+  {
+    "first_name": "Andrew",
+    "last_name": "Nembhard",
+    "position": "PG / SG",
+    "ovr": 82,
+    "team": "IND",
+    "draft_year": 2022,
+    "verified": false
+  },
+  {
+    "first_name": "KyShawn",
+    "last_name": "George",
+    "position": "SF / PF",
+    "ovr": 82,
+    "team": "WAS",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Isaiah",
+    "last_name": "Collier",
+    "position": "PG / SG",
+    "ovr": 82,
+    "team": "UTA",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Jerami",
+    "last_name": "Grant",
+    "position": "PF / SF",
+    "ovr": 82,
+    "team": "MEM",
+    "draft_year": 2014,
+    "verified": false
+  },
+  {
+    "first_name": "Miles",
+    "last_name": "Bridges",
+    "position": "PF / SF",
+    "ovr": 82,
+    "team": "CHA",
+    "draft_year": 2018,
+    "verified": false
+  },
+  {
+    "first_name": "Cason",
+    "last_name": "Wallace",
+    "position": "SG / PG",
+    "ovr": 81,
+    "team": "OKC",
+    "draft_year": 2023,
+    "verified": true
+  },
+  {
+    "first_name": "Matas",
+    "last_name": "Buzelis",
+    "position": "PF / SF",
+    "ovr": 81,
+    "team": "CHI",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "Alex",
+    "last_name": "Caruso",
+    "position": "SG / PG",
+    "ovr": 81,
+    "team": "OKC",
+    "draft_year": 2016,
+    "verified": true
+  },
+  {
+    "first_name": "Dyson",
+    "last_name": "Daniels",
+    "position": "SG / PG",
+    "ovr": 81,
+    "team": "ATL",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Ayo",
+    "last_name": "Dosunmu",
+    "position": "SG / PG",
+    "ovr": 81,
+    "team": "MIN",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Shaedon",
+    "last_name": "Sharpe",
+    "position": "SG / PG",
+    "ovr": 81,
+    "team": "POR",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Onyeka",
+    "last_name": "Okongwu",
+    "position": "C / PF",
+    "ovr": 81,
+    "team": "ATL",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Devin",
+    "last_name": "Vassell",
+    "position": "SF / SG",
+    "ovr": 81,
+    "team": "SAS",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Tobias",
+    "last_name": "Harris",
+    "position": "PF / SF",
+    "ovr": 81,
+    "team": "SAS",
+    "draft_year": 2011,
+    "verified": true
+  },
+  {
+    "first_name": "Walker",
+    "last_name": "Kessler",
+    "position": "C",
+    "ovr": 81,
+    "team": "LAL",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Kristaps",
+    "last_name": "Porzingis",
+    "position": "C / PF",
+    "ovr": 81,
+    "team": "GSW",
+    "draft_year": 2015,
+    "verified": true
+  },
+  {
+    "first_name": "Coby",
+    "last_name": "White",
+    "position": "SG / PG",
+    "ovr": 81,
+    "team": "CHA",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Grayson",
+    "last_name": "Allen",
+    "position": "SG / SF",
+    "ovr": 81,
+    "team": "CHA",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Bobby",
+    "last_name": "Portis Jr.",
+    "position": "C / PF",
+    "ovr": 81,
+    "team": "MIA",
+    "draft_year": 2015,
+    "verified": false
+  },
+  {
+    "first_name": "Jabari",
+    "last_name": "Smith Jr.",
+    "position": "PF / SF",
+    "ovr": 81,
+    "team": "HOU",
+    "draft_year": 2022,
+    "verified": false
+  },
+  {
+    "first_name": "Derik",
+    "last_name": "Queen",
+    "position": "C / PF",
+    "ovr": 81,
+    "team": "NOP",
+    "draft_year": 2025,
+    "verified": false
+  },
+  {
+    "first_name": "Isaiah",
+    "last_name": "Joe",
+    "position": "SG / PG",
+    "ovr": 81,
+    "team": "OKC",
+    "draft_year": 2020,
+    "verified": false
+  },
+  {
+    "first_name": "Naji",
+    "last_name": "Marshall",
+    "position": "PF / SF",
+    "ovr": 81,
+    "team": "DAL",
+    "draft_year": 2020,
+    "verified": false
+  },
+  {
+    "first_name": "Jalen",
+    "last_name": "Green",
+    "position": "SG / PG",
+    "ovr": 81,
+    "team": "PHX",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "Collin",
+    "last_name": "Gillespie",
+    "position": "PG",
+    "ovr": 81,
+    "team": "PHX",
+    "draft_year": 2022,
+    "verified": false
+  },
+  {
+    "first_name": "Moussa",
+    "last_name": "Diabate",
+    "position": "C / PF",
+    "ovr": 80,
+    "team": "CHA",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Ryan",
+    "last_name": "Kalkbrenner",
+    "position": "C",
+    "ovr": 80,
+    "team": "CHA",
+    "draft_year": 2025,
+    "verified": true
+  },
+  {
+    "first_name": "Nicolas",
+    "last_name": "Claxton",
+    "position": "C",
+    "ovr": 80,
+    "team": "CHI",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Jalen",
+    "last_name": "Suggs",
+    "position": "PG / SG",
+    "ovr": 80,
+    "team": "ORL",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Anthony",
+    "last_name": "Black",
+    "position": "PG / SG",
+    "ovr": 80,
+    "team": "ORL",
+    "draft_year": 2023,
+    "verified": true
+  },
+  {
+    "first_name": "Ty",
+    "last_name": "Jerome",
+    "position": "SG / PG",
+    "ovr": 80,
+    "team": "MEM",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Cedric",
+    "last_name": "Coward",
+    "position": "SF / SG",
+    "ovr": 80,
+    "team": "MEM",
+    "draft_year": 2025,
+    "verified": true
+  },
+  {
+    "first_name": "Zach",
+    "last_name": "Edey",
+    "position": "C",
+    "ovr": 80,
+    "team": "MEM",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "Maxime",
+    "last_name": "Raynaud",
+    "position": "C",
+    "ovr": 80,
+    "team": "SAC",
+    "draft_year": 2025,
+    "verified": false
+  },
+  {
+    "first_name": "Kel’el",
+    "last_name": "Ware",
+    "position": "C / PF",
+    "ovr": 80,
+    "team": "MIL",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Reed",
+    "last_name": "Sheppard",
+    "position": "PG / SG",
+    "ovr": 80,
+    "team": "HOU",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Collin",
+    "last_name": "Sexton",
+    "position": "PG / SG",
+    "ovr": 80,
+    "team": "LAL",
+    "draft_year": 2018,
+    "verified": false
+  },
+  {
+    "first_name": "Tari",
+    "last_name": "Eason",
+    "position": "SG / SF",
+    "ovr": 80,
+    "team": "HOU",
+    "draft_year": 2022,
+    "verified": false
+  },
+  {
+    "first_name": "Jakob",
+    "last_name": "Poeltl",
+    "position": "C",
+    "ovr": 80,
+    "team": "TOR",
+    "draft_year": 2016,
+    "verified": false
+  },
+  {
+    "first_name": "Donte",
+    "last_name": "DiVincenzo",
+    "position": "PG / SG",
+    "ovr": 80,
+    "team": "MIN",
+    "draft_year": 2018,
+    "verified": false
+  },
+  {
+    "first_name": "Collin",
+    "last_name": "Murray-Boyles",
+    "position": "PF / C",
+    "ovr": 80,
+    "team": "TOR",
+    "draft_year": 2025,
+    "verified": false
+  },
+  {
+    "first_name": "Brandin",
+    "last_name": "Podziemski",
+    "position": "SG / PG",
+    "ovr": 80,
+    "team": "GSW",
+    "draft_year": 2023,
+    "verified": false
+  },
+  {
+    "first_name": "Neemias",
+    "last_name": "Queta",
+    "position": "C",
+    "ovr": 80,
+    "team": "BOS",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "T.J.",
+    "last_name": "McConnell",
+    "position": "PG",
+    "ovr": 80,
+    "team": "IND",
+    "draft_year": 2015,
+    "verified": false
+  },
+  {
+    "first_name": "AJ",
+    "last_name": "Dybantsa",
+    "position": "SF / PF",
+    "ovr": 79,
+    "team": "WAS",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Darryn",
+    "last_name": "Peterson",
+    "position": "SG / PG",
+    "ovr": 79,
+    "team": "UTA",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Cameron",
+    "last_name": "Boozer",
+    "position": "PF / C",
+    "ovr": 79,
+    "team": "MEM",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Tre",
+    "last_name": "Jones",
+    "position": "PG",
+    "ovr": 79,
+    "team": "CHI",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Peyton",
+    "last_name": "Watson",
+    "position": "SF / PF",
+    "ovr": 79,
+    "team": "CLE",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Wendell",
+    "last_name": "Carter Jr.",
+    "position": "C / PF",
+    "ovr": 79,
+    "team": "ORL",
+    "draft_year": 2018,
+    "verified": true
+  },
+  {
+    "first_name": "Bilal",
+    "last_name": "Coulibaly",
+    "position": "SG / SF",
+    "ovr": 79,
+    "team": "WAS",
+    "draft_year": 2023,
+    "verified": false
+  },
+  {
+    "first_name": "Sam",
+    "last_name": "Merrill",
+    "position": "SG / PG",
+    "ovr": 79,
+    "team": "CLE",
+    "draft_year": 2020,
+    "verified": false
+  },
+  {
+    "first_name": "Daniel",
+    "last_name": "Gafford",
+    "position": "C",
+    "ovr": 79,
+    "team": "DAL",
+    "draft_year": 2019,
+    "verified": false
+  },
+  {
+    "first_name": "Keldon",
+    "last_name": "Johnson",
+    "position": "SF / PF",
+    "ovr": 79,
+    "team": "SAS",
+    "draft_year": 2019,
+    "verified": false
+  },
+  {
+    "first_name": "Ron",
+    "last_name": "Holland",
+    "position": "PF / SF",
+    "ovr": 79,
+    "team": "DET",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Mitchell",
+    "last_name": "Robinson",
+    "position": "C",
+    "ovr": 79,
+    "team": "BOS",
+    "draft_year": 2018,
+    "verified": false
+  },
+  {
+    "first_name": "Duncan",
+    "last_name": "Robinson",
+    "position": "SG / SF",
+    "ovr": 79,
+    "team": "DET",
+    "draft_year": 2018,
+    "verified": false
+  },
+  {
+    "first_name": "Jaylen",
+    "last_name": "Wells",
+    "position": "SF / SG",
+    "ovr": 79,
+    "team": "MEM",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Keegan",
+    "last_name": "Murray",
+    "position": "PF / SF",
+    "ovr": 79,
+    "team": "SAC",
+    "draft_year": 2022,
+    "verified": false
+  },
+  {
+    "first_name": "Cam",
+    "last_name": "Spencer",
+    "position": "PG / SG",
+    "ovr": 79,
+    "team": "MEM",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Cameron",
+    "last_name": "Johnson",
+    "position": "SF / SG",
+    "ovr": 79,
+    "team": "DEN",
+    "draft_year": 2019,
+    "verified": false
+  },
+  {
+    "first_name": "Miles",
+    "last_name": "McBride",
+    "position": "SG / PG",
+    "ovr": 79,
+    "team": "NYK",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "Kyle",
+    "last_name": "Filipowski",
+    "position": "PF / C",
+    "ovr": 79,
+    "team": "UTA",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Sandro",
+    "last_name": "Mamukelashvili",
+    "position": "C / PF",
+    "ovr": 79,
+    "team": "LAL",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "Brice",
+    "last_name": "Sensabaugh",
+    "position": "SG / SF",
+    "ovr": 79,
+    "team": "UTA",
+    "draft_year": 2023,
+    "verified": false
+  },
+  {
+    "first_name": "Day’Ron",
+    "last_name": "Sharpe",
+    "position": "C",
+    "ovr": 78,
+    "team": "BKN",
+    "draft_year": 2021,
+    "verified": true
+  },
+  {
+    "first_name": "Josh",
+    "last_name": "Minott",
+    "position": "PF / SF",
+    "ovr": 78,
+    "team": "BKN",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Egor",
+    "last_name": "Demin",
+    "position": "PG / SG",
+    "ovr": 78,
+    "team": "BKN",
+    "draft_year": 2025,
+    "verified": true
+  },
+  {
+    "first_name": "Jock",
+    "last_name": "Landale",
+    "position": "C",
+    "ovr": 78,
+    "team": "ATL",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Olivier-Maxence",
+    "last_name": "Prosper",
+    "position": "SF / PF",
+    "ovr": 78,
+    "team": "MEM",
+    "draft_year": 2023,
+    "verified": true
+  },
+  {
+    "first_name": "Jared",
+    "last_name": "McCain",
+    "position": "PG / SG",
+    "ovr": 78,
+    "team": "OKC",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "Herbert",
+    "last_name": "Jones",
+    "position": "SF / PF",
+    "ovr": 78,
+    "team": "NOP",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "Dennis",
+    "last_name": "Schroder",
+    "position": "PG / SG",
+    "ovr": 78,
+    "team": "CHA",
+    "draft_year": 2013,
+    "verified": false
+  },
+  {
+    "first_name": "Tre",
+    "last_name": "Johnson",
+    "position": "SG / SF",
+    "ovr": 78,
+    "team": "WAS",
+    "draft_year": 2025,
+    "verified": false
+  },
+  {
+    "first_name": "Will",
+    "last_name": "Riley",
+    "position": "SF / SG",
+    "ovr": 78,
+    "team": "WAS",
+    "draft_year": 2025,
+    "verified": false
+  },
+  {
+    "first_name": "Nolan",
+    "last_name": "Traore",
+    "position": "PG / SG",
+    "ovr": 78,
+    "team": "BKN",
+    "draft_year": 2025,
+    "verified": false
+  },
+  {
+    "first_name": "Aaron",
+    "last_name": "Wiggins",
+    "position": "SF / PF",
+    "ovr": 78,
+    "team": "OKC",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "Justin",
+    "last_name": "Champagnie",
+    "position": "PF / SF",
+    "ovr": 78,
+    "team": "WAS",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "Caleb",
+    "last_name": "Wilson",
+    "position": "PF / SF",
+    "ovr": 77,
+    "team": "CHI",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Royce",
+    "last_name": "O’Neale",
+    "position": "PF / SF",
+    "ovr": 77,
+    "team": "CHA",
+    "draft_year": 2015,
+    "verified": true
+  },
+  {
+    "first_name": "Jaylin",
+    "last_name": "Williams",
+    "position": "C",
+    "ovr": 77,
+    "team": "OKC",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Julian",
+    "last_name": "Strawther",
+    "position": "SG / SF",
+    "ovr": 77,
+    "team": "DEN",
+    "draft_year": 2023,
+    "verified": false
+  },
+  {
+    "first_name": "Sam",
+    "last_name": "Hauser",
+    "position": "PF / SF",
+    "ovr": 77,
+    "team": "BOS",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "Javonte",
+    "last_name": "Green",
+    "position": "SF / SG",
+    "ovr": 77,
+    "team": "DET",
+    "draft_year": 2015,
+    "verified": false
+  },
+  {
+    "first_name": "Daniss",
+    "last_name": "Jenkins",
+    "position": "PG / SG",
+    "ovr": 77,
+    "team": "DET",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Jordan",
+    "last_name": "Walsh",
+    "position": "PF / SF",
+    "ovr": 77,
+    "team": "BOS",
+    "draft_year": 2023,
+    "verified": false
+  },
+  {
+    "first_name": "Clint",
+    "last_name": "Capela",
+    "position": "C",
+    "ovr": 77,
+    "team": "HOU",
+    "draft_year": 2014,
+    "verified": false
+  },
+  {
+    "first_name": "Grant",
+    "last_name": "Williams",
+    "position": "PF",
+    "ovr": 76,
+    "team": "CHA",
+    "draft_year": 2019,
+    "verified": true
+  },
+  {
+    "first_name": "Jalen",
+    "last_name": "Smith",
+    "position": "C / PF",
+    "ovr": 76,
+    "team": "CHI",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Zaccharie",
+    "last_name": "Risacher",
+    "position": "SF / SG",
+    "ovr": 76,
+    "team": "DAL",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "Kasparas",
+    "last_name": "Jakucionis",
+    "position": "PG / SG",
+    "ovr": 76,
+    "team": "MIL",
+    "draft_year": 2025,
+    "verified": false
+  },
+  {
+    "first_name": "Yves",
+    "last_name": "Missi",
+    "position": "C / PF",
+    "ovr": 76,
+    "team": "NOP",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Ziaire",
+    "last_name": "Williams",
+    "position": "SF / SG",
+    "ovr": 76,
+    "team": "BKN",
+    "draft_year": 2021,
+    "verified": false
+  },
+  {
+    "first_name": "Jaxson",
+    "last_name": "Hayes",
+    "position": "C / PF",
+    "ovr": 76,
+    "team": "LAL",
+    "draft_year": 2019,
+    "verified": false
+  },
+  {
+    "first_name": "Kobe",
+    "last_name": "Sanders",
+    "position": "SF / PG",
+    "ovr": 76,
+    "team": "LAC",
+    "draft_year": 2025,
+    "verified": false
+  },
+  {
+    "first_name": "Ja’Kobe",
+    "last_name": "Walter",
+    "position": "SG / SF",
+    "ovr": 76,
+    "team": "TOR",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Jamal",
+    "last_name": "Shead",
+    "position": "PG / SG",
+    "ovr": 76,
+    "team": "TOR",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Baylor",
+    "last_name": "Scheierman",
+    "position": "SG / SF",
+    "ovr": 76,
+    "team": "BOS",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Pat",
+    "last_name": "Spencer",
+    "position": "PG / SG",
+    "ovr": 76,
+    "team": "GSW",
+    "draft_year": 2022,
+    "verified": false
+  },
+  {
+    "first_name": "Keaton",
+    "last_name": "Wagler",
+    "position": "SG / PG",
+    "ovr": 75,
+    "team": "LAC",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Darius",
+    "last_name": "Acuff Jr.",
+    "position": "PG",
+    "ovr": 75,
+    "team": "SAC",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Zach",
+    "last_name": "Collins",
+    "position": "C / PF",
+    "ovr": 75,
+    "team": "CHI",
+    "draft_year": 2017,
+    "verified": true
+  },
+  {
+    "first_name": "Isaac",
+    "last_name": "Okoro",
+    "position": "SF / SG",
+    "ovr": 75,
+    "team": "CHI",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Kris",
+    "last_name": "Murray",
+    "position": "SF / PF",
+    "ovr": 75,
+    "team": "MEM",
+    "draft_year": 2023,
+    "verified": false
+  },
+  {
+    "first_name": "Cam",
+    "last_name": "Whitmore",
+    "position": "SF / PF",
+    "ovr": 75,
+    "team": "WAS",
+    "draft_year": 2023,
+    "verified": false
+  },
+  {
+    "first_name": "Tidjane",
+    "last_name": "Salaun",
+    "position": "PF / SF",
+    "ovr": 75,
+    "team": "CHA",
+    "draft_year": 2024,
+    "verified": false
+  },
+  {
+    "first_name": "Mikel",
+    "last_name": "Brown Jr.",
+    "position": "PG",
+    "ovr": 74,
+    "team": "BKN",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Kingston",
+    "last_name": "Flemings",
+    "position": "PG",
+    "ovr": 74,
+    "team": "ATL",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Patrick",
+    "last_name": "Williams",
+    "position": "PF / SF",
+    "ovr": 74,
+    "team": "CHI",
+    "draft_year": 2020,
+    "verified": true
+  },
+  {
+    "first_name": "Leonard",
+    "last_name": "Miller",
+    "position": "PF",
+    "ovr": 74,
+    "team": "CHI",
+    "draft_year": 2022,
+    "verified": true
+  },
+  {
+    "first_name": "Morez",
+    "last_name": "Johnson Jr.",
+    "position": "PF / C",
+    "ovr": 73,
+    "team": "DAL",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Brayden",
+    "last_name": "Burries",
+    "position": "SG",
+    "ovr": 73,
+    "team": "MIL",
+    "draft_year": 2026,
+    "verified": true
+  },
+  {
+    "first_name": "Rob",
+    "last_name": "Dillingham",
+    "position": "PG",
+    "ovr": 73,
+    "team": "CHI",
+    "draft_year": 2024,
+    "verified": true
+  },
+  {
+    "first_name": "Joan",
+    "last_name": "Beringer",
+    "position": "C",
+    "ovr": 72,
+    "team": "MIN",
+    "draft_year": 2025,
+    "verified": true
+  }
+]

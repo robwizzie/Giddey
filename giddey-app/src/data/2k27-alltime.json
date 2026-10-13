@@ -1,0 +1,1362 @@
+[
+  {
+    "first_name": "Michael",
+    "last_name": "Jordan",
+    "position": "SG / SF",
+    "ovr": 99,
+    "team": "CHI",
+    "era": "90s",
+    "draft_year": 1984,
+    "verified": true
+  },
+  {
+    "first_name": "Larry",
+    "last_name": "Bird",
+    "position": "SF / PF",
+    "ovr": 99,
+    "team": "BOS",
+    "era": "80s",
+    "draft_year": 1978,
+    "verified": true
+  },
+  {
+    "first_name": "Shaquille",
+    "last_name": "O'Neal",
+    "position": "C",
+    "ovr": 99,
+    "team": "LAL",
+    "era": "00s",
+    "draft_year": 1992,
+    "verified": true
+  },
+  {
+    "first_name": "Kobe",
+    "last_name": "Bryant",
+    "position": "SG / SF",
+    "ovr": 99,
+    "team": "LAL",
+    "era": "00s",
+    "draft_year": 1996,
+    "verified": true
+  },
+  {
+    "first_name": "Magic",
+    "last_name": "Johnson",
+    "position": "PG",
+    "ovr": 99,
+    "team": "LAL",
+    "era": "80s",
+    "draft_year": 1979,
+    "verified": true
+  },
+  {
+    "first_name": "Tim",
+    "last_name": "Duncan",
+    "position": "PF / C",
+    "ovr": 99,
+    "team": "SAS",
+    "era": "00s",
+    "draft_year": 1997,
+    "verified": true
+  },
+  {
+    "first_name": "Kareem",
+    "last_name": "Abdul-Jabbar",
+    "position": "C",
+    "ovr": 99,
+    "team": "MIL",
+    "era": "70s",
+    "draft_year": 1969,
+    "verified": true
+  },
+  {
+    "first_name": "Hakeem",
+    "last_name": "Olajuwon",
+    "position": "C",
+    "ovr": 99,
+    "team": "HOU",
+    "era": "90s",
+    "draft_year": 1984,
+    "verified": true
+  },
+  {
+    "first_name": "Scottie",
+    "last_name": "Pippen",
+    "position": "SF / PF",
+    "ovr": 98,
+    "team": "CHI",
+    "era": "90s",
+    "draft_year": 1987,
+    "verified": true
+  },
+  {
+    "first_name": "Bill",
+    "last_name": "Russell",
+    "position": "C",
+    "ovr": 98,
+    "team": "BOS",
+    "era": "60s",
+    "draft_year": 1956,
+    "verified": true
+  },
+  {
+    "first_name": "Wilt",
+    "last_name": "Chamberlain",
+    "position": "C",
+    "ovr": 98,
+    "team": "GSW",
+    "era": "60s",
+    "draft_year": 1959,
+    "verified": true
+  },
+  {
+    "first_name": "Dirk",
+    "last_name": "Nowitzki",
+    "position": "PF",
+    "ovr": 98,
+    "team": "DAL",
+    "era": "00s",
+    "draft_year": 1998,
+    "verified": true
+  },
+  {
+    "first_name": "Kevin",
+    "last_name": "Garnett",
+    "position": "PF / C",
+    "ovr": 98,
+    "team": "MIN",
+    "era": "00s",
+    "draft_year": 1995,
+    "verified": true
+  },
+  {
+    "first_name": "Jerry",
+    "last_name": "West",
+    "position": "PG / SG",
+    "ovr": 97,
+    "team": "LAL",
+    "era": "60s",
+    "draft_year": 1960,
+    "verified": true
+  },
+  {
+    "first_name": "Moses",
+    "last_name": "Malone",
+    "position": "C",
+    "ovr": 97,
+    "team": "PHI",
+    "era": "80s",
+    "draft_year": 1974,
+    "verified": true
+  },
+  {
+    "first_name": "Walt",
+    "last_name": "Frazier",
+    "position": "PG",
+    "ovr": 97,
+    "team": "NYK",
+    "era": "70s",
+    "draft_year": 1967,
+    "verified": true
+  },
+  {
+    "first_name": "John",
+    "last_name": "Stockton",
+    "position": "PG",
+    "ovr": 97,
+    "team": "UTA",
+    "era": "90s",
+    "draft_year": 1984,
+    "verified": true
+  },
+  {
+    "first_name": "Karl",
+    "last_name": "Malone",
+    "position": "PF",
+    "ovr": 97,
+    "team": "UTA",
+    "era": "90s",
+    "draft_year": 1985,
+    "verified": true
+  },
+  {
+    "first_name": "Dwyane",
+    "last_name": "Wade",
+    "position": "SG",
+    "ovr": 97,
+    "team": "MIA",
+    "era": "00s",
+    "draft_year": 2003,
+    "verified": true
+  },
+  {
+    "first_name": "Oscar",
+    "last_name": "Robertson",
+    "position": "PG",
+    "ovr": 97,
+    "team": "SAC",
+    "era": "60s",
+    "draft_year": 1960,
+    "verified": true
+  },
+  {
+    "first_name": "Julius",
+    "last_name": "Erving",
+    "position": "SF",
+    "ovr": 97,
+    "team": "BKN",
+    "era": "70s",
+    "draft_year": 1972,
+    "verified": true
+  },
+  {
+    "first_name": "Vince",
+    "last_name": "Carter",
+    "position": "SG / SF",
+    "ovr": 97,
+    "team": "TOR",
+    "era": "00s",
+    "draft_year": 1998,
+    "verified": true
+  },
+  {
+    "first_name": "Chris",
+    "last_name": "Paul",
+    "position": "PG",
+    "ovr": 97,
+    "team": "NOP",
+    "era": "00s",
+    "draft_year": 2005,
+    "verified": true
+  },
+  {
+    "first_name": "Bob",
+    "last_name": "Cousy",
+    "position": "PG",
+    "ovr": 96,
+    "team": "BOS",
+    "era": "50s",
+    "draft_year": 1950,
+    "verified": true
+  },
+  {
+    "first_name": "John",
+    "last_name": "Havlicek",
+    "position": "SF / SG",
+    "ovr": 96,
+    "team": "BOS",
+    "era": "60s",
+    "draft_year": 1962,
+    "verified": true
+  },
+  {
+    "first_name": "Elgin",
+    "last_name": "Baylor",
+    "position": "SF / PF",
+    "ovr": 96,
+    "team": "LAL",
+    "era": "60s",
+    "draft_year": 1958,
+    "verified": true
+  },
+  {
+    "first_name": "David",
+    "last_name": "Robinson",
+    "position": "C",
+    "ovr": 96,
+    "team": "SAS",
+    "era": "90s",
+    "draft_year": 1987,
+    "verified": true
+  },
+  {
+    "first_name": "Allen",
+    "last_name": "Iverson",
+    "position": "PG / SG",
+    "ovr": 96,
+    "team": "PHI",
+    "era": "00s",
+    "draft_year": 1996,
+    "verified": true
+  },
+  {
+    "first_name": "Steve",
+    "last_name": "Nash",
+    "position": "PG",
+    "ovr": 96,
+    "team": "PHX",
+    "era": "00s",
+    "draft_year": 1996,
+    "verified": true
+  },
+  {
+    "first_name": "Clyde",
+    "last_name": "Drexler",
+    "position": "SG / SF",
+    "ovr": 96,
+    "team": "POR",
+    "era": "90s",
+    "draft_year": 1983,
+    "verified": true
+  },
+  {
+    "first_name": "Derrick",
+    "last_name": "Rose",
+    "position": "PG",
+    "ovr": 95,
+    "team": "CHI",
+    "era": "10s",
+    "draft_year": 2008,
+    "verified": true
+  },
+  {
+    "first_name": "Kevin",
+    "last_name": "McHale",
+    "position": "PF / C",
+    "ovr": 95,
+    "team": "BOS",
+    "era": "80s",
+    "draft_year": 1980,
+    "verified": true
+  },
+  {
+    "first_name": "Dave",
+    "last_name": "Cowens",
+    "position": "C / PF",
+    "ovr": 95,
+    "team": "BOS",
+    "era": "70s",
+    "draft_year": 1970,
+    "verified": true
+  },
+  {
+    "first_name": "James",
+    "last_name": "Worthy",
+    "position": "SF / PF",
+    "ovr": 95,
+    "team": "LAL",
+    "era": "80s",
+    "draft_year": 1982,
+    "verified": true
+  },
+  {
+    "first_name": "Rick",
+    "last_name": "Barry",
+    "position": "SF",
+    "ovr": 95,
+    "team": "GSW",
+    "era": "70s",
+    "draft_year": 1965,
+    "verified": true
+  },
+  {
+    "first_name": "George",
+    "last_name": "Gervin",
+    "position": "SF / SG",
+    "ovr": 95,
+    "team": "SAS",
+    "era": "70s",
+    "draft_year": 1974,
+    "verified": true
+  },
+  {
+    "first_name": "Tony",
+    "last_name": "Parker",
+    "position": "PG",
+    "ovr": 95,
+    "team": "SAS",
+    "era": "00s",
+    "draft_year": 2001,
+    "verified": true
+  },
+  {
+    "first_name": "Isiah",
+    "last_name": "Thomas",
+    "position": "PG",
+    "ovr": 95,
+    "team": "DET",
+    "era": "80s",
+    "draft_year": 1981,
+    "verified": true
+  },
+  {
+    "first_name": "Patrick",
+    "last_name": "Ewing",
+    "position": "C",
+    "ovr": 95,
+    "team": "NYK",
+    "era": "90s",
+    "draft_year": 1985,
+    "verified": true
+  },
+  {
+    "first_name": "Tracy",
+    "last_name": "McGrady",
+    "position": "SG / SF",
+    "ovr": 95,
+    "team": "ORL",
+    "era": "00s",
+    "draft_year": 1997,
+    "verified": true
+  },
+  {
+    "first_name": "Gary",
+    "last_name": "Payton",
+    "position": "PG",
+    "ovr": 95,
+    "team": "OKC",
+    "era": "90s",
+    "draft_year": 1990,
+    "verified": true
+  },
+  {
+    "first_name": "Russell",
+    "last_name": "Westbrook",
+    "position": "PG",
+    "ovr": 95,
+    "team": "OKC",
+    "era": "10s",
+    "draft_year": 2008,
+    "verified": true
+  },
+  {
+    "first_name": "Dominique",
+    "last_name": "Wilkins",
+    "position": "SF",
+    "ovr": 95,
+    "team": "ATL",
+    "era": "80s",
+    "draft_year": 1982,
+    "verified": true
+  },
+  {
+    "first_name": "Bob",
+    "last_name": "Pettit",
+    "position": "PF",
+    "ovr": 95,
+    "team": "ATL",
+    "era": "50s",
+    "draft_year": 1954,
+    "verified": true
+  },
+  {
+    "first_name": "Bill",
+    "last_name": "Walton",
+    "position": "C",
+    "ovr": 95,
+    "team": "POR",
+    "era": "70s",
+    "draft_year": 1974,
+    "verified": true
+  },
+  {
+    "first_name": "Jerry",
+    "last_name": "Lucas",
+    "position": "PF / C",
+    "ovr": 95,
+    "team": "SAC",
+    "era": "60s",
+    "draft_year": 1962,
+    "verified": true
+  },
+  {
+    "first_name": "David",
+    "last_name": "Thompson",
+    "position": "SG / SF",
+    "ovr": 95,
+    "team": "DEN",
+    "era": "70s",
+    "draft_year": 1975,
+    "verified": true
+  },
+  {
+    "first_name": "Carmelo",
+    "last_name": "Anthony",
+    "position": "SF / PF",
+    "ovr": 95,
+    "team": "DEN",
+    "era": "00s",
+    "draft_year": 2003,
+    "verified": true
+  },
+  {
+    "first_name": "Jason",
+    "last_name": "Kidd",
+    "position": "PG",
+    "ovr": 95,
+    "team": "BKN",
+    "era": "00s",
+    "draft_year": 1994,
+    "verified": true
+  },
+  {
+    "first_name": "Paul",
+    "last_name": "Pierce",
+    "position": "SF / SG",
+    "ovr": 94,
+    "team": "BOS",
+    "era": "00s",
+    "draft_year": 1998,
+    "verified": true
+  },
+  {
+    "first_name": "George",
+    "last_name": "Mikan",
+    "position": "C",
+    "ovr": 94,
+    "team": "LAL",
+    "era": "50s",
+    "draft_year": 1946,
+    "verified": true
+  },
+  {
+    "first_name": "Chris",
+    "last_name": "Mullin",
+    "position": "SF / SG",
+    "ovr": 94,
+    "team": "GSW",
+    "era": "90s",
+    "draft_year": 1985,
+    "verified": true
+  },
+  {
+    "first_name": "Dolph",
+    "last_name": "Schayes",
+    "position": "PF / C",
+    "ovr": 94,
+    "team": "PHI",
+    "era": "50s",
+    "draft_year": 1948,
+    "verified": true
+  },
+  {
+    "first_name": "Sidney",
+    "last_name": "Moncrief",
+    "position": "SG",
+    "ovr": 94,
+    "team": "MIL",
+    "era": "80s",
+    "draft_year": 1979,
+    "verified": true
+  },
+  {
+    "first_name": "Willis",
+    "last_name": "Reed",
+    "position": "C / PF",
+    "ovr": 94,
+    "team": "NYK",
+    "era": "70s",
+    "draft_year": 1964,
+    "verified": true
+  },
+  {
+    "first_name": "Pete",
+    "last_name": "Maravich",
+    "position": "SG / PG",
+    "ovr": 94,
+    "team": "UTA",
+    "era": "70s",
+    "draft_year": 1970,
+    "verified": true
+  },
+  {
+    "first_name": "Alonzo",
+    "last_name": "Mourning",
+    "position": "C / PF",
+    "ovr": 94,
+    "team": "MIA",
+    "era": "90s",
+    "draft_year": 1992,
+    "verified": true
+  },
+  {
+    "first_name": "Dennis",
+    "last_name": "Johnson",
+    "position": "PG / SG",
+    "ovr": 94,
+    "team": "PHX",
+    "era": "80s",
+    "draft_year": 1976,
+    "verified": true
+  },
+  {
+    "first_name": "Penny",
+    "last_name": "Hardaway",
+    "position": "PG / SG",
+    "ovr": 94,
+    "team": "ORL",
+    "era": "90s",
+    "draft_year": 1993,
+    "verified": true
+  },
+  {
+    "first_name": "Mitch",
+    "last_name": "Richmond",
+    "position": "SG",
+    "ovr": 94,
+    "team": "SAC",
+    "era": "90s",
+    "draft_year": 1988,
+    "verified": true
+  },
+  {
+    "first_name": "Nate",
+    "last_name": "Archibald",
+    "position": "PG",
+    "ovr": 94,
+    "team": "SAC",
+    "era": "70s",
+    "draft_year": 1970,
+    "verified": true
+  },
+  {
+    "first_name": "Elvin",
+    "last_name": "Hayes",
+    "position": "PF / C",
+    "ovr": 94,
+    "team": "WAS",
+    "era": "70s",
+    "draft_year": 1968,
+    "verified": true
+  },
+  {
+    "first_name": "Wes",
+    "last_name": "Unseld",
+    "position": "C",
+    "ovr": 94,
+    "team": "WAS",
+    "era": "70s",
+    "draft_year": 1968,
+    "verified": true
+  },
+  {
+    "first_name": "Bob",
+    "last_name": "McAdoo",
+    "position": "C / PF",
+    "ovr": 94,
+    "team": "LAC",
+    "era": "70s",
+    "draft_year": 1972,
+    "verified": true
+  },
+  {
+    "first_name": "Artis",
+    "last_name": "Gilmore",
+    "position": "C",
+    "ovr": 93,
+    "team": "CHI",
+    "era": "70s",
+    "draft_year": 1971,
+    "verified": true
+  },
+  {
+    "first_name": "Dennis",
+    "last_name": "Rodman",
+    "position": "PF",
+    "ovr": 93,
+    "team": "CHI",
+    "era": "90s",
+    "draft_year": 1986,
+    "verified": true
+  },
+  {
+    "first_name": "Robert",
+    "last_name": "Parish",
+    "position": "C",
+    "ovr": 93,
+    "team": "BOS",
+    "era": "80s",
+    "draft_year": 1976,
+    "verified": true
+  },
+  {
+    "first_name": "Joe",
+    "last_name": "Dumars",
+    "position": "SG",
+    "ovr": 93,
+    "team": "DET",
+    "era": "90s",
+    "draft_year": 1985,
+    "verified": true
+  },
+  {
+    "first_name": "Grant",
+    "last_name": "Hill",
+    "position": "SF",
+    "ovr": 93,
+    "team": "DET",
+    "era": "90s",
+    "draft_year": 1994,
+    "verified": true
+  },
+  {
+    "first_name": "Bob",
+    "last_name": "Lanier",
+    "position": "C",
+    "ovr": 93,
+    "team": "DET",
+    "era": "70s",
+    "draft_year": 1970,
+    "verified": true
+  },
+  {
+    "first_name": "Dwight",
+    "last_name": "Howard",
+    "position": "C",
+    "ovr": 93,
+    "team": "ORL",
+    "era": "00s",
+    "draft_year": 2004,
+    "verified": true
+  },
+  {
+    "first_name": "Mark",
+    "last_name": "Price",
+    "position": "PG",
+    "ovr": 93,
+    "team": "CLE",
+    "era": "90s",
+    "draft_year": 1986,
+    "verified": true
+  },
+  {
+    "first_name": "Chris",
+    "last_name": "Webber",
+    "position": "PF / C",
+    "ovr": 93,
+    "team": "SAC",
+    "era": "00s",
+    "draft_year": 1993,
+    "verified": true
+  },
+  {
+    "first_name": "Alex",
+    "last_name": "English",
+    "position": "SF",
+    "ovr": 93,
+    "team": "DEN",
+    "era": "80s",
+    "draft_year": 1976,
+    "verified": true
+  },
+  {
+    "first_name": "Gilbert",
+    "last_name": "Arenas",
+    "position": "PG",
+    "ovr": 93,
+    "team": "WAS",
+    "era": "00s",
+    "draft_year": 2001,
+    "verified": true
+  },
+  {
+    "first_name": "Marc",
+    "last_name": "Gasol",
+    "position": "C",
+    "ovr": 93,
+    "team": "MEM",
+    "era": "10s",
+    "draft_year": 2007,
+    "verified": true
+  },
+  {
+    "first_name": "Nate",
+    "last_name": "Thurmond",
+    "position": "C / PF",
+    "ovr": 92,
+    "team": "GSW",
+    "era": "60s",
+    "draft_year": 1963,
+    "verified": true
+  },
+  {
+    "first_name": "Richie",
+    "last_name": "Guerin",
+    "position": "SG / PG",
+    "ovr": 92,
+    "team": "NYK",
+    "era": "60s",
+    "draft_year": 1954,
+    "verified": true
+  },
+  {
+    "first_name": "Dave",
+    "last_name": "DeBusschere",
+    "position": "PF / SF",
+    "ovr": 92,
+    "team": "NYK",
+    "era": "70s",
+    "draft_year": 1962,
+    "verified": true
+  },
+  {
+    "first_name": "Amar'e",
+    "last_name": "Stoudemire",
+    "position": "PF / C",
+    "ovr": 92,
+    "team": "PHX",
+    "era": "00s",
+    "draft_year": 2002,
+    "verified": true
+  },
+  {
+    "first_name": "Dikembe",
+    "last_name": "Mutombo",
+    "position": "C",
+    "ovr": 92,
+    "team": "ATL",
+    "era": "90s",
+    "draft_year": 1991,
+    "verified": true
+  },
+  {
+    "first_name": "Mel",
+    "last_name": "Daniels",
+    "position": "C",
+    "ovr": 92,
+    "team": "IND",
+    "era": "70s",
+    "draft_year": 1967,
+    "verified": true
+  },
+  {
+    "first_name": "Fat",
+    "last_name": "Lever",
+    "position": "PG",
+    "ovr": 92,
+    "team": "DEN",
+    "era": "80s",
+    "draft_year": 1982,
+    "verified": true
+  },
+  {
+    "first_name": "Dan",
+    "last_name": "Issel",
+    "position": "C / PF",
+    "ovr": 92,
+    "team": "DEN",
+    "era": "70s",
+    "draft_year": 1970,
+    "verified": true
+  },
+  {
+    "first_name": "Pau",
+    "last_name": "Gasol",
+    "position": "PF / C",
+    "ovr": 92,
+    "team": "MEM",
+    "era": "00s",
+    "draft_year": 2001,
+    "verified": true
+  },
+  {
+    "first_name": "Baron",
+    "last_name": "Davis",
+    "position": "PG",
+    "ovr": 92,
+    "team": "NOP",
+    "era": "00s",
+    "draft_year": 1999,
+    "verified": true
+  },
+  {
+    "first_name": "Ray",
+    "last_name": "Allen",
+    "position": "SG",
+    "ovr": 91,
+    "team": "MIL",
+    "era": "00s",
+    "draft_year": 1996,
+    "verified": true
+  },
+  {
+    "first_name": "Yao",
+    "last_name": "Ming",
+    "position": "C",
+    "ovr": 91,
+    "team": "HOU",
+    "era": "00s",
+    "draft_year": 2002,
+    "verified": true
+  },
+  {
+    "first_name": "Adrian",
+    "last_name": "Dantley",
+    "position": "SF",
+    "ovr": 91,
+    "team": "UTA",
+    "era": "80s",
+    "draft_year": 1976,
+    "verified": true
+  },
+  {
+    "first_name": "Cliff",
+    "last_name": "Hagan",
+    "position": "SF",
+    "ovr": 91,
+    "team": "ATL",
+    "era": "60s",
+    "draft_year": 1953,
+    "verified": true
+  },
+  {
+    "first_name": "Lou",
+    "last_name": "Hudson",
+    "position": "SG / SF",
+    "ovr": 91,
+    "team": "ATL",
+    "era": "70s",
+    "draft_year": 1966,
+    "verified": true
+  },
+  {
+    "first_name": "Brandon",
+    "last_name": "Roy",
+    "position": "SG",
+    "ovr": 91,
+    "team": "POR",
+    "era": "00s",
+    "draft_year": 2006,
+    "verified": true
+  },
+  {
+    "first_name": "Jermaine",
+    "last_name": "O'Neal",
+    "position": "PF / C",
+    "ovr": 91,
+    "team": "IND",
+    "era": "00s",
+    "draft_year": 1996,
+    "verified": true
+  },
+  {
+    "first_name": "Manu",
+    "last_name": "Ginobili",
+    "position": "SG / SF",
+    "ovr": 90,
+    "team": "SAS",
+    "era": "00s",
+    "draft_year": 1999,
+    "verified": true
+  },
+  {
+    "first_name": "Dave",
+    "last_name": "Bing",
+    "position": "PG / SG",
+    "ovr": 90,
+    "team": "DET",
+    "era": "60s",
+    "draft_year": 1966,
+    "verified": true
+  },
+  {
+    "first_name": "Brad",
+    "last_name": "Daugherty",
+    "position": "C",
+    "ovr": 90,
+    "team": "CLE",
+    "era": "90s",
+    "draft_year": 1986,
+    "verified": true
+  },
+  {
+    "first_name": "Shawn",
+    "last_name": "Kemp",
+    "position": "PF",
+    "ovr": 90,
+    "team": "OKC",
+    "era": "90s",
+    "draft_year": 1989,
+    "verified": true
+  },
+  {
+    "first_name": "Maurice",
+    "last_name": "Lucas",
+    "position": "PF",
+    "ovr": 90,
+    "team": "POR",
+    "era": "70s",
+    "draft_year": 1974,
+    "verified": true
+  },
+  {
+    "first_name": "Chris",
+    "last_name": "Bosh",
+    "position": "PF / C",
+    "ovr": 90,
+    "team": "TOR",
+    "era": "00s",
+    "draft_year": 2003,
+    "verified": true
+  },
+  {
+    "first_name": "Glen",
+    "last_name": "Rice",
+    "position": "SF",
+    "ovr": 90,
+    "team": "CHA",
+    "era": "90s",
+    "draft_year": 1989,
+    "verified": true
+  },
+  {
+    "first_name": "Elton",
+    "last_name": "Brand",
+    "position": "PF",
+    "ovr": 90,
+    "team": "LAC",
+    "era": "00s",
+    "draft_year": 1999,
+    "verified": true
+  },
+  {
+    "first_name": "Bob",
+    "last_name": "Love",
+    "position": "SF / PF",
+    "ovr": 89,
+    "team": "CHI",
+    "era": "70s",
+    "draft_year": 1965,
+    "verified": true
+  },
+  {
+    "first_name": "Jerry",
+    "last_name": "Sloan",
+    "position": "SG / SF",
+    "ovr": 89,
+    "team": "CHI",
+    "era": "70s",
+    "draft_year": 1965,
+    "verified": true
+  },
+  {
+    "first_name": "Gail",
+    "last_name": "Goodrich",
+    "position": "SG / PG",
+    "ovr": 89,
+    "team": "LAL",
+    "era": "70s",
+    "draft_year": 1965,
+    "verified": true
+  },
+  {
+    "first_name": "Ben",
+    "last_name": "Wallace",
+    "position": "C / PF",
+    "ovr": 89,
+    "team": "DET",
+    "era": "00s",
+    "draft_year": 1996,
+    "verified": true
+  },
+  {
+    "first_name": "Bernard",
+    "last_name": "King",
+    "position": "SF",
+    "ovr": 89,
+    "team": "NYK",
+    "era": "80s",
+    "draft_year": 1977,
+    "verified": true
+  },
+  {
+    "first_name": "Mark",
+    "last_name": "Eaton",
+    "position": "C",
+    "ovr": 89,
+    "team": "UTA",
+    "era": "80s",
+    "draft_year": 1982,
+    "verified": true
+  },
+  {
+    "first_name": "Andrei",
+    "last_name": "Kirilenko",
+    "position": "SF / PF",
+    "ovr": 89,
+    "team": "UTA",
+    "era": "00s",
+    "draft_year": 1999,
+    "verified": true
+  },
+  {
+    "first_name": "Derek",
+    "last_name": "Harper",
+    "position": "PG",
+    "ovr": 89,
+    "team": "DAL",
+    "era": "80s",
+    "draft_year": 1983,
+    "verified": true
+  },
+  {
+    "first_name": "Tim",
+    "last_name": "Hardaway",
+    "position": "PG",
+    "ovr": 89,
+    "team": "MIA",
+    "era": "90s",
+    "draft_year": 1989,
+    "verified": true
+  },
+  {
+    "first_name": "Kevin",
+    "last_name": "Johnson",
+    "position": "PG",
+    "ovr": 89,
+    "team": "PHX",
+    "era": "90s",
+    "draft_year": 1987,
+    "verified": true
+  },
+  {
+    "first_name": "Joe",
+    "last_name": "Johnson",
+    "position": "SG / SF",
+    "ovr": 89,
+    "team": "ATL",
+    "era": "00s",
+    "draft_year": 2001,
+    "verified": true
+  },
+  {
+    "first_name": "LaMarcus",
+    "last_name": "Aldridge",
+    "position": "PF / C",
+    "ovr": 89,
+    "team": "POR",
+    "era": "10s",
+    "draft_year": 2006,
+    "verified": true
+  },
+  {
+    "first_name": "George",
+    "last_name": "McGinnis",
+    "position": "PF",
+    "ovr": 89,
+    "team": "IND",
+    "era": "70s",
+    "draft_year": 1971,
+    "verified": true
+  },
+  {
+    "first_name": "Freddie",
+    "last_name": "Lewis",
+    "position": "PG",
+    "ovr": 89,
+    "team": "IND",
+    "era": "70s",
+    "draft_year": 1966,
+    "verified": true
+  },
+  {
+    "first_name": "Zach",
+    "last_name": "Randolph",
+    "position": "PF",
+    "ovr": 89,
+    "team": "MEM",
+    "era": "10s",
+    "draft_year": 2001,
+    "verified": true
+  },
+  {
+    "first_name": "Kemba",
+    "last_name": "Walker",
+    "position": "PG",
+    "ovr": 89,
+    "team": "CHA",
+    "era": "10s",
+    "draft_year": 2011,
+    "verified": true
+  },
+  {
+    "first_name": "Eddie",
+    "last_name": "Jones",
+    "position": "SG",
+    "ovr": 89,
+    "team": "CHA",
+    "era": "90s",
+    "draft_year": 1994,
+    "verified": true
+  },
+  {
+    "first_name": "World B.",
+    "last_name": "Free",
+    "position": "SG",
+    "ovr": 89,
+    "team": "LAC",
+    "era": "70s",
+    "draft_year": 1975,
+    "verified": true
+  },
+  {
+    "first_name": "Ron",
+    "last_name": "Harper",
+    "position": "SG / PG",
+    "ovr": 89,
+    "team": "LAC",
+    "era": "80s",
+    "draft_year": 1986,
+    "verified": true
+  },
+  {
+    "first_name": "Hal",
+    "last_name": "Greer",
+    "position": "PG / SG",
+    "ovr": 88,
+    "team": "PHI",
+    "era": "60s",
+    "draft_year": 1958,
+    "verified": true
+  },
+  {
+    "first_name": "Rolando",
+    "last_name": "Blackman",
+    "position": "SG",
+    "ovr": 88,
+    "team": "DAL",
+    "era": "80s",
+    "draft_year": 1981,
+    "verified": true
+  },
+  {
+    "first_name": "Mark",
+    "last_name": "Aguirre",
+    "position": "SF",
+    "ovr": 88,
+    "team": "DAL",
+    "era": "80s",
+    "draft_year": 1981,
+    "verified": true
+  },
+  {
+    "first_name": "Michael",
+    "last_name": "Finley",
+    "position": "SG / SF",
+    "ovr": 88,
+    "team": "DAL",
+    "era": "00s",
+    "draft_year": 1995,
+    "verified": true
+  },
+  {
+    "first_name": "Jim",
+    "last_name": "Jackson",
+    "position": "SG / SF",
+    "ovr": 88,
+    "team": "DAL",
+    "era": "90s",
+    "draft_year": 1992,
+    "verified": true
+  },
+  {
+    "first_name": "Paul",
+    "last_name": "Millsap",
+    "position": "PF",
+    "ovr": 88,
+    "team": "ATL",
+    "era": "10s",
+    "draft_year": 2006,
+    "verified": true
+  },
+  {
+    "first_name": "Caron",
+    "last_name": "Butler",
+    "position": "SF",
+    "ovr": 88,
+    "team": "WAS",
+    "era": "00s",
+    "draft_year": 2002,
+    "verified": true
+  },
+  {
+    "first_name": "David",
+    "last_name": "West",
+    "position": "PF",
+    "ovr": 88,
+    "team": "NOP",
+    "era": "00s",
+    "draft_year": 2003,
+    "verified": true
+  },
+  {
+    "first_name": "Larry",
+    "last_name": "Johnson",
+    "position": "PF / SF",
+    "ovr": 88,
+    "team": "CHA",
+    "era": "90s",
+    "draft_year": 1991,
+    "verified": true
+  },
+  {
+    "first_name": "Blake",
+    "last_name": "Griffin",
+    "position": "PF",
+    "ovr": 88,
+    "team": "LAC",
+    "era": "10s",
+    "draft_year": 2009,
+    "verified": true
+  },
+  {
+    "first_name": "Chuck",
+    "last_name": "Person",
+    "position": "SF",
+    "ovr": 87,
+    "team": "IND",
+    "era": "80s",
+    "draft_year": 1986,
+    "verified": true
+  },
+  {
+    "first_name": "Don",
+    "last_name": "Buse",
+    "position": "PG",
+    "ovr": 87,
+    "team": "IND",
+    "era": "70s",
+    "draft_year": 1972,
+    "verified": true
+  },
+  {
+    "first_name": "Shareef",
+    "last_name": "Abdur-Rahim",
+    "position": "PF / SF",
+    "ovr": 86,
+    "team": "MEM",
+    "era": "90s",
+    "draft_year": 1996,
+    "verified": true
+  },
+  {
+    "first_name": "Mike",
+    "last_name": "Bibby",
+    "position": "PG",
+    "ovr": 86,
+    "team": "MEM",
+    "era": "00s",
+    "draft_year": 1998,
+    "verified": true
+  },
+  {
+    "first_name": "Shane",
+    "last_name": "Battier",
+    "position": "SF",
+    "ovr": 85,
+    "team": "MEM",
+    "era": "00s",
+    "draft_year": 2001,
+    "verified": true
+  },
+  {
+    "first_name": "Tony",
+    "last_name": "Allen",
+    "position": "SG",
+    "ovr": 85,
+    "team": "MEM",
+    "era": "10s",
+    "draft_year": 2004,
+    "verified": true
+  }
+]

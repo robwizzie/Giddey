@@ -35,8 +35,15 @@ export default function Home() {
 				</div>
 
 				{/* CTA */}
-				<Link href='/draft' className='btn-primary text-white text-lg font-bold px-10 py-4 rounded-xl no-underline mb-8 uppercase tracking-wider'>
+				<Link href='/draft' className='btn-primary text-white text-lg font-bold px-10 py-4 rounded-xl no-underline mb-3 uppercase tracking-wider'>
 					Start Draft
+				</Link>
+				<Link
+					href='/versus'
+					className='mb-8 no-underline rounded-xl px-6 py-3 text-center border border-white/15 bg-gradient-to-r from-orange-500/20 to-sky-500/20 hover:from-orange-500/30 hover:to-sky-500/30 transition-colors'
+				>
+					<div className='text-white font-black uppercase tracking-wider'>⚔️ Versus · 2K27 Draft Night</div>
+					<div className='text-[11px] text-white/55'>Draft balanced squads head-to-head, then spin for the rules</div>
 				</Link>
 
 				{/* Quick info cards */}

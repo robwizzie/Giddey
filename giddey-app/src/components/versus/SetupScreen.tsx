@@ -32,6 +32,7 @@ const STYLES: { id: DraftStyle; title: string; icon: string; desc: string }[] = 
 	{ id: 'cut', title: 'I Cut, You Choose', icon: '✂️', desc: 'One coach splits 2 cards from the pack, the other takes one. Cutter gets the leftover. Perfectly fair.' },
 	{ id: 'franchise', title: 'Franchise Wheel', icon: '🎡', desc: 'Spin a franchise every round — the pack comes only from that team. Chaos with guardrails.' },
 	{ id: 'auction', title: 'Auction', icon: '💰', desc: 'Salary cap draft. Nominate anyone in the pool and bid it out. Most strategic way to draft.' },
+	{ id: 'block', title: 'Auction Block', icon: '🔨', desc: 'Players hit the block on their own — stars first, the next 3 lots in view. Bid or pass; tier slots keep it fair.' },
 ];
 
 const EMOJIS = ['🔥', '🧊', '🐍', '👑', '⚡', '🦅', '🐐', '💎', '🚀', '🐺', '🦁', '🌪️', '☠️', '🎯', '🏆', '🍀'];
@@ -254,7 +255,7 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 				<div className='grid grid-cols-4 gap-2 mb-2'>
 					{POOLS.map(p => {
 						const on = s.pool === p.id;
-						const disabled = p.id === 'erawars' && s.style === 'auction';
+						const disabled = p.id === 'erawars' && (s.style === 'auction' || s.style === 'block');
 						return (
 							<button
 								key={p.id}
@@ -309,11 +310,15 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 						);
 					})}
 				</div>
-				{s.style === 'auction' && (
+				{(s.style === 'auction' || s.style === 'block') && (
 					<div className='rounded-xl bg-white/[0.04] border border-white/10 p-3 mb-2 animate-fade-in space-y-3'>
 						<Seg label={s.handicap ? `${s.names[0] || 'Coach 1'}'s budget` : 'Budget per coach'} value={s.budget} onChange={v => set('budget', v)} options={[100, 150, 200, 300].map(v => ({ v, l: `$${v}` }))} />
 						{s.handicap && <Seg label={`${s.names[1] || 'Coach 2'}'s budget`} value={s.budget2} onChange={v => set('budget2', v)} options={[100, 150, 200, 300].map(v => ({ v, l: `$${v}` }))} />}
-						<div className='text-[11px] text-white/45'>Roster size comes from the roster build below; tiers don&apos;t restrict who you can nominate. Every coach keeps $1 per open slot.</div>
+						<div className='text-[11px] text-white/45'>
+							{s.style === 'block'
+								? 'Lots come from the roster build below, stars first, built around the positions you both need. You can only win as many players of a tier as you have slots for, so neither side can hoard superstars. Every coach keeps $1 per open slot; unsold players are gone, and late lots that must sell go for $1.'
+								: 'Roster size comes from the roster build below; tiers don’t restrict who you can nominate. Every coach keeps $1 per open slot.'}
+						</div>
 					</div>
 				)}
 				<div className='mb-6' />

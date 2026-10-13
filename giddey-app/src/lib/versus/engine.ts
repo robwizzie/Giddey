@@ -10,7 +10,7 @@ import { BoostId } from './wheels';
 // ═══════════════════════════════════════════════════════════════
 
 export type Side = 0 | 1;
-export type DraftStyle = 'snake' | 'cut' | 'franchise' | 'auction';
+export type DraftStyle = 'snake' | 'cut' | 'franchise' | 'auction' | 'block';
 export type Band = 'superstar' | 'star' | 'starter' | 'rotation' | 'deep';
 export type PoolSetting = PoolMode | 'erawars';
 export type Phase = 'setup' | 'coin' | 'keepers' | 'draft' | 'equalizer' | 'trade' | 'boosts' | 'reveal' | 'gameday' | 'postgame';
@@ -148,7 +148,7 @@ export function normalizeSettings(raw: Partial<Settings> & { rosterSize?: number
 	];
 	const s: Settings = { ...DEFAULT_SETTINGS, ...raw, tiers, tiers2, identity, rosterSize: 0 };
 	// one shared auction board can't split eras
-	if (s.style === 'auction' && s.pool === 'erawars') s.pool = 'mixed';
+	if ((s.style === 'auction' || s.style === 'block') && s.pool === 'erawars') s.pool = 'mixed';
 	return { ...s, rosterSize: Math.min(rosterTotal(tiers), s.handicap ? rosterTotal(tiers2) : rosterTotal(tiers)) };
 }
 
@@ -173,10 +173,31 @@ export function buildBlueprint(settings: Settings, side: Side = 0): Band[] {
 export interface AuctionLot {
 	id: string;
 	bid: number;
-	/** current high bidder */
-	high: Side;
+	/** current high bidder (null = nobody has bid yet on a random lot) */
+	high: Side | null;
 	/** who has to raise or pass */
 	turn: Side;
+	/** random lots: passes in a row with no bid */
+	passes?: number;
+	/** face-down until sold */
+	mystery?: boolean;
+	/** random lots: nobody bids → it's assigned so both rosters can fill */
+	mustSell?: boolean;
+	/** random lots: the tier slot this lot fills */
+	band?: Band;
+}
+
+/** Auction Block: players come up on their own from a tier deck */
+export interface BlockState {
+	/** tiers of the lots still to come (stars first) */
+	deck: Band[];
+	/** the next lots, already drawn so coaches can plan */
+	queue: { id: string; mystery: boolean; band: Band }[];
+	/** open tier slots per coach — you can only win a Superstar if you have a Superstar slot */
+	slots: [Record<Band, number>, Record<Band, number>];
+	lotNo: number;
+	opener: Side;
+	lastResult: { id: string; side: Side | null; price: number } | null;
 }
 
 export interface DraftState {
@@ -205,7 +226,7 @@ export interface DraftState {
 	secret: [string | null, string | null];
 	collisions: number;
 	lastCollision: string | null;
-	auction: { budgets: [number, number]; nominator: Side; lot: AuctionLot | null } | null;
+	auction: { budgets: [number, number]; nominator: Side; lot: AuctionLot | null; block?: BlockState } | null;
 	keepers: [string | null, string | null];
 }
 
@@ -723,7 +744,7 @@ export function startDraft(s: VersusState, keep: [string | null, string | null] 
 
 	// blind-bid round: a shared round after the first
 	let blindRound: number | null = null;
-	if (s.settings.blindBid && s.settings.style !== 'auction' && poolFor(s.settings, 0) === poolFor(s.settings, 1)) {
+	if (s.settings.blindBid && s.settings.style !== 'auction' && s.settings.style !== 'block' && poolFor(s.settings, 0) === poolFor(s.settings, 1)) {
 		const eligible = blueprints[0].map((b, i) => i).filter(i => i > 0 && blueprints[0][i] && blueprints[0][i] === blueprints[1][i]);
 		if (eligible.length) blindRound = eligible[Math.floor(Math.random() * eligible.length)];
 	}
@@ -750,7 +771,7 @@ export function startDraft(s: VersusState, keep: [string | null, string | null] 
 		keepers: keep,
 	};
 	const base: VersusState = { ...s, phase: 'draft', teams, draft, equalizer: null, trade: null, keeperPicks: [null, null] };
-	if (s.settings.style === 'auction') return startAuction(base);
+	if (s.settings.style === 'auction' || s.settings.style === 'block') return startAuction(base);
 	if (!roundsTotal(draft)) return endDraft(base);
 	return startRound(base, 0);
 }
@@ -951,7 +972,126 @@ function startAuction(s: VersusState): VersusState {
 		const open = d.targets[side] - s.teams[side].length;
 		budgets[side] = Math.max(open, budgets[side] - price);
 	});
-	return { ...s, draft: { ...d, stage: 'nominate', order: [first, other(first)], auction: { budgets, nominator: first, lot: null } } };
+	const started: VersusState = { ...s, draft: { ...d, stage: 'nominate', order: [first, other(first)], auction: { budgets, nominator: first, lot: null } } };
+	if (s.settings.style !== 'block') return started;
+
+	// Auction Block deck: one lot per roster spot in each tier, plus a few
+	// spares per tier so passing is a real option. Stars come first.
+	// each coach's tier slots, minus the round a keeper already used
+	const slots = ([0, 1] as Side[]).map(side => {
+		const t = { ...tiersFor(s.settings, side) };
+		const k = d.keepers[side];
+		if (k) {
+			const kb = bandOf(s.settings, side, k);
+			const target = BANDS.indexOf(kb);
+			// same rule as the snake draft: drop the closest tier that has a slot
+			const b = BANDS.filter(x => t[x] > 0).sort((x, y) => Math.abs(BANDS.indexOf(x) - target) - Math.abs(BANDS.indexOf(y) - target))[0];
+			if (b) t[b]--;
+		}
+		return t;
+	}) as [Record<Band, number>, Record<Band, number>];
+	const deck: Band[] = [];
+	for (const b of BANDS) {
+		const need = slots[0][b] + slots[1][b];
+		// a few spare lots per tier so passing is a real option
+		const spare = need ? Math.max(1, Math.round(need * 0.35)) : 0;
+		deck.push(...Array.from({ length: need + spare }, () => b));
+	}
+	const block: BlockState = { deck: s.settings.shuffleRounds ? shuffle(deck) : deck, queue: [], slots, lotNo: 0, opener: first, lastResult: null };
+	let next: VersusState = { ...started, draft: { ...started.draft!, auction: { ...started.draft!.auction!, block } } };
+	for (let i = 0; i < 4; i++) next = drawLot(next);
+	return openNextLot(next);
+}
+
+// ─── auction block (random lots) ────────────────────────────────
+
+function blockOf(s: VersusState): BlockState {
+	return s.draft!.auction!.block!;
+}
+
+/** Draw one more lot onto the end of the queue */
+function drawLot(s: VersusState): VersusState {
+	const d = s.draft!;
+	const a = d.auction!;
+	const b = a.block!;
+	const deck = [...b.deck];
+	const band = deck.shift() ?? 'rotation';
+	const exclude = [...b.queue.map(q => q.id), ...(a.lot ? [a.lot.id] : [])];
+	const id = makePack(s, band, 1, exclude)[0];
+	if (!id) return s;
+	const lotNo = b.lotNo + b.queue.length + 1;
+	// Mystery packs setting: every 4th lot goes under a sheet
+	const mystery = s.settings.blind && lotNo % 4 === 0;
+	return { ...s, draft: { ...d, auction: { ...a, block: { ...b, deck, queue: [...b.queue, { id, mystery, band }] } } } };
+}
+
+/** Can this coach bid on the lot on the block? (roster room + an open slot in its tier) */
+export function canBid(s: VersusState, side: Side): boolean {
+	const a = s.draft!.auction!;
+	if (slotsLeft(s, side) <= 0) return false;
+	const band = a.lot?.band;
+	if (!a.block || !band) return true;
+	return a.block.slots[side][band] > 0;
+}
+
+/** Lots still coming after the one on the block */
+export function lotsRemaining(s: VersusState): number {
+	const b = blockOf(s);
+	return b.deck.length + b.queue.length;
+}
+
+function openNextLot(s: VersusState): VersusState {
+	if (slotsLeft(s, 0) <= 0 && slotsLeft(s, 1) <= 0) return endDraft(s);
+	let next = s;
+	for (let guard = 0; guard < 60; guard++) {
+		if (blockOf(next).queue.length < 4) next = drawLot(next);
+		const d = next.draft!;
+		const a = d.auction!;
+		const b = a.block!;
+		const [head, ...rest] = b.queue;
+		if (!head) return endDraft(next);
+		const open: [number, number] = [b.slots[0][head.band], b.slots[1][head.band]];
+		// spare lot for a tier both coaches already filled — skip it
+		if (open[0] + open[1] <= 0) {
+			next = { ...next, draft: { ...d, auction: { ...a, block: { ...b, queue: rest } } } };
+			continue;
+		}
+		// openers alternate; a coach with no room in this tier sits out
+		let opener = b.lotNo === 0 ? b.opener : other(b.opener);
+		if (open[opener] <= 0 || slotsLeft(next, opener) <= 0) opener = other(opener);
+		const lotsLeftInTier = [...b.deck, ...rest.map(q => q.band)].filter(x => x === head.band).length;
+		const mustSell = open[0] + open[1] > lotsLeftInTier;
+		const lot: AuctionLot = { id: head.id, bid: 0, high: null, turn: opener, passes: 0, mystery: head.mystery, mustSell, band: head.band };
+		next = { ...next, draft: { ...d, stage: 'bid', order: [opener, other(opener)], turn: 0, auction: { ...a, lot, nominator: opener, block: { ...b, queue: rest, lotNo: b.lotNo + 1, opener } } } };
+		return drawLot(next);
+	}
+	return endDraft(next);
+}
+
+/** Nobody wanted him: either he goes unsold or, if he must sell, to the coach who needs bodies most */
+function noSale(s: VersusState): VersusState {
+	const a = s.draft!.auction!;
+	const lot = a.lot!;
+	if (lot.mustSell) {
+		// goes for $1 to a coach with room in this tier — the needier one first
+		const b = a.block!;
+		const band = lot.band!;
+		const eligible = ([0, 1] as Side[]).filter(x => b.slots[x][band] > 0 && slotsLeft(s, x) > 0);
+		const to: Side =
+			eligible.length === 1
+				? eligible[0]
+				: slotsLeft(s, 0) !== slotsLeft(s, 1)
+					? slotsLeft(s, 0) > slotsLeft(s, 1)
+						? 0
+						: 1
+					: teamOvr(s.teams[0]) <= teamOvr(s.teams[1])
+						? 0
+						: 1;
+		return award(s, to, lot.id, 1);
+	}
+	const b = a.block!;
+	const next: VersusState = { ...s, draft: { ...s.draft!, auction: { ...a, lot: null, block: { ...b, lastResult: { id: lot.id, side: null, price: 0 } } } } };
+	return openNextLot(next);
 }
 
 export function slotsLeft(s: VersusState, side: Side): number {
@@ -989,15 +1129,22 @@ export function raise(s: VersusState, amount: number): VersusState {
 	const amt = Math.min(amount, maxBid(s, bidder));
 	if (amt <= lot.bid) return s;
 	const opp = other(bidder);
-	// opponent can't go higher — sold
-	if (maxBid(s, opp) <= amt) return award(s, bidder, lot.id, amt);
+	// opponent has no room (roster or tier slot) or can't go higher — sold
+	if (!canBid(s, opp) || maxBid(s, opp) <= amt) return award(s, bidder, lot.id, amt);
 	return { ...s, draft: { ...d, auction: { ...a, lot: { ...lot, bid: amt, high: bidder, turn: opp } } } };
 }
 
 /** The coach on the turn passes: high bidder wins the lot */
 export function passBid(s: VersusState): VersusState {
-	const lot = s.draft!.auction!.lot!;
-	return award(s, lot.high, lot.id, lot.bid);
+	const d = s.draft!;
+	const a = d.auction!;
+	const lot = a.lot!;
+	if (lot.high !== null) return award(s, lot.high, lot.id, lot.bid);
+	// random lot with no bids yet: the other coach gets a shot, then no sale
+	const opp = other(lot.turn);
+	const passes = (lot.passes ?? 0) + 1;
+	if (passes >= 2 || !canBid(s, opp)) return noSale(s);
+	return { ...s, draft: { ...d, auction: { ...a, lot: { ...lot, turn: opp, passes } } } };
 }
 
 function award(s: VersusState, side: Side, id: string, price: number): VersusState {
@@ -1010,6 +1157,13 @@ function award(s: VersusState, side: Side, id: string, price: number): VersusSta
 	const left0 = slotsLeft(next, 0);
 	const left1 = slotsLeft(next, 1);
 	if (left0 <= 0 && left1 <= 0) return endDraft(next);
+	if (a.block) {
+		const b = a.block;
+		const slots: BlockState['slots'] = [{ ...b.slots[0] }, { ...b.slots[1] }];
+		const band = a.lot?.band;
+		if (band) slots[side][band] = Math.max(0, slots[side][band] - 1);
+		return openNextLot({ ...next, draft: { ...next.draft!, auction: { ...next.draft!.auction!, block: { ...b, slots, lastResult: { id, side, price } } } } });
+	}
 	// alternate nominations; a full roster sits out
 	let nominator = other(a.nominator);
 	if (slotsLeft(next, nominator) <= 0) nominator = other(nominator);

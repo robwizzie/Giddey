@@ -67,6 +67,7 @@ A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people
   - **I Cut, You Choose**
   - **Franchise Wheel**
   - **Auction**: a salary-cap draft where you nominate anyone in the pool and bid on them.
+  - **Auction Block**: players come up on their own, stars first, with the next 3 lots in view. You bid or pass, and per-tier slots mean nobody can hoard superstars.
 - **Custom rosters.** Set how many Superstars, All-Stars, Starters, Rotation and Deep Bench players each coach drafts, or pick a preset (Balanced, Starting Five, Big Three, Superteams, Underdogs, Full Rotation).
 - **Handicap mode** gives each coach their own roster build and auction budget. After a game, the loser can set the winner's handicap for the redraft.
 - **Position-aware packs** are built around the spots each coach still needs. A live **lineup balance** readout (shooting, playmaking, rim protection, rebounding, depth) shows what each team is missing.
@@ -85,7 +86,7 @@ A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people
 - A full-screen **BOOM** with the player's headshot for every superstar pick.
 
 **Game day**
-- Wheels for quarter length (always 5–8 min) and a rule twist.
+- Wheels for quarter length (always 2–5 min) and a rule twist.
 - Each coach spins a personal challenge that earns a boost for the next game.
 - Both rosters are listed with headshots.
 - One-tap **share image** (1080×1920) of both squads for iMessage or Instagram.

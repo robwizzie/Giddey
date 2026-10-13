@@ -62,13 +62,19 @@ export function CommissionerIntro({ state, onDone }: { state: VersusState; onDon
  * changes, freezes while `paused`, beeps the last 5 and calls `onExpire`.
  */
 export function useShotClock(key: string, seconds: number, paused: boolean, onExpire: () => void): number {
-	const [left, setLeft] = useState(seconds);
+	// Time left is stored with the turn it belongs to. A new turn (or the clock
+	// switching on, e.g. after the franchise wheel lands) always starts full —
+	// never from a stale 0 left over while the clock was off.
+	const [clock, setClock] = useState({ key, seconds, left: seconds });
+	const left = clock.key === key && clock.seconds === seconds ? clock.left : seconds;
 	const expire = useRef(onExpire);
 	expire.current = onExpire;
-	useEffect(() => setLeft(seconds), [key, seconds]);
+	const fired = useRef<string | null>(null);
 	useEffect(() => {
 		if (!seconds || paused) return;
 		if (left <= 0) {
+			if (fired.current === key) return;
+			fired.current = key;
 			play('buzzer');
 			buzz(300);
 			expire.current();
@@ -76,10 +82,10 @@ export function useShotClock(key: string, seconds: number, paused: boolean, onEx
 		}
 		const t = setTimeout(() => {
 			if (left <= 6 && left > 1) play('beep');
-			setLeft(l => l - 1);
+			setClock({ key, seconds, left: left - 1 });
 		}, 1000);
 		return () => clearTimeout(t);
-	}, [left, paused, seconds]);
+	}, [key, left, paused, seconds]);
 	return left;
 }
 

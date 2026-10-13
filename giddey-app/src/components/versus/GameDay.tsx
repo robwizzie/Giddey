@@ -263,7 +263,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 								⏱️ <span className='font-black' style={{ color: SIDE_COLORS[clockHolder] }}>{names[clockHolder]}</span> earned Clock Control — pick the quarter length.
 							</div>
 							<div className='grid grid-cols-4 gap-2 max-w-sm mx-auto'>
-								{[5, 6, 7, 8].map(m => (
+								{[2, 3, 4, 5].map(m => (
 									<button key={m} onClick={() => set({ quarter: m })} className='rounded-2xl py-4 bg-white/[0.06] border border-white/10 hover:bg-white/10 text-2xl font-black text-white'>
 										{m}
 										<div className='text-[10px] text-white/40 font-bold'>MIN</div>
@@ -273,7 +273,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 						</div>
 					) : (
 						<div className='flex flex-col items-center animate-fade-in'>
-							<p className='text-sm text-white/55 mb-4 text-center'>Quarter length — always 5 to 8 minutes. Competitive, never a slog.</p>
+							<p className='text-sm text-white/55 mb-4 text-center'>Quarter length — always 2 to 5 minutes. Quick, competitive games.</p>
 							<Wheel items={QUARTER_SEGMENTS} size={size} onResult={i => later(() => set({ quarter: quarterMinutes(QUARTER_SEGMENTS[i].id) }), `${quarterMinutes(QUARTER_SEGMENTS[i].id)}-minute quarters!`)} />
 						</div>
 					))}

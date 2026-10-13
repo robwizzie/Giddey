@@ -23,12 +23,12 @@ export function weightedIndex(segments: { weight: number }[]): number {
 
 // Short enough to run back, long enough for a comeback.
 export const QUARTER_SEGMENTS: WheelSegment[] = [
-	{ id: '5', label: '5 MIN', sub: 'Sprint', color: '#f97316', weight: 3 },
-	{ id: '6', label: '6 MIN', sub: 'Standard', color: '#3b82f6', weight: 4 },
-	{ id: '7', label: '7 MIN', sub: 'Grind', color: '#a855f7', weight: 3 },
-	{ id: '8', label: '8 MIN', sub: 'Marathon', color: '#ef4444', weight: 2 },
-	{ id: '6b', label: '6 MIN', sub: 'Standard', color: '#06b6d4', weight: 4 },
-	{ id: '5b', label: '5 MIN', sub: 'Sprint', color: '#22c55e', weight: 3 },
+	{ id: '2', label: '2 MIN', sub: 'Sprint', color: '#f97316', weight: 2 },
+	{ id: '3', label: '3 MIN', sub: 'Quick', color: '#3b82f6', weight: 3 },
+	{ id: '4', label: '4 MIN', sub: 'Standard', color: '#a855f7', weight: 3 },
+	{ id: '5', label: '5 MIN', sub: 'Long', color: '#ef4444', weight: 2 },
+	{ id: '3b', label: '3 MIN', sub: 'Quick', color: '#06b6d4', weight: 3 },
+	{ id: '4b', label: '4 MIN', sub: 'Standard', color: '#22c55e', weight: 3 },
 ];
 
 export function quarterMinutes(segId: string): number {
@@ -70,20 +70,20 @@ export const CHALLENGES: Challenge[] = [
 	{ id: 'glass', title: 'Glass Cleaner', desc: 'Win the rebounding battle.', difficulty: 'easy' },
 	{ id: 'firstq', title: 'Fast Start', desc: 'Lead after the 1st quarter.', difficulty: 'easy' },
 	{ id: 'splash', title: 'Heat Check', desc: 'Hit 3 three-pointers in a row (no misses from three in between).', difficulty: 'medium' },
-	{ id: 'pickpocket', title: 'Pickpocket', desc: 'Record 5+ steals.', difficulty: 'medium' },
-	{ id: 'block', title: 'Block Party', desc: 'Record 4+ blocks.', difficulty: 'medium' },
+	{ id: 'pickpocket', title: 'Pickpocket', desc: 'Record 4+ steals.', difficulty: 'medium' },
+	{ id: 'block', title: 'Block Party', desc: 'Record 3+ blocks.', difficulty: 'medium' },
 	{ id: 'clean', title: 'Clean Hands', desc: 'Commit fewer turnovers than your opponent.', difficulty: 'medium' },
 	{ id: 'bigrange', title: 'Stretch Big', desc: 'Your starting center hits a three.', difficulty: 'medium' },
 	{ id: 'star', title: 'Star Power', desc: 'Your highest-rated player is the game’s top scorer.', difficulty: 'medium' },
 	{ id: 'andone', title: 'And-One', desc: 'Convert 2 and-ones (make the bucket and the free throw).', difficulty: 'medium' },
 	{ id: 'bench', title: 'Bench Mob', desc: 'Your bench outscores their bench.', difficulty: 'medium', needsBench: true },
-	{ id: 'freeze', title: 'Ice Water', desc: 'Go perfect from the line (minimum 4 attempts).', difficulty: 'medium' },
-	{ id: 'quarter10', title: 'Statement Quarter', desc: 'Win any single quarter by 8+.', difficulty: 'medium' },
-	{ id: 'underdog', title: 'Underdog Hero', desc: 'Your lowest-rated player scores 8+.', difficulty: 'hard' },
+	{ id: 'freeze', title: 'Ice Water', desc: 'Go perfect from the line (minimum 3 attempts).', difficulty: 'medium' },
+	{ id: 'quarter10', title: 'Statement Quarter', desc: 'Win any single quarter by 6+.', difficulty: 'medium' },
+	{ id: 'underdog', title: 'Underdog Hero', desc: 'Your lowest-rated player scores 6+.', difficulty: 'hard' },
 	{ id: 'wire', title: 'Wire to Wire', desc: 'Lead at the end of every quarter.', difficulty: 'hard' },
 	{ id: 'buzzer', title: 'Buzzer Beater', desc: 'Score as the clock hits 0:00 in any quarter.', difficulty: 'hard' },
-	{ id: 'blowout', title: 'No Mercy', desc: 'Lead by 15+ at any point.', difficulty: 'hard' },
-	{ id: 'comeback', title: 'Comeback Kid', desc: 'Win after trailing by 8+.', difficulty: 'hard' },
+	{ id: 'blowout', title: 'No Mercy', desc: 'Lead by 12+ at any point.', difficulty: 'hard' },
+	{ id: 'comeback', title: 'Comeback Kid', desc: 'Win after trailing by 6+.', difficulty: 'hard' },
 	{ id: 'ankles', title: 'Ankle Breaker', desc: 'Drop a defender with a dribble move.', difficulty: 'hard' },
 ];
 
@@ -109,7 +109,7 @@ export const BOOSTS: Record<BoostId, Boost> = {
 	steal: { id: 'steal', label: 'Bench Heist', icon: '🦹', kind: 'roster', desc: 'Take one of their bench players — they get your weakest guy.' },
 	firstPick: { id: 'firstPick', label: 'Draft Priority', icon: '🥇', kind: 'draft', desc: 'First pick of the next draft. Running it back? Becomes an Upgrade Pack.' },
 	reroll: { id: 'reroll', label: 'Extra Reroll', icon: '🎲', kind: 'draft', desc: '+1 pack reroll next draft. Running it back? Becomes an Upgrade Pack.' },
-	quarterControl: { id: 'quarterControl', label: 'Clock Control', icon: '⏱️', kind: 'game', desc: 'You pick the quarter length next game (5–8 min). No wheel.' },
+	quarterControl: { id: 'quarterControl', label: 'Clock Control', icon: '⏱️', kind: 'game', desc: 'You pick the quarter length next game (2–5 min). No wheel.' },
 	starSit: { id: 'starSit', label: 'Late Scratch', icon: '🪑', kind: 'game', desc: 'Their highest-rated player sits the entire 1st quarter.' },
 	homeCourt: { id: 'homeCourt', label: 'Home Court', icon: '🏟️', kind: 'game', desc: 'You pick the arena, uniforms and who takes the opening tip.' },
 };

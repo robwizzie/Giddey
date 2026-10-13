@@ -22,6 +22,8 @@ import {
 } from '@/lib/versus/engine';
 import { ALLTIME_PLAYERS, getPool, getVersusPlayer, MODERN_PLAYERS } from '@/lib/versus/pool';
 import { THEMES } from '@/lib/versus/themes';
+import { matchups } from '@/lib/versus/rivalry';
+import { cloudEnabled } from '@/lib/versus/cloud';
 import { CoachBadges } from './Badges';
 import InstallButton from './InstallButton';
 
@@ -181,7 +183,7 @@ function IdentityEditor({ s, setS, side }: { s: Settings; setS: SetS; side: Side
 					});
 				}}
 				className='w-full bg-transparent text-xl font-black text-white outline-none placeholder:text-white/20'
-				placeholder={side ? 'Dave' : 'Rob'}
+				placeholder={side ? 'Coach 2' : 'Coach 1'}
 				aria-label={`Coach ${side + 1} name`}
 			/>
 			<div className='text-[11px] text-white/55 truncate'>
@@ -225,6 +227,32 @@ export function settingsValid(s: Settings): boolean {
 	const a = s.names[0].trim();
 	const b = s.names[1].trim();
 	return !!a && !!b && a.toLowerCase() !== b.toLowerCase() && rosterTotal(s.tiers) >= MIN_ROSTER && (!s.handicap || rosterTotal(s.tiers2) >= MIN_ROSTER);
+}
+
+/** One-tap chips for pairs who've played on this device */
+function RecentMatchups({ s, setS }: { s: Settings; setS: SetS }) {
+	const [list] = useState(() => matchups().slice(0, 6));
+	if (!list.length) return null;
+	const cur = s.names.map(n => n.trim().toLowerCase()).sort().join('|');
+	return (
+		<div className='mb-3'>
+			<div className='text-[10px] font-black uppercase tracking-widest text-white/40 mb-1.5'>Recent matchups on this phone</div>
+			<div className='flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 [scrollbar-width:none]'>
+				{list.map(m => {
+					const on = m.names.map(n => n.trim().toLowerCase()).sort().join('|') === cur;
+					return (
+						<button
+							key={m.names.join('|')}
+							onClick={() => setS(prev => ({ ...prev, names: [m.names[0], m.names[1]] }))}
+							className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black border ${on ? 'bg-white text-black border-white' : 'bg-white/5 text-white/75 border-white/10'}`}
+						>
+							{m.names[0]} vs {m.names[1]} <span className={on ? 'text-black/50' : 'text-white/40'}>· {m.wins[0]}–{m.wins[1]}</span>
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
 }
 
 /** A numbered settings section with a one-line explanation */
@@ -391,7 +419,8 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 				</div>
 			</div>
 
-			<Section n={1} icon='🧑‍🤝‍🧑' title='Coaches' desc='Names, team identity, and the franchise guys you each love.'>
+			<Section n={1} icon='🧑‍🤝‍🧑' title='Coaches' desc='Who’s playing tonight. Your record is saved by these names, so use the same ones every time.'>
+				<RecentMatchups s={s} setS={setS} />
 				<div className='grid grid-cols-2 gap-3'>
 					{([0, 1] as Side[]).map(side => (
 						<div key={side} className='space-y-2'>
@@ -571,7 +600,7 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 
 			<Section n={8} icon='🎙️' title='Game night' desc='The broadcast around the draft and the game. Change these anytime.'>
 				<div className='space-y-2'>
-					<Toggle on={s.announcer} onChange={v => set('announcer', v)} title='🎙️ Announcer' desc='Your phone reads every pick aloud — “With the 4th pick, Dave selects…” — and goes wild for superstars. Uses the phone’s built-in voice; the 🔊 button mutes it.' />
+					<Toggle on={s.announcer} onChange={v => set('announcer', v)} title='🎙️ Announcer' desc={`Your phone reads every pick aloud — “With the 4th pick, ${s.names[1] || 'Coach 2'} selects…” — and goes wild for superstars. Uses the phone’s built-in voice; the 🔊 button mutes it.`} />
 					<Toggle on={s.vegas} onChange={v => set('vegas', v)} title='📈 Vegas line' desc='A point spread before tip-off from the team ratings and your recent games. Enter the score to settle it — an underdog who covers earns ⬆️ Tier Up for the next draft.' />
 					<Toggle on={s.halftime} onChange={v => set('halftime', v)} title='🕐 Halftime wheel' desc='At halftime, tap who’s leading and the trailing team spins a second-half twist — bonus points, the leader benches their best player, and more.' />
 				</div>
@@ -594,6 +623,10 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 
 export default function SetupScreen({ initial, onStart, onRivalry, onHelp }: { initial: Settings; onStart: (s: Settings) => void; onRivalry: () => void; onHelp: () => void }) {
 	const [s, setS] = useState<Settings>(() => normalizeSettings(initial));
+	const [firstTime] = useState(() => !matchups().length && !initial.names[0] && !initial.names[1]);
+	const a = s.names[0].trim();
+	const b = s.names[1].trim();
+	const why = !a || !b ? 'Enter both coach names to start' : a.toLowerCase() === b.toLowerCase() ? 'The two coaches need different names' : !settingsValid(s) ? 'Each roster needs at least 5 players' : null;
 	return (
 		<div className='w-full max-w-2xl mx-auto px-4 pb-28 animate-fade-in'>
 			{/* Hero */}
@@ -602,9 +635,9 @@ export default function SetupScreen({ initial, onStart, onRivalry, onHelp }: { i
 					<span className='w-6 h-px bg-white/30' /> NBA 2K27 Draft Night <span className='w-6 h-px bg-white/30' />
 				</div>
 				<h1 className='text-4xl sm:text-5xl font-black tracking-tight leading-none'>
-					<span style={{ color: s.identity[0].color }}>{s.names[0] || 'P1'}</span>
+					<span style={{ color: s.identity[0].color, opacity: s.names[0] ? 1 : 0.45 }}>{s.names[0] || 'Coach 1'}</span>
 					<span className='text-white/30 mx-3 text-3xl align-middle'>vs</span>
-					<span style={{ color: s.identity[1].color }}>{s.names[1] || 'P2'}</span>
+					<span style={{ color: s.identity[1].color, opacity: s.names[1] ? 1 : 0.45 }}>{s.names[1] || 'Coach 2'}</span>
 				</h1>
 				<div className='flex justify-center gap-6 mt-1.5 min-h-[18px]'>
 					<CoachBadges side={0} />
@@ -622,6 +655,20 @@ export default function SetupScreen({ initial, onStart, onRivalry, onHelp }: { i
 				</div>
 			</div>
 
+			{firstTime && (
+				<div className='rounded-2xl border border-orange-400/30 bg-orange-500/[0.08] p-4 mb-6 animate-fade-in'>
+					<div className='text-base font-black text-white mb-1'>👋 Welcome to Versus</div>
+					<ol className='text-[13px] text-white/70 space-y-1 list-decimal pl-5'>
+						<li>Two people, one phone: type both names in section 1.</li>
+						<li>Pick a quick setup (Classic is a great first night) or customize anything.</li>
+						<li>Hit the coin toss, draft, then play the game in NBA 2K and come back for the result.</li>
+					</ol>
+					<div className='text-[11px] text-white/45 mt-2'>
+						No account needed — every game saves on this phone under your names.{cloudEnabled ? ' Want it backed up and shared with your opponent? Sign in from 👤 (optional).' : ''}
+					</div>
+				</div>
+			)}
+
 			<SettingsForm s={s} setS={setS} />
 
 			{/* CTA */}
@@ -631,7 +678,7 @@ export default function SetupScreen({ initial, onStart, onRivalry, onHelp }: { i
 					onClick={() => onStart(normalizeSettings({ ...s, names: [s.names[0].trim(), s.names[1].trim()] }))}
 					className='btn-primary w-full max-w-2xl mx-auto block text-white text-lg font-black uppercase tracking-wider py-4 rounded-2xl disabled:opacity-40'
 				>
-					To the Coin Toss →
+					{why ?? 'To the Coin Toss →'}
 				</button>
 			</div>
 		</div>

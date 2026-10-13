@@ -3,13 +3,14 @@
 import { useMemo, useState } from 'react';
 import { Retired, Settings, Side } from '@/lib/versus/engine';
 import { getVersusPlayer } from '@/lib/versus/pool';
-import { clearRivalry, loadRivalry, rivalryStats, RivalryStats } from '@/lib/versus/rivalry';
+import { clearMatchup, loadRivalry, matchups, rivalryStats, RivalryStats } from '@/lib/versus/rivalry';
 import { getTheme } from '@/lib/versus/themes';
 import type { RivalryGame } from '@/lib/versus/rivalry';
 import { seatGames } from '@/lib/versus/history';
 import { seasons, SeasonSummary, winsNeeded } from '@/lib/versus/seasons';
 import { achievementsFor } from '@/lib/versus/achievements';
 import GameDetail, { GameRow } from './GameDetail';
+import { deleteCloudGames, linkedRivalry } from '@/lib/versus/cloud';
 import { getSabotage } from '@/lib/versus/wheels';
 import { SIDE_COLORS } from './Fx';
 
@@ -149,12 +150,16 @@ function SeasonPanel({ list, names }: { list: SeasonSummary[]; names: [string, s
 
 export default function RivalrySheet({ settings, retired = [], onClose, onSync }: { settings: Settings; retired?: Retired[]; onClose: () => void; onSync: () => void }) {
 	const [version, setVersion] = useState(0);
+	// any pair who's played on this phone can be viewed, not just tonight's coaches
+	const pairs = useMemo(() => matchups(), [version]);
+	const [names, setNames] = useState<[string, string]>(() => (settings.names[0].trim() && settings.names[1].trim() ? settings.names : (matchups()[0]?.names ?? settings.names)));
+	const isCurrent = names.map(n => n.trim().toLowerCase()).sort().join('|') === settings.names.map(n => n.trim().toLowerCase()).sort().join('|');
 	const [tab, setTab] = useState<Tab>('overview');
 	const [open, setOpen] = useState<RivalryGame | null>(null);
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	const games = useMemo(() => seatGames(loadRivalry(), settings.names), [settings.names, version]);
+	const games = useMemo(() => seatGames(loadRivalry(), names), [names, version]);
 	const seasonList = useMemo(() => seasons(games), [games]);
-	const stats = useMemo(() => rivalryStats(loadRivalry(), settings.names), [settings.names, version]);
+	const stats = useMemo(() => rivalryStats(loadRivalry(), names), [names, version]);
 	const [a, b] = stats.coaches;
 	const total = a.wins + b.wins;
 	const pct = (x: number, n: number) => (n ? Math.round((x / n) * 100) : 0);
@@ -173,10 +178,27 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 					</button>
 				</div>
 
+				{pairs.length > 1 && (
+					<div className='flex gap-1.5 overflow-x-auto pb-2 mb-2 -mx-4 px-4 [scrollbar-width:none]'>
+						{pairs.map(m => {
+							const on = m.names.map(n => n.trim().toLowerCase()).sort().join('|') === names.map(n => n.trim().toLowerCase()).sort().join('|');
+							return (
+								<button
+									key={m.names.join('|')}
+									onClick={() => setNames(m.names)}
+									className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black border ${on ? 'bg-white text-black border-white' : 'bg-white/5 text-white/70 border-white/10'}`}
+								>
+									{m.names[0]} vs {m.names[1]} · {m.games}
+								</button>
+							);
+						})}
+					</div>
+				)}
+
 				{!stats.games ? (
 					<div className='text-center py-12 text-white/50'>
 						<div className='text-5xl mb-3'>🏀</div>
-						No games between {settings.names[0]} and {settings.names[1]} yet. Play one and the record starts here — it survives new series.
+						{names[0].trim() && names[1].trim() ? `No games between ${names[0]} and ${names[1]} yet.` : 'No games on this phone yet.'} Play one and the record starts here — it survives new series.
 						<div className='mt-3 text-xs'>Played on the other phone? Tap 🔄 Sync phones.</div>
 					</div>
 				) : (
@@ -187,7 +209,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 								{([0, 1] as Side[]).map(side => (
 									<div key={side} className={`flex-1 ${side ? 'text-right' : ''}`}>
 										<div className='text-xs font-black uppercase tracking-widest' style={{ color: SIDE_COLORS[side] }}>
-											{settings.names[side]}
+											{names[side]}
 										</div>
 										<div className='text-6xl font-black text-white tabular-nums leading-none'>{stats.coaches[side].wins}</div>
 									</div>
@@ -198,10 +220,10 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 								<div style={{ width: `${pct(b.wins, total)}%`, background: SIDE_COLORS[1] }} />
 							</div>
 							<div className='text-center text-[11px] text-white/55 mt-2'>
-								{leader === null ? `All square after ${stats.games} games.` : `${settings.names[leader]} leads the all-time series ${Math.max(a.wins, b.wins)}–${Math.min(a.wins, b.wins)}.`}
+								{leader === null ? `All square after ${stats.games} games.` : `${names[leader]} leads the all-time series ${Math.max(a.wins, b.wins)}–${Math.min(a.wins, b.wins)}.`}
 								{(() => {
 									const s = a.streak > 0 ? { side: 0 as Side, n: a.streak } : b.streak > 0 ? { side: 1 as Side, n: b.streak } : null;
-									return s && s.n >= 2 ? ` ${settings.names[s.side]} has won ${s.n} straight 🔥` : '';
+									return s && s.n >= 2 ? ` ${names[s.side]} has won ${s.n} straight 🔥` : '';
 								})()}
 							</div>
 						</div>
@@ -224,8 +246,8 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 
 						{tab === 'overview' && (
 							<>
-								<SeasonPanel list={seasonList} names={settings.names} />
-								<LeadChart stats={stats} names={settings.names} />
+								<SeasonPanel list={seasonList} names={names} />
+								<LeadChart stats={stats} names={names} />
 						{/* Side by side */}
 						<div className='rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-1 mb-4'>
 							<Stat label='Longest win streak' values={[a.longestStreak, b.longestStreak]} />
@@ -268,7 +290,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 										.slice(-8)
 										.reverse()
 										.map(g => (
-											<GameRow key={g.ts} g={g} names={settings.names} onOpen={() => setOpen(g)} />
+											<GameRow key={g.ts} g={g} names={names} onOpen={() => setOpen(g)} />
 										))}
 								</div>
 							</>
@@ -290,7 +312,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 											<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-1.5'>{gr.label}</div>
 											<div className='space-y-1'>
 												{gr.games.map(g => (
-													<GameRow key={g.ts} g={g} names={settings.names} onOpen={() => setOpen(g)} />
+													<GameRow key={g.ts} g={g} names={names} onOpen={() => setOpen(g)} />
 												))}
 											</div>
 										</div>
@@ -306,7 +328,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 									return (
 										<div key={side} className='rounded-2xl border border-white/10 bg-white/[0.03] p-3 min-w-0'>
 											<div className='text-[10px] font-black uppercase tracking-widest mb-2' style={{ color: SIDE_COLORS[side] }}>
-												{settings.names[side]} · {list.filter(x => x.done).length}/{list.length}
+												{names[side]} · {list.filter(x => x.done).length}/{list.length}
 											</div>
 											<div className='space-y-1.5'>
 												{[...list]
@@ -345,7 +367,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 													<div key={x.n} className='flex items-center gap-2 text-[12px]'>
 														<div className='w-1.5 h-1.5 rounded-full shrink-0' style={{ background: SIDE_COLORS[x.champion!] }} />
 														<div className='flex-1 min-w-0 truncate text-white'>
-															<span className='font-black'>Season {x.n}</span> · {settings.names[x.champion!]} won the Finals {x.finalsWins[x.champion!]}–{x.finalsWins[x.champion === 0 ? 1 : 0]}
+															<span className='font-black'>Season {x.n}</span> · {names[x.champion!]} won the Finals {x.finalsWins[x.champion!]}–{x.finalsWins[x.champion === 0 ? 1 : 0]}
 														</div>
 														{x.finalsMvp && <div className='text-yellow-200/80 shrink-0 text-[11px]'>MVP {getVersusPlayer(x.finalsMvp)?.lastName}</div>}
 													</div>
@@ -451,7 +473,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 									{([0, 1] as Side[]).map(side => (
 										<div key={side} className='rounded-2xl border border-white/10 bg-white/[0.03] p-3'>
 											<div className='text-[10px] font-black uppercase tracking-widest mb-0.5' style={{ color: SIDE_COLORS[side] }}>
-												{settings.names[side]}
+												{names[side]}
 											</div>
 											<div className='text-[10px] text-white/40 mb-2'>{stats.coaches[side].distinct} different players used</div>
 											<div className='text-[10px] font-black uppercase tracking-widest text-white/45 mb-0.5'>🔥 Most used</div>
@@ -463,14 +485,14 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 										</div>
 									))}
 								</div>
-								{retired.length > 0 && (
+								{isCurrent && retired.length > 0 && (
 									<div className='rounded-2xl border border-amber-400/30 bg-amber-400/[0.05] p-3 mb-4'>
 										<div className='text-[10px] font-black uppercase tracking-widest text-amber-300/80 mb-1.5'>🎖️ Retired right now</div>
 										{retired.map(r => (
 											<div key={`${r.side}-${r.id}`} className='flex items-center gap-2'>
 												<div className='w-1.5 h-1.5 rounded-full shrink-0' style={{ background: SIDE_COLORS[r.side] }} />
 												<div className='flex-1 min-w-0'>
-													<PlayerLine id={r.id} right={`${settings.names[r.side]} · ${r.left} draft${r.left === 1 ? '' : 's'} left`} />
+													<PlayerLine id={r.id} right={`${names[r.side]} · ${r.left} draft${r.left === 1 ? '' : 's'} left`} />
 												</div>
 											</div>
 										))}
@@ -479,12 +501,14 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 							</>
 						)}
 
-						{open && <GameDetail g={open} names={settings.names} onClose={() => setOpen(null)} />}
+						{open && <GameDetail g={open} names={names} onClose={() => setOpen(null)} />}
 
 						<button
 							onClick={() => {
-								if (confirm('Erase the whole rivalry record? This can’t be undone.')) {
-									clearRivalry();
+								const linked = linkedRivalry(names);
+								if (confirm(`Erase every ${names[0]} vs ${names[1]} game${linked ? ' on this phone and in the cloud (for both of you)' : ' on this phone'}? Other rivalries stay. This can’t be undone.`)) {
+									clearMatchup(names);
+									if (linked) void deleteCloudGames(linked).catch(() => undefined);
 									setVersion(v => v + 1);
 								}
 							}}

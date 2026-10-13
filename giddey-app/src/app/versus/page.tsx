@@ -20,6 +20,10 @@ import HelpSheet from '@/components/versus/HelpSheet';
 import { registerVersusSW } from '@/components/versus/InstallButton';
 import SyncSheet, { ImportPreview } from '@/components/versus/SyncSheet';
 import { decodeSync, SyncPayload } from '@/lib/versus/sync';
+import AccountSheet, { useCloud } from '@/components/versus/AccountSheet';
+import { cloudEnabled, cloudState, joinRivalry, linkedRivalry, onCloudChange, startCloud, subscribeCloud, syncNow, updateProfile } from '@/lib/versus/cloud';
+
+const JOIN_KEY = 'giddey-versus-join';
 import { isMuted, onMuteChange, setMuted, play } from '@/lib/versus/sound';
 import SetupScreen, { SettingsForm, settingsValid } from '@/components/versus/SetupScreen';
 import DraftScreen from '@/components/versus/DraftScreen';
@@ -95,7 +99,18 @@ function MuteButton() {
 	);
 }
 
-function TopBar({ onReset, showReset, onSettings, onRivalry, onHelp }: { onReset: () => void; showReset: boolean; onSettings: () => void; onRivalry: () => void; onHelp: () => void }) {
+function AccountButton({ onClick }: { onClick: () => void }) {
+	const cloud = useCloud();
+	if (!cloudEnabled) return null;
+	return (
+		<button onClick={onClick} className='relative w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='Account' title={cloud.session ? 'Account & cloud rivalries' : 'Sign in (optional)'}>
+			👤
+			{cloud.session && <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#111] ${cloud.error ? 'bg-red-400' : cloud.syncing ? 'bg-amber-300' : 'bg-emerald-400'}`} />}
+		</button>
+	);
+}
+
+function TopBar({ onReset, showReset, onSettings, onRivalry, onHelp, onAccount }: { onReset: () => void; showReset: boolean; onSettings: () => void; onRivalry: () => void; onHelp: () => void; onAccount: () => void }) {
 	return (
 		<header className='w-full bg-[#111]/80 border-b border-white/10 px-4 py-2.5 shrink-0'>
 			<div className='max-w-3xl mx-auto flex items-center justify-between'>
@@ -112,13 +127,15 @@ function TopBar({ onReset, showReset, onSettings, onRivalry, onHelp }: { onReset
 					<button onClick={onRivalry} className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='Rivalry record' title='Rivalry record'>
 						📊
 					</button>
+					<AccountButton onClick={onAccount} />
 					{showReset && (
 						<>
 							<button onClick={onSettings} className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='Settings' title='Settings'>
 								⚙️
 							</button>
-							<button onClick={onReset} className='text-[11px] font-bold text-white/40 hover:text-white/80 pl-1.5'>
-								New series
+							<button onClick={onReset} className='text-[11px] font-bold text-white/40 hover:text-white/80 pl-1 leading-tight text-left'>
+								New
+								<br className='min-[430px]:hidden' /> series
 							</button>
 						</>
 					)}
@@ -136,6 +153,8 @@ export default function VersusPage() {
 	const [showSync, setShowSync] = useState(false);
 	// bumps after a sync so open sheets re-read the log
 	const [syncs, setSyncs] = useState(0);
+	const [showAccount, setShowAccount] = useState(false);
+	const [joinCode, setJoinCode] = useState<string | null>(null);
 	const [incoming, setIncoming] = useState<SyncPayload | null>(null);
 	const current = useRef<VersusState | null>(null);
 
@@ -144,6 +163,27 @@ export default function VersusPage() {
 		current.current = s;
 		setStateRaw(s);
 		registerVersusSW();
+		// invite link: remember the code through a sign-in redirect
+		const jm = location.hash.match(/^#join=([A-Za-z0-9]+)/);
+		if (jm) {
+			try {
+				localStorage.setItem(JOIN_KEY, jm[1].toUpperCase());
+			} catch {
+				/* ignore */
+			}
+			history.replaceState(null, '', location.pathname + location.search);
+		}
+		let pending: string | null = null;
+		try {
+			pending = localStorage.getItem(JOIN_KEY);
+		} catch {
+			/* ignore */
+		}
+		if (pending && cloudEnabled) {
+			setJoinCode(pending);
+			setShowAccount(true);
+		}
+		void startCloud();
 		// opened from a sync link: offer to merge it
 		if (location.hash.startsWith('#sync=')) {
 			decodeSync(location.hash).then(p => {
@@ -171,6 +211,8 @@ export default function VersusPage() {
 		if (prev && s.series.length > prev.series.length) {
 			logGame(s.settings, s.series[s.series.length - 1]);
 			rebuildHistory(s.settings.names);
+			// signed in and this pair is a cloud rivalry: upload right away
+			if (linkedRivalry(s.settings.names)) void syncNow();
 		}
 		const screenChanged = !prev || prev.phase !== s.phase;
 		current.current = s;
@@ -182,6 +224,69 @@ export default function VersusPage() {
 		}
 		if (screenChanged) window.scrollTo({ top: 0, behavior: 'smooth' });
 	}, []);
+
+	// cloud sync pulled games / favorites: rebuild and fill in franchise guys by name
+	useEffect(() => {
+		onCloudChange((favs, myNames) => {
+			const s = current.current;
+			if (!s) return;
+			const norm = (n: string) => n.trim().toLowerCase();
+			const favorites: [string[], string[]] = [[...s.settings.favorites[0]], [...s.settings.favorites[1]]];
+			([0, 1] as const).forEach(seat => {
+				const name = s.settings.names[seat];
+				const key = Object.keys(favs).find(k => norm(k) === norm(name));
+				if (!key) return;
+				const mine = myNames.some(n => norm(n) === norm(name));
+				// first sign-in: your local pins seed your profile instead of being wiped
+				if (mine && !favs[key].length && favorites[seat].length) void updateProfile({ favorites: favorites[seat] }).catch(() => undefined);
+				else favorites[seat] = favs[key];
+			});
+			rebuildHistory(s.settings.names);
+			setSyncs(n => n + 1);
+			const next = { ...s, settings: { ...s.settings, favorites } };
+			current.current = next;
+			setStateRaw(next);
+			try {
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+			} catch {
+				/* ignore */
+			}
+		});
+	}, []);
+
+	// an invite opened before signing in: join as soon as there's a session
+	useEffect(
+		() =>
+			subscribeCloud(() => {
+				const code = (() => {
+					try {
+						return localStorage.getItem(JOIN_KEY);
+					} catch {
+						return null;
+					}
+				})();
+				if (!code || !cloudState().session) return;
+				try {
+					localStorage.removeItem(JOIN_KEY);
+				} catch {
+					/* ignore */
+				}
+				joinRivalry(code)
+					.then(() => setJoinCode(null))
+					.catch(() => setJoinCode(code));
+			}),
+		[],
+	);
+
+	/** Switch tonight's coaches to a cloud rivalry's two names */
+	const playRivalry = (names: [string, string]) => {
+		const s = current.current;
+		if (!s) return;
+		setShowAccount(false);
+		if (s.phase === 'setup') return setState({ ...s, settings: { ...s.settings, names } });
+		if (!confirm(`Start a new series: ${names[0]} vs ${names[1]}? The current teams and series score will be cleared.`)) return;
+		setState(initialState({ ...s.settings, names }));
+	};
 
 	/** After a sync merge: new favorites, and rebuild everything derived from the log */
 	const afterSync = (favorites: [string[], string[]]) => {
@@ -213,13 +318,14 @@ export default function VersusPage() {
 	const showReset = state.phase !== 'setup';
 	const wrap = (node: React.ReactNode) => (
 		<div className='min-h-screen vs-bg'>
-			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} />
+			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onAccount={() => setShowAccount(true)} />
 			{/* keyed by phase so every screen change animates in */}
 			<div key={state.phase} className='vs-screen'>
 				{node}
 			</div>
 			{showHelp && <HelpSheet settings={state.settings} onClose={() => setShowHelp(false)} />}
 			{showRivalry && <RivalrySheet key={syncs} settings={state.settings} retired={state.retired} onClose={() => setShowRivalry(false)} onSync={() => setShowSync(true)} />}
+			{showAccount && <AccountSheet settings={state.settings} joinCode={joinCode} onPlay={playRivalry} onClose={() => setShowAccount(false)} />}
 			{showSync && <SyncSheet settings={state.settings} onClose={() => setShowSync(false)} onImported={afterSync} />}
 			{incoming && (
 				<ImportPreview
@@ -238,6 +344,13 @@ export default function VersusPage() {
 					state={state}
 					onClose={() => setShowSettings(false)}
 					onSave={settings => {
+						// your franchise guys follow your account
+						const r = linkedRivalry(settings.names);
+						const me = cloudState().profile;
+						if (r && me) {
+							const seat = settings.names.findIndex(n => n.trim().toLowerCase() === r.names[r.mySeat].trim().toLowerCase());
+							if (seat >= 0 && settings.favorites[seat].join() !== me.favorites.join()) void updateProfile({ favorites: settings.favorites[seat] }).catch(() => undefined);
+						}
 						const next = { ...state, settings };
 						current.current = next;
 						setStateRaw(next);

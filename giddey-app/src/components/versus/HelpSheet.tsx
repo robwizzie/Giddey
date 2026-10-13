@@ -3,6 +3,7 @@
 import { RETIRE_DRAFTS, Settings } from '@/lib/versus/engine';
 import { getTheme } from '@/lib/versus/themes';
 import { TAG_LEGEND } from './Tags';
+import { cloudEnabled } from '@/lib/versus/cloud';
 
 const STYLE_NAMES: Record<string, string> = {
 	snake: 'Snake draft',
@@ -94,7 +95,11 @@ export default function HelpSheet({ settings, onClose }: { settings: Settings; o
 					Every game you record is saved to the 📊 Rivalry record on this device, matched by coach names, so keep your names the same each night. Tap any game to see its rosters, rules, line and grades. It also tracks
 					seasons and titles, 🏅 badges, records by draft style, Player of the Game awards, the spread, who each of you leans on and who&apos;s retired.
 					<div className='mt-2'>
-						<span className='font-black text-white'>Two phones?</span> 📊 Rivalry → 🔄 Sync phones sends your record as a QR code or link; the other phone merges whatever it&apos;s missing. Badges, seasons and
+						<span className='font-black text-white'>Accounts are optional.</span> Without one, everything lives on this phone and any number of rivalries can share it.
+						{cloudEnabled && ' Sign in from 👤 to back rivalries up, invite your opponent with a code, and have games either of you logs show up for both.'}
+					</div>
+					<div className='mt-2'>
+						<span className='font-black text-white'>No account, two phones?</span> 📊 Rivalry → 🔄 Sync phones sends your record as a QR code or link; the other phone merges whatever it&apos;s missing. Badges, seasons and
 						freshness all update.
 					</div>
 					<div className='mt-2'>

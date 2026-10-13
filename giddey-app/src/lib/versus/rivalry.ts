@@ -80,8 +80,33 @@ export function logGame(settings: Settings, g: GameResult): void {
 	saveRivalry(games);
 }
 
-export function clearRivalry(): void {
-	saveRivalry([]);
+export interface Matchup {
+	names: [string, string];
+	games: number;
+	wins: [number, number];
+	last: number;
+}
+
+/** Every pair of coaches with games on this device, most recent first */
+export function matchups(all: RivalryGame[] = loadRivalry()): Matchup[] {
+	const by = new Map<string, Matchup>();
+	for (const g of [...all].sort((a, b) => a.ts - b.ts)) {
+		const key = g.names.map(n => n.trim().toLowerCase()).sort().join('|');
+		const m = by.get(key) ?? { names: g.names, games: 0, wins: [0, 0] as [number, number], last: 0 };
+		// keep the seat order (and spelling) of the first game, count wins by name
+		const seat = g.names[g.winner].trim().toLowerCase() === m.names[0].trim().toLowerCase() ? 0 : 1;
+		m.wins[seat]++;
+		m.games++;
+		m.last = g.ts;
+		by.set(key, m);
+	}
+	return [...by.values()].sort((a, b) => b.last - a.last);
+}
+
+/** Erase one pair's games (either seat order); other rivalries on the device stay */
+export function clearMatchup(names: [string, string]): void {
+	const key = names.map(n => n.trim().toLowerCase()).sort().join('|');
+	saveRivalry(loadRivalry().filter(g => g.names.map(n => n.trim().toLowerCase()).sort().join('|') !== key));
 }
 
 

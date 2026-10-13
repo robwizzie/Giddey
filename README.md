@@ -133,7 +133,9 @@ Setup starts with four **quick setups** (Classic, Variety Night, Money Night, Ch
   - a **Games** list grouped by season; tap any game to see both rosters, the theme, twist, halftime spin, line, grades and Player of the Game
   - championship banners, whether the better draft grade wins, and the record against the spread
   - 20 **achievements** (Heater, Giant Killer, Sweep, Comeback from 0–2, Kaleidoscope, Every Style…). Titles and badge counts show next to each coach's name.
-- **Sync between phones:** the site has no server, so 🔄 Sync phones packs the rivalry log and franchise guys into a QR code or share link. The other phone merges any games it's missing; re-importing the same link adds nothing.
+- **Anyone can play.** There are no built-in names. A first-run welcome walks you through setup, one phone can hold any number of rivalries (pick a recent matchup with one tap), and the rivalry page switches between them.
+- **Optional accounts** (Supabase): sign in with an emailed code (or Google), back rivalries up to the cloud, and invite your opponent with a link or code so games either of you logs show up for both. Without the Supabase variables the site builds with no accounts and everything still works. Setup: [`giddey-app/supabase/README.md`](giddey-app/supabase/README.md).
+- **Sync between phones (no account):** the site has no server, so 🔄 Sync phones packs the rivalry log and franchise guys into a QR code or share link. The other phone merges any games it's missing; re-importing the same link adds nothing.
 - **Installable:** add Versus to your home screen (a 📲 button on the setup screen, with step-by-step instructions on iPhone). A service worker lets it open offline.
 
 Ratings live in `giddey-app/src/data/2k27-modern.json` and `2k27-alltime.json`, and headshots are matched to NBA.com player IDs in `nba-person-ids.json`.

@@ -88,7 +88,7 @@ export const RETIRE_DRAFTS = 2;
 export const SIDE_PALETTE = ['#f97316', '#38bdf8', '#22c55e', '#e11d48', '#a855f7', '#facc15', '#14b8a6', '#f472b6'];
 
 export const DEFAULT_SETTINGS: Settings = {
-	names: ['Rob', 'Dave'],
+	names: ['', ''],
 	identity: [
 		{ team: '', emoji: '🔥', color: '#f97316' },
 		{ team: '', emoji: '🧊', color: '#38bdf8' },

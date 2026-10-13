@@ -30,7 +30,7 @@ import VersusCard, { RosterRow } from './VersusCard';
 import Wheel from './Wheel';
 import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
-import { BlindReveal, ChemBars, CommissionerIntro, Handoff, PickReveal, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
+import { BlindReveal, ChemBars, CommissionerIntro, Handoff, PickReveal, RewardBanner, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
 
 function useCardWidth(count: number) {
 	const [w, setW] = useState(130);
@@ -272,6 +272,7 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 
 			<div className='max-w-3xl mx-auto px-4'>
 				<RoundTrack d={d} />
+				<RewardBanner state={state} />
 				<div className='flex items-center justify-between mt-2 gap-2'>
 					<div className='text-[11px] font-black uppercase tracking-widest text-white/40 truncate'>{roundLabel}</div>
 					<div className='text-[11px] font-black uppercase tracking-widest truncate' style={{ color: BAND_INFO[band].color }}>

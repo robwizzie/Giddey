@@ -86,8 +86,12 @@ A head-to-head mode at [`/versus`](https://playgiddey.com/versus) for two people
 - A full-screen **BOOM** with the player's headshot for every superstar pick.
 
 **Game day**
-- Wheels for quarter length (always 2–5 min) and a rule twist.
-- Each coach spins a personal challenge that earns a boost for the next game.
+- **Rules:** one slot-machine pull sets the quarter length (2–5 min) and a rule twist for both teams.
+- **Challenges:** each coach picks a risk level (Easy, Medium or Hard), then spins a challenge of that difficulty. Completing it banks a reward for the **next draft**, and harder challenges pay more:
+  - **Easy:** 🔒 Keeper, ⬆️ Tier Up (your lowest pick moves up a tier), or ➕ +1 Rotation player
+  - **Medium:** ⏫ Double Tier Up, 🎯 Guaranteed All-Star, or ➕ +1 Starter
+  - **Hard:** 💎 Guaranteed Superstar, 🌟 +1 All-Star, or 👑 +1 Superstar
+- **Running it back:** if you keep the same squads instead of redrafting, an extra-player reward signs a free agent of that tier, and any other reward upgrades your weakest player. The Equalizer stays off in a draft where someone has earned a reward.
 - Both rosters are listed with headshots.
 - One-tap **share image** (1080×1920) of both squads for iMessage or Instagram.
 - After each game the loser spins the **sabotage wheel** to inflict something on the winner next game.

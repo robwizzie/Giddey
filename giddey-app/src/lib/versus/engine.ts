@@ -1,6 +1,6 @@
 import { Position } from '@/lib/types';
 import { getPool, getVersusPlayer, PoolMode, VersusPlayer } from './pool';
-import { BoostId } from './wheels';
+import { BOOSTS, BoostId } from './wheels';
 
 // ═══════════════════════════════════════════════════════════════
 //  VERSUS DRAFT ENGINE
@@ -163,9 +163,44 @@ export function teamName(settings: Settings, side: Side): string {
 	return id?.emoji ? `${id.emoji} ${name}` : name;
 }
 
+/**
+ * Tier counts a coach drafts next time, after challenge rewards:
+ * guarantees turn the lowest pick into that tier, tier-ups bump the
+ * lowest pick up one tier, extras add a pick.
+ */
+export function effectiveTiers(settings: Settings, side: Side, rewards: BoostId[]): Record<Band, number> {
+	const t = { ...tiersFor(settings, side) };
+	const lowest = (below: number) => {
+		for (let i = BANDS.length - 1; i > below; i--) if (t[BANDS[i]] > 0) return BANDS[i];
+		return null;
+	};
+	for (const r of rewards) {
+		const mod = BOOSTS[r]?.mod;
+		if (!mod) continue;
+		if (mod.guarantee) {
+			const g = BANDS.indexOf(mod.guarantee);
+			const low = lowest(g);
+			if (low) t[low]--;
+			t[mod.guarantee]++;
+		}
+		for (let i = 0; i < (mod.tierUps ?? 0); i++) {
+			const low = lowest(0);
+			if (!low) break;
+			t[low]--;
+			t[BANDS[BANDS.indexOf(low) - 1]]++;
+		}
+		if (mod.extra) t[mod.extra]++;
+	}
+	return t;
+}
+
+export function hasKeeperRight(s: VersusState, side: Side): boolean {
+	return s.settings.keepers || (s.draftMods?.[side]?.rewards ?? []).some(r => BOOSTS[r]?.mod.keeper);
+}
+
 /** One band per round, stars first unless shuffled */
-export function buildBlueprint(settings: Settings, side: Side = 0): Band[] {
-	const t = tiersFor(settings, side);
+export function buildBlueprint(settings: Settings, side: Side = 0, tiers?: Record<Band, number>): Band[] {
+	const t = tiers ?? tiersFor(settings, side);
 	const rounds = BANDS.flatMap(b => Array.from({ length: t[b] ?? 0 }, () => b));
 	return settings.shuffleRounds ? shuffle(rounds) : rounds;
 }
@@ -228,7 +263,18 @@ export interface DraftState {
 	lastCollision: string | null;
 	auction: { budgets: [number, number]; nominator: Side; lot: AuctionLot | null; block?: BlockState } | null;
 	keepers: [string | null, string | null];
+	/** tier counts each coach drafts this time (settings + challenge rewards) */
+	tiers?: [Record<Band, number>, Record<Band, number>];
+	/** challenge rewards in effect this draft, for the banner */
+	rewards?: [BoostId[], BoostId[]];
 }
+
+/** Challenge rewards waiting to shape a coach's next draft */
+export interface DraftMods {
+	rewards: BoostId[];
+}
+
+export const NO_MODS: [DraftMods, DraftMods] = [{ rewards: [] }, { rewards: [] }];
 
 export interface LogEntry {
 	side: Side;
@@ -264,6 +310,15 @@ export interface TradeState {
 	history: { from: Side; give: string; get: string; accepted: boolean }[];
 }
 
+/** Roster-changing step resolved before a game: upgrade a slot, or sign an extra player of a tier */
+export interface QueuedBoost {
+	side: Side;
+	boost: 'upgrade' | 'sign';
+	band?: Band;
+	/** the challenge reward this came from */
+	from?: BoostId;
+}
+
 export interface Sabotage {
 	by: Side;
 	on: Side;
@@ -279,7 +334,7 @@ export interface VersusState {
 	equalizer: { side: Side; options: string[]; replaces: string } | null;
 	trade: TradeState | null;
 	/** mechanical boosts still to resolve before the game (upgrade / steal) */
-	boostQueue: { side: Side; boost: BoostId }[];
+	boostQueue: QueuedBoost[];
 	/** boost being resolved right now (options rolled once) */
 	boostOptions: string[] | null;
 	gameNo: number;
@@ -298,6 +353,8 @@ export interface VersusState {
 	/** sabotage in effect this game, and one spun after the last game */
 	sabotage: Sabotage | null;
 	pendingSabotage: Sabotage | null;
+	/** challenge rewards that apply to the next draft */
+	draftMods: [DraftMods, DraftMods];
 }
 
 export const EMPTY_GAMEDAY: GameDay = { quarter: null, modifier: null, challenges: [null, null], rewards: [null, null] };
@@ -325,6 +382,7 @@ export function initialState(settings: Settings = DEFAULT_SETTINGS): VersusState
 		keeperTurn: 0,
 		sabotage: null,
 		pendingSabotage: null,
+		draftMods: NO_MODS,
 	};
 }
 
@@ -727,8 +785,10 @@ export function startRound(s: VersusState, round: number): VersusState {
  */
 export function startDraft(s: VersusState, keep: [string | null, string | null] = [null, null]): VersusState {
 	const teams: [string[], string[]] = [keep[0] ? [keep[0]] : [], keep[1] ? [keep[1]] : []];
+	const mods = s.draftMods ?? NO_MODS;
+	const tiers = ([0, 1] as Side[]).map(side => effectiveTiers(s.settings, side, mods[side].rewards)) as [Record<Band, number>, Record<Band, number>];
 	const blueprints = ([0, 1] as Side[]).map(side => {
-		const bp = buildBlueprint(s.settings, side);
+		const bp = buildBlueprint(s.settings, side, tiers[side]);
 		const k = keep[side];
 		if (!k || !bp.length) return bp;
 		const band = bandOf(s.settings, side, k);
@@ -740,7 +800,7 @@ export function startDraft(s: VersusState, keep: [string | null, string | null] 
 		});
 		return bp.filter((_, i) => i !== bestIdx);
 	}) as [Band[], Band[]];
-	const targets: [number, number] = [rosterSizeFor(s.settings, 0), rosterSizeFor(s.settings, 1)];
+	const targets: [number, number] = [rosterTotal(tiers[0]), rosterTotal(tiers[1])];
 
 	// blind-bid round: a shared round after the first
 	let blindRound: number | null = null;
@@ -769,8 +829,11 @@ export function startDraft(s: VersusState, keep: [string | null, string | null] 
 		lastCollision: null,
 		auction: null,
 		keepers: keep,
+		tiers,
+		rewards: [mods[0].rewards, mods[1].rewards],
 	};
-	const base: VersusState = { ...s, phase: 'draft', teams, draft, equalizer: null, trade: null, keeperPicks: [null, null] };
+	// rewards are spent once the draft starts
+	const base: VersusState = { ...s, phase: 'draft', teams, draft, equalizer: null, trade: null, keeperPicks: [null, null], draftMods: NO_MODS };
 	if (s.settings.style === 'auction' || s.settings.style === 'block') return startAuction(base);
 	if (!roundsTotal(draft)) return endDraft(base);
 	return startRound(base, 0);
@@ -893,7 +956,9 @@ function finishRound(s: VersusState): VersusState {
 export function endDraft(s: VersusState): VersusState {
 	const a = teamOvr(s.teams[0]);
 	const b = teamOvr(s.teams[1]);
-	if (s.settings.equalizer && !s.settings.handicap && Math.abs(a - b) >= EQUALIZER_GAP) {
+	// a coach who earned a reward keeps the edge — no Equalizer to cancel it out
+	const rewarded = !!s.draft?.rewards && (s.draft.rewards[0].length > 0 || s.draft.rewards[1].length > 0);
+	if (s.settings.equalizer && !s.settings.handicap && !rewarded && Math.abs(a - b) >= EQUALIZER_GAP) {
 		const side: Side = a < b ? 0 : 1;
 		const eq = equalizerOptions(s, side);
 		if (eq.options.length) return { ...s, phase: 'equalizer', equalizer: { side, ...eq } };
@@ -979,7 +1044,7 @@ function startAuction(s: VersusState): VersusState {
 	// spares per tier so passing is a real option. Stars come first.
 	// each coach's tier slots, minus the round a keeper already used
 	const slots = ([0, 1] as Side[]).map(side => {
-		const t = { ...tiersFor(s.settings, side) };
+		const t = { ...(d.tiers?.[side] ?? tiersFor(s.settings, side)) };
 		const k = d.keepers[side];
 		if (k) {
 			const kb = bandOf(s.settings, side, k);
@@ -1172,11 +1237,18 @@ function award(s: VersusState, side: Side, id: string, price: number): VersusSta
 
 // ─── keepers ────────────────────────────────────────────────────
 
+/** Coaches who get to keep a player, in pick order (coin winner first) */
+function keeperOrder(s: VersusState): Side[] {
+	const first = s.coinWinner ?? 0;
+	return ([first, other(first)] as Side[]).filter(side => hasKeeperRight(s, side) && s.teams[side].length > 0);
+}
+
 export function chooseKeeper(s: VersusState, id: string | null): VersusState {
 	const picks: [string | null, string | null] = [...s.keeperPicks];
 	picks[s.keeperTurn] = id;
-	const first = s.coinWinner ?? 0;
-	if (s.keeperTurn === first) return { ...s, keeperPicks: picks, keeperTurn: other(first) };
+	const order = keeperOrder(s);
+	const next = order[order.indexOf(s.keeperTurn) + 1];
+	if (next !== undefined) return { ...s, keeperPicks: picks, keeperTurn: next };
 	return startDraft({ ...s, keeperPicks: picks }, picks);
 }
 
@@ -1210,52 +1282,52 @@ export function passTrade(s: VersusState): VersusState {
 
 // ─── earned boosts ──────────────────────────────────────────────
 
-const MECHANICAL: BoostId[] = ['upgrade', 'steal'];
-
 export function toBoosts(s: VersusState): VersusState {
 	const queue = s.boostQueue.length ? s.boostQueue : [];
-	if (queue.length) return { ...s, phase: 'boosts', boostOptions: rollBoostOptions(s, queue[0].side, queue[0].boost) };
+	if (queue.length) return { ...s, phase: 'boosts', boostOptions: rollBoostOptions(s, queue[0]) };
 	return { ...s, phase: 'reveal' };
 }
 
-/** Called when a new game starts: sort earned boosts into the right buckets */
+/**
+ * Called when a new game starts. Redraft: rewards shape the next draft.
+ * Running it back: extra-player rewards sign a free agent of that tier,
+ * everything else upgrades your weakest player.
+ */
 export function distributeBoosts(s: VersusState, redraft: boolean): VersusState {
-	const queue: { side: Side; boost: BoostId }[] = [];
-	const honor: [BoostId[], BoostId[]] = [[], []];
-	let firstPickBoost: Side | null = null;
-	const extraRerolls: [number, number] = [0, 0];
+	const queue: QueuedBoost[] = [];
+	const mods: [DraftMods, DraftMods] = [{ rewards: [] }, { rewards: [] }];
 	([0, 1] as Side[]).forEach(side => {
 		for (const b of s.earned[side]) {
-			if (b === 'firstPick') {
-				if (redraft && firstPickBoost === null) firstPickBoost = side;
-				else queue.push({ side, boost: 'upgrade' });
-			} else if (b === 'reroll') {
-				if (redraft) extraRerolls[side]++;
-				else queue.push({ side, boost: 'upgrade' });
-			} else if (MECHANICAL.includes(b)) {
-				queue.push({ side, boost: b });
-			} else {
-				honor[side].push(b);
-			}
+			const boost = BOOSTS[b];
+			if (!boost) continue; // reward from an older version
+			if (redraft) mods[side].rewards.push(b);
+			else if (boost.mod.extra) queue.push({ side, boost: 'sign', band: boost.mod.extra, from: b });
+			else queue.push({ side, boost: 'upgrade', from: b });
 		}
 	});
-	return { ...s, boostQueue: queue, honor, firstPickBoost, extraRerolls, earned: [[], []] };
+	return { ...s, boostQueue: queue, honor: [[], []], firstPickBoost: null, extraRerolls: [0, 0], earned: [[], []], draftMods: mods };
 }
 
-export function rollBoostOptions(s: VersusState, side: Side, boost: BoostId): string[] {
-	if (boost === 'steal') {
-		// bench players of the opponent (everyone outside their best-fit 5)
-		const lu = bestLineup(s.teams[other(side)]);
-		return lu.bench.map(p => p.id);
+export function rollBoostOptions(s: VersusState, q: QueuedBoost): string[] {
+	const taken = draftedSet(s);
+	const pool = getPool(poolFor(s.settings, q.side)).filter(p => !taken.has(p.id));
+	if (q.boost === 'sign') {
+		// 3 free agents from that tier
+		const band = q.band ?? 'rotation';
+		const mode = poolFor(s.settings, q.side);
+		const ids = new Set(bandSlice(getPool(mode), band).map(p => p.id));
+		const inBand = pool.filter(p => ids.has(p.id));
+		return shuffle(inBand.length >= 3 ? inBand : pool.slice(0, 12))
+			.slice(0, 3)
+			.sort((a, b) => b.overall - a.overall)
+			.map(p => p.id);
 	}
 	// upgrade: 3 undrafted players better than your weakest, modest jump
-	const mine = players(s.teams[side]).sort((a, b) => a.overall - b.overall);
-	const weakest = mine[0];
+	const weakest = players(s.teams[q.side]).sort((a, b) => a.overall - b.overall)[0];
 	if (!weakest) return [];
-	const taken = draftedSet(s);
-	const all = getPool(poolFor(s.settings, side)).filter(p => !taken.has(p.id) && p.overall > weakest.overall);
-	const close = all.filter(p => p.overall <= weakest.overall + 8);
-	return shuffle(close.length >= 3 ? close : all)
+	const better = pool.filter(p => p.overall > weakest.overall);
+	const close = better.filter(p => p.overall <= weakest.overall + 8);
+	return shuffle(close.length >= 3 ? close : better)
 		.slice(0, 3)
 		.sort((a, b) => b.overall - a.overall)
 		.map(p => p.id);
@@ -1267,19 +1339,15 @@ export function resolveBoost(s: VersusState, id: string | null): VersusState {
 	let teams = s.teams;
 	if (id && head) {
 		teams = [[...s.teams[0]], [...s.teams[1]]];
-		const mine = players(teams[head.side]).sort((a, b) => a.overall - b.overall);
-		const weakest = mine[0].id;
-		if (head.boost === 'upgrade') {
-			teams[head.side] = teams[head.side].map(x => (x === weakest ? id : x));
+		if (head.boost === 'sign') {
+			teams[head.side].push(id);
 		} else {
-			// steal: take their bench player, they get your weakest
-			const opp = other(head.side);
+			const weakest = players(teams[head.side]).sort((a, b) => a.overall - b.overall)[0].id;
 			teams[head.side] = teams[head.side].map(x => (x === weakest ? id : x));
-			teams[opp] = teams[opp].map(x => (x === id ? weakest : x));
 		}
 	}
 	const next = { ...s, teams, boostQueue: rest };
-	if (rest.length) return { ...next, boostOptions: rollBoostOptions(next, rest[0].side, rest[0].boost) };
+	if (rest.length) return { ...next, boostOptions: rollBoostOptions(next, rest[0]) };
 	return { ...next, phase: 'reveal', boostOptions: null };
 }
 
@@ -1314,9 +1382,9 @@ export function nextGame(s: VersusState, redraft: boolean): VersusState {
 		// loser of the last game gets the coin flip win
 		const last = s.series[s.series.length - 1];
 		const coinWinner: Side = last ? other(last.winner) : (s.coinWinner ?? 0);
-		if (s.settings.keepers && s.teams[0].length && s.teams[1].length) {
-			return { ...base, coinWinner, phase: 'keepers', keeperPicks: [null, null], keeperTurn: coinWinner, draft: null };
-		}
+		const withCoin = { ...base, coinWinner };
+		const order = keeperOrder(withCoin);
+		if (order.length) return { ...withCoin, phase: 'keepers', keeperPicks: [null, null], keeperTurn: order[0], draft: null };
 		return startDraft({ ...base, coinWinner });
 	}
 	return toBoosts({ ...base, draft: null });

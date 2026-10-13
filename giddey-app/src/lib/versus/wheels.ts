@@ -69,6 +69,8 @@ export const CHALLENGES: Challenge[] = [
 	{ id: 'oop', title: 'Lob City', desc: 'Finish 2 alley-oops.', difficulty: 'easy' },
 	{ id: 'glass', title: 'Glass Cleaner', desc: 'Win the rebounding battle.', difficulty: 'easy' },
 	{ id: 'firstq', title: 'Fast Start', desc: 'Lead after the 1st quarter.', difficulty: 'easy' },
+	{ id: 'dimes', title: 'Ball Movement', desc: 'Finish with more assists than your opponent.', difficulty: 'easy' },
+	{ id: 'fastbreak', title: 'Run and Gun', desc: 'Score 2 fast-break buckets.', difficulty: 'easy' },
 	{ id: 'splash', title: 'Heat Check', desc: 'Hit 3 three-pointers in a row (no misses from three in between).', difficulty: 'medium' },
 	{ id: 'pickpocket', title: 'Pickpocket', desc: 'Record 4+ steals.', difficulty: 'medium' },
 	{ id: 'block', title: 'Block Party', desc: 'Record 3+ blocks.', difficulty: 'medium' },
@@ -93,40 +95,50 @@ export const DIFFICULTY_INFO: Record<Difficulty, { label: string; color: string;
 	hard: { label: 'Hard', color: '#ef4444', weight: 2 },
 };
 
-export type BoostId = 'upgrade' | 'steal' | 'firstPick' | 'reroll' | 'quarterControl' | 'starSit' | 'homeCourt';
+// ─── challenge rewards — they shape your NEXT draft ─────────────
+
+export type BoostId = 'keeper' | 'tierUp' | 'tierUp2' | 'guarStar' | 'guarSuperstar' | 'extraRotation' | 'extraStarter' | 'extraStar' | 'extraSuperstar';
+type BandName = 'superstar' | 'star' | 'starter' | 'rotation' | 'deep';
 
 export interface Boost {
 	id: BoostId;
 	label: string;
 	icon: string;
 	desc: string;
-	/** applied by the app vs. honor system during the game */
-	kind: 'roster' | 'draft' | 'game';
+	/** what it turns into if you run it back with the same squads */
+	runBack: string;
+	mod: { keeper?: boolean; tierUps?: number; guarantee?: BandName; extra?: BandName };
 }
 
 export const BOOSTS: Record<BoostId, Boost> = {
-	upgrade: { id: 'upgrade', label: 'Upgrade Pack', icon: '⬆️', kind: 'roster', desc: 'Swap your weakest player for one of 3 better free agents.' },
-	steal: { id: 'steal', label: 'Bench Heist', icon: '🦹', kind: 'roster', desc: 'Take one of their bench players — they get your weakest guy.' },
-	firstPick: { id: 'firstPick', label: 'Draft Priority', icon: '🥇', kind: 'draft', desc: 'First pick of the next draft. Running it back? Becomes an Upgrade Pack.' },
-	reroll: { id: 'reroll', label: 'Extra Reroll', icon: '🎲', kind: 'draft', desc: '+1 pack reroll next draft. Running it back? Becomes an Upgrade Pack.' },
-	quarterControl: { id: 'quarterControl', label: 'Clock Control', icon: '⏱️', kind: 'game', desc: 'You pick the quarter length next game (2–5 min). No wheel.' },
-	starSit: { id: 'starSit', label: 'Late Scratch', icon: '🪑', kind: 'game', desc: 'Their highest-rated player sits the entire 1st quarter.' },
-	homeCourt: { id: 'homeCourt', label: 'Home Court', icon: '🏟️', kind: 'game', desc: 'You pick the arena, uniforms and who takes the opening tip.' },
+	keeper: { id: 'keeper', label: 'Keeper', icon: '🔒', desc: 'Keep one player from this team for the next draft.', runBack: 'Upgrade your weakest player', mod: { keeper: true } },
+	tierUp: { id: 'tierUp', label: 'Tier Up', icon: '⬆️', desc: 'Your lowest-tier pick next draft moves up one tier.', runBack: 'Upgrade your weakest player', mod: { tierUps: 1 } },
+	tierUp2: { id: 'tierUp2', label: 'Double Tier Up', icon: '⏫', desc: 'Two of your lowest-tier picks next draft move up a tier.', runBack: 'Upgrade your weakest player', mod: { tierUps: 2 } },
+	guarStar: { id: 'guarStar', label: 'Guaranteed All-Star', icon: '🎯', desc: 'Your lowest pick next draft becomes an All-Star pick.', runBack: 'Upgrade your weakest player', mod: { guarantee: 'star' } },
+	guarSuperstar: { id: 'guarSuperstar', label: 'Guaranteed Superstar', icon: '💎', desc: 'Your lowest pick next draft becomes a Superstar pick.', runBack: 'Upgrade your weakest player', mod: { guarantee: 'superstar' } },
+	extraRotation: { id: 'extraRotation', label: '+1 Rotation Player', icon: '➕', desc: 'An extra Rotation-tier pick next draft.', runBack: 'Sign a Rotation-tier free agent', mod: { extra: 'rotation' } },
+	extraStarter: { id: 'extraStarter', label: '+1 Starter', icon: '➕', desc: 'An extra Starter-tier pick next draft.', runBack: 'Sign a Starter-tier free agent', mod: { extra: 'starter' } },
+	extraStar: { id: 'extraStar', label: '+1 All-Star', icon: '🌟', desc: 'An extra All-Star pick next draft.', runBack: 'Sign an All-Star free agent', mod: { extra: 'star' } },
+	extraSuperstar: { id: 'extraSuperstar', label: '+1 Superstar', icon: '👑', desc: 'An extra Superstar pick next draft.', runBack: 'Sign a Superstar free agent', mod: { extra: 'superstar' } },
 };
 
-const REWARDS_BY_DIFFICULTY: Record<Difficulty, BoostId[]> = {
-	easy: ['homeCourt', 'reroll', 'quarterControl'],
-	medium: ['firstPick', 'quarterControl', 'steal', 'reroll'],
-	hard: ['upgrade', 'starSit', 'steal'],
+export const REWARDS_BY_DIFFICULTY: Record<Difficulty, BoostId[]> = {
+	easy: ['keeper', 'tierUp', 'extraRotation'],
+	medium: ['tierUp2', 'guarStar', 'extraStarter'],
+	hard: ['guarSuperstar', 'extraStar', 'extraSuperstar'],
 };
 
-export function rollReward(difficulty: Difficulty, rosterSize: number): BoostId {
-	const options = REWARDS_BY_DIFFICULTY[difficulty].filter(b => !(b === 'steal' && rosterSize <= 5));
+export function getBoost(id: string | null | undefined): Boost | undefined {
+	return id ? BOOSTS[id as BoostId] : undefined;
+}
+
+export function rollReward(difficulty: Difficulty): BoostId {
+	const options = REWARDS_BY_DIFFICULTY[difficulty];
 	return options[Math.floor(Math.random() * options.length)];
 }
 
-export function challengeSegments(rosterSize: number): (WheelSegment & { challenge: Challenge })[] {
-	return CHALLENGES.filter(c => !(c.needsBench && rosterSize <= 5)).map(c => ({
+export function challengeSegments(rosterSize: number, difficulty?: Difficulty): (WheelSegment & { challenge: Challenge })[] {
+	return CHALLENGES.filter(c => !(c.needsBench && rosterSize <= 5) && (!difficulty || c.difficulty === difficulty)).map(c => ({
 		id: c.id,
 		label: c.title,
 		color: DIFFICULTY_INFO[c.difficulty].color,

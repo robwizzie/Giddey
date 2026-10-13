@@ -6,6 +6,7 @@ import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { getPlayerHeadshotUrls } from '@/lib/images';
 import { CATEGORY_INFO, Category, lineupChemistry } from '@/lib/versus/chemistry';
 import { buzz, play } from '@/lib/versus/sound';
+import { getBoost } from '@/lib/versus/wheels';
 import Headshot from '@/components/Headshot';
 import VersusCard from './VersusCard';
 import { Confetti, SIDE_COLORS } from './Fx';
@@ -299,6 +300,35 @@ export function ChemBars({ ids, rosterSize, color, compact }: { ids: string[]; r
 				);
 			})}
 			{chem.hint && ids.length >= 3 && <div className={`${compact ? 'text-[9px]' : 'text-[11px]'} text-amber-300/90 font-bold leading-tight pt-0.5`}>⚠️ {chem.hint}</div>}
+		</div>
+	);
+}
+
+// ─── challenge rewards in effect ────────────────────────────────
+
+export function RewardBanner({ state }: { state: VersusState }) {
+	const rewards = state.draft?.rewards;
+	if (!rewards || (!rewards[0].length && !rewards[1].length)) return null;
+	return (
+		<div className='mt-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.07] px-3 py-2 space-y-1'>
+			<div className='text-[10px] font-black uppercase tracking-widest text-amber-300'>🎁 Challenge rewards this draft</div>
+			{([0, 1] as Side[]).map(side =>
+				rewards[side].length ? (
+					<div key={side} className='text-[12px] text-white/80 flex flex-wrap gap-x-2'>
+						<span className='font-black' style={{ color: SIDE_COLORS[side] }}>
+							{state.settings.names[side]}:
+						</span>
+						{rewards[side].map((r, i) => {
+							const b = getBoost(r);
+							return b ? (
+								<span key={i}>
+									{b.icon} {b.label}
+								</span>
+							) : null;
+						})}
+					</div>
+				) : null
+			)}
 		</div>
 	);
 }

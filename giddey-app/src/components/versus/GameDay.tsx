@@ -10,23 +10,25 @@ import {
 	BOOSTS,
 	BoostId,
 	challengeSegments,
+	Difficulty,
 	DIFFICULTY_INFO,
+	getBoost,
+	REWARDS_BY_DIFFICULTY,
 	getChallenge,
 	getSabotage,
 	getTwist,
 	SABOTAGES,
-	QUARTER_SEGMENTS,
-	quarterMinutes,
 	rollReward,
 	TWISTS,
 } from '@/lib/versus/wheels';
 import Wheel from './Wheel';
+import SlotMachine from './SlotMachine';
 import { Confetti, Pill, SectionTitle, SIDE_COLORS } from './Fx';
 
 type SetState = (s: VersusState) => void;
 
 function StepDots({ step }: { step: number }) {
-	const labels = ['Clock', 'Twist', 'Challenges', 'Tip-off'];
+	const labels = ['Rules', 'Challenges', 'Tip-off'];
 	return (
 		<div className='flex items-center justify-center gap-2 mb-6'>
 			{labels.map((l, i) => (
@@ -47,17 +49,12 @@ function useWheelSize() {
 	return s;
 }
 
-function holder(state: VersusState, boost: BoostId): Side | null {
-	if (state.honor[0].includes(boost)) return 0;
-	if (state.honor[1].includes(boost)) return 1;
-	return null;
-}
-
 function ChallengeCard({ state, side }: { state: VersusState; side: Side }) {
 	const c = getChallenge(state.gameday.challenges[side]);
 	const reward = state.gameday.rewards[side];
 	if (!c || !reward) return null;
 	const r = BOOSTS[reward];
+	if (!r) return null;
 	return (
 		<div className='rounded-2xl p-4 border vs-rise' style={{ borderColor: `${SIDE_COLORS[side]}66`, background: `linear-gradient(160deg, ${SIDE_COLORS[side]}1f, transparent 70%)` }}>
 			<div className='flex items-center justify-between mb-1'>
@@ -72,7 +69,8 @@ function ChallengeCard({ state, side }: { state: VersusState; side: Side }) {
 				<div className='text-xl'>{r.icon}</div>
 				<div>
 					<div className='text-xs font-black text-amber-300 uppercase tracking-wider'>Reward: {r.label}</div>
-					<div className='text-[11px] text-white/55 leading-snug'>{r.desc}</div>
+					<div className='text-[11px] text-white/65 leading-snug'>{r.desc}</div>
+					<div className='text-[10px] text-white/35 leading-snug mt-0.5'>Run it back instead: {r.runBack.toLowerCase()}.</div>
 				</div>
 			</div>
 		</div>
@@ -189,14 +187,7 @@ function MiniPlayer({ player: p, slot, tag }: { player: VersusPlayer; slot: stri
 /** Both squads, starters + bench, visible the whole game day */
 function GameRosters({ state }: { state: VersusState }) {
 	const { names } = state.settings;
-	// players benched for Q1 by a Late Scratch boost
 	const sitting = new Set<string>();
-	([0, 1] as Side[]).forEach(side => {
-		if (state.honor[side].includes('starSit')) {
-			const best = players(state.teams[other(side)]).sort((a, b) => b.overall - a.overall)[0];
-			if (best) sitting.add(best.id);
-		}
-	});
 	return (
 		<div className='mt-8'>
 			<div className='text-[11px] font-black uppercase tracking-widest text-white/45 text-center mb-3'>Tonight&apos;s rosters</div>
@@ -228,108 +219,169 @@ function GameRosters({ state }: { state: VersusState }) {
 	);
 }
 
+const QUARTER_REEL = [
+	{ id: '2', label: '2 MIN', sub: 'Sprint', color: '#f97316', weight: 2 },
+	{ id: '3', label: '3 MIN', sub: 'Quick', color: '#3b82f6', weight: 3 },
+	{ id: '4', label: '4 MIN', sub: 'Standard', color: '#a855f7', weight: 3 },
+	{ id: '5', label: '5 MIN', sub: 'Long', color: '#ef4444', weight: 2 },
+];
+
+const SEG_COLORS = ['#f97316', '#3b82f6', '#a855f7', '#22c55e', '#ef4444', '#06b6d4', '#eab308', '#ec4899'];
+
+/** Pick a risk level — the harder the challenge, the bigger the draft reward */
+function RiskPicker({ side, name, onPick }: { side: Side; name: string; onPick: (d: Difficulty) => void }) {
+	return (
+		<div className='animate-fade-in'>
+			<p className='text-sm text-center mb-3'>
+				<span className='font-black' style={{ color: SIDE_COLORS[side] }}>
+					{name}
+				</span>
+				<span className='text-white/60'>, pick your risk. Complete the challenge this game to bank the reward for your next draft.</span>
+			</p>
+			<div className='grid grid-cols-3 gap-2'>
+				{(['easy', 'medium', 'hard'] as const).map(dif => {
+					const info = DIFFICULTY_INFO[dif];
+					return (
+						<button
+							key={dif}
+							onClick={() => onPick(dif)}
+							className='rounded-2xl p-3 text-left border-2 transition-transform active:scale-95 hover:scale-[1.02]'
+							style={{ borderColor: `${info.color}88`, background: `linear-gradient(170deg, ${info.color}26, transparent 70%)` }}
+						>
+							<div className='text-base font-black' style={{ color: info.color }}>
+								{info.label}
+							</div>
+							<div className='text-[10px] text-white/45 font-bold uppercase tracking-wider mb-2'>{dif === 'easy' ? 'Safe' : dif === 'medium' ? 'Solid' : 'Big swing'}</div>
+							<div className='space-y-1'>
+								{REWARDS_BY_DIFFICULTY[dif].map(b => (
+									<div key={b} className='text-[11px] text-white/80 leading-tight flex gap-1'>
+										<span>{BOOSTS[b].icon}</span>
+										<span className='font-bold'>{BOOSTS[b].label}</span>
+									</div>
+								))}
+							</div>
+						</button>
+					);
+				})}
+			</div>
+			<div className='text-center text-[10px] text-white/35 mt-2'>You land one of the three rewards at random.</div>
+		</div>
+	);
+}
+
 export function GameDayScreen({ state, setState }: { state: VersusState; setState: SetState }) {
 	const gd = state.gameday;
 	const { names, rosterSize } = state.settings;
 	const size = useWheelSize();
 	const [showForm, setShowForm] = useState(false);
 	const [pending, setPending] = useState<string | null>(null);
-	const clockHolder = holder(state, 'quarterControl');
+	const [risk, setRisk] = useState<Difficulty | null>(null);
 
-	const step = gd.quarter === null ? 0 : gd.modifier === null ? 1 : !gd.rewards[0] || !gd.rewards[1] ? 2 : 3;
+	const step = gd.quarter === null || gd.modifier === null ? 0 : !gd.rewards[0] || !gd.rewards[1] ? 1 : 2;
 	const set = (patch: Partial<typeof gd>) => setState({ ...state, gameday: { ...gd, ...patch } });
 	const later = (fn: () => void, label: string) => {
 		setPending(label);
 		setTimeout(() => {
 			setPending(null);
 			fn();
-		}, 1300);
+		}, 1400);
 	};
 
 	// whose challenge spin is next
 	const spinner: Side = !gd.rewards[0] ? 0 : 1;
-	const segs = challengeSegments(rosterSize).filter(sg => sg.id !== gd.challenges[other(spinner)]);
+	const segs = risk
+		? challengeSegments(rosterSize, risk)
+				.filter(sg => sg.id !== gd.challenges[other(spinner)])
+				.map((sg, i) => ({ ...sg, color: SEG_COLORS[i % SEG_COLORS.length], weight: 1 }))
+		: [];
 
 	return (
 		<div className='min-h-screen pb-16'>
 			<div className='max-w-3xl mx-auto px-4 pt-6'>
-				<SectionTitle kicker={`Game ${state.gameNo} · Game day`} title={step === 3 ? 'Ball is tipped' : 'Spin for the rules'} />
+				<SectionTitle kicker={`Game ${state.gameNo} · Game day`} title={step === 2 ? 'Ball is tipped' : step === 0 ? 'Spin for the rules' : 'Challenge spins'} />
 				<StepDots step={step} />
 
-				{step === 0 &&
-					(clockHolder !== null ? (
-						<div className='text-center animate-fade-in'>
-							<div className='text-sm text-white/60 mb-4'>
-								⏱️ <span className='font-black' style={{ color: SIDE_COLORS[clockHolder] }}>{names[clockHolder]}</span> earned Clock Control — pick the quarter length.
-							</div>
-							<div className='grid grid-cols-4 gap-2 max-w-sm mx-auto'>
-								{[2, 3, 4, 5].map(m => (
-									<button key={m} onClick={() => set({ quarter: m })} className='rounded-2xl py-4 bg-white/[0.06] border border-white/10 hover:bg-white/10 text-2xl font-black text-white'>
-										{m}
-										<div className='text-[10px] text-white/40 font-bold'>MIN</div>
-									</button>
-								))}
-							</div>
+				{step === 0 && (
+					<div className='animate-fade-in'>
+						<p className='text-sm text-white/55 mb-4 text-center'>One pull sets the quarter length (2–5 min) and a rule twist for both teams.</p>
+						<SlotMachine
+							reels={[
+								{ title: 'Quarters', items: QUARTER_REEL },
+								{ title: 'Twist', items: TWISTS.map(t => ({ id: t.id, label: t.label, color: t.color, weight: t.weight })) },
+							]}
+							onDone={([q, t]) => set({ quarter: parseInt(QUARTER_REEL[q].id, 10), modifier: TWISTS[t].id })}
+						/>
+						<div className='text-center mt-3'>
+							<button onClick={() => later(() => set({ quarter: 4, modifier: 'straight' }), '4-minute quarters, straight up')} className='text-xs text-white/35 underline'>
+								Skip — 4-minute quarters, no twist
+							</button>
 						</div>
-					) : (
-						<div className='flex flex-col items-center animate-fade-in'>
-							<p className='text-sm text-white/55 mb-4 text-center'>Quarter length — always 2 to 5 minutes. Quick, competitive games.</p>
-							<Wheel items={QUARTER_SEGMENTS} size={size} onResult={i => later(() => set({ quarter: quarterMinutes(QUARTER_SEGMENTS[i].id) }), `${quarterMinutes(QUARTER_SEGMENTS[i].id)}-minute quarters!`)} />
-						</div>
-					))}
+					</div>
+				)}
 
 				{step === 1 && (
-					<div className='flex flex-col items-center animate-fade-in'>
-						<p className='text-sm text-white/55 mb-4 text-center'>Rule twist — applies to both teams.</p>
-						<Wheel items={TWISTS} size={size} accent='#a855f7' onResult={i => later(() => set({ modifier: TWISTS[i].id }), TWISTS[i].label)} />
-						<button onClick={() => set({ modifier: 'straight' })} className='mt-4 text-xs text-white/35 underline'>
-							Skip — play it straight
-						</button>
+					<div className='animate-fade-in'>
+						{/* this game's rules */}
+						<div className='flex justify-center gap-2 mb-5 flex-wrap'>
+							<Pill color='#f97316'>⏱ {gd.quarter}-min quarters</Pill>
+							{(() => {
+								const t = getTwist(gd.modifier);
+								return t ? <Pill color={t.color}>🎲 {t.label}</Pill> : null;
+							})()}
+						</div>
+						{gd.rewards[0] && (
+							<div className='mb-5'>
+								<ChallengeCard state={state} side={0} />
+							</div>
+						)}
+						{!risk ? (
+							<RiskPicker key={spinner} side={spinner} name={names[spinner]} onPick={setRisk} />
+						) : (
+							<div className='flex flex-col items-center'>
+								<p className='text-sm text-center mb-1'>
+									<span className='font-black' style={{ color: SIDE_COLORS[spinner] }}>
+										{names[spinner]}
+									</span>
+									<span className='text-white/60'> — spin a </span>
+									<span className='font-black' style={{ color: DIFFICULTY_INFO[risk].color }}>
+										{DIFFICULTY_INFO[risk].label}
+									</span>
+									<span className='text-white/60'> challenge</span>
+								</p>
+								<div className='flex gap-2 mb-4 text-[11px] text-white/50'>
+									{REWARDS_BY_DIFFICULTY[risk].map(b => (
+										<span key={b}>
+											{BOOSTS[b].icon} {BOOSTS[b].label}
+										</span>
+									))}
+								</div>
+								<Wheel
+									key={`ch-${spinner}-${risk}`}
+									items={segs}
+									size={size}
+									accent={DIFFICULTY_INFO[risk].color}
+									onResult={i => {
+										const c = segs[i].challenge;
+										const reward = rollReward(risk);
+										later(() => {
+											const challenges: [string | null, string | null] = [...gd.challenges];
+											const rewards: [BoostId | null, BoostId | null] = [...gd.rewards];
+											challenges[spinner] = c.id;
+											rewards[spinner] = reward;
+											setRisk(null);
+											set({ challenges, rewards });
+										}, `${c.title} → ${BOOSTS[reward].icon} ${BOOSTS[reward].label}`);
+									}}
+								/>
+								<button onClick={() => setRisk(null)} className='mt-3 text-xs text-white/35 underline'>
+									← Change risk
+								</button>
+							</div>
+						)}
 					</div>
 				)}
 
 				{step === 2 && (
-					<div className='animate-fade-in'>
-						<div className='grid sm:grid-cols-2 gap-3 mb-6'>
-							{gd.rewards[0] && <ChallengeCard state={state} side={0} />}
-							{gd.rewards[1] && <ChallengeCard state={state} side={1} />}
-						</div>
-						<div className='flex flex-col items-center'>
-							<p className='text-sm text-center mb-4'>
-								<span className='font-black' style={{ color: SIDE_COLORS[spinner] }}>
-									{names[spinner]}
-								</span>
-								<span className='text-white/55'>, spin your challenge. Complete it in this game to earn a boost for the next one.</span>
-							</p>
-							<Wheel
-								key={`ch-${spinner}`}
-								items={segs}
-								size={size}
-								accent={SIDE_COLORS[spinner]}
-								onResult={i => {
-									const c = segs[i].challenge;
-									later(() => {
-										const challenges: [string | null, string | null] = [...gd.challenges];
-										const rewards: [BoostId | null, BoostId | null] = [...gd.rewards];
-										challenges[spinner] = c.id;
-										rewards[spinner] = rollReward(c.difficulty, rosterSize);
-										set({ challenges, rewards });
-									}, c.title);
-								}}
-							/>
-							<div className='flex gap-3 mt-3'>
-								{(['easy', 'medium', 'hard'] as const).map(dif => (
-									<span key={dif} className='flex items-center gap-1 text-[10px] font-bold text-white/50'>
-										<span className='w-2 h-2 rounded-full' style={{ background: DIFFICULTY_INFO[dif].color }} />
-										{DIFFICULTY_INFO[dif].label}
-									</span>
-								))}
-							</div>
-						</div>
-					</div>
-				)}
-
-				{step === 3 && (
 					<div className='space-y-3 animate-fade-in'>
 						{/* Game card */}
 						<div className='rounded-2xl overflow-hidden border border-white/10'>
@@ -363,25 +415,6 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 
 						{/* Sabotage in play */}
 						{state.sabotage && <SabotageCard state={state} />}
-
-						{/* Honor boosts in play */}
-						{([0, 1] as Side[]).flatMap(side =>
-							state.honor[side]
-								.filter(b => b !== 'quarterControl')
-								.map(b => {
-									const info = BOOSTS[b];
-									const star = b === 'starSit' ? bestLineup(state.teams[other(side)]).starters.map(s => s.player).filter(Boolean).sort((x, y) => y!.overall - x!.overall)[0] : null;
-									return (
-										<div key={`${side}-${b}`} className='rounded-xl p-3 bg-amber-400/10 border border-amber-400/30 flex gap-3 items-start'>
-											<div className='text-xl'>{info.icon}</div>
-											<div className='text-[12px] text-white/75 leading-snug'>
-												<span className='font-black' style={{ color: SIDE_COLORS[side] }}>{names[side]}</span> is using <span className='font-black text-amber-300'>{info.label}</span>: {info.desc}
-												{star && <span className='font-bold text-white'> ({star.firstName} {star.lastName} sits.)</span>}
-											</div>
-										</div>
-									);
-								})
-						)}
 
 						<div className='grid sm:grid-cols-2 gap-3'>
 							<ChallengeCard state={state} side={0} />
@@ -546,13 +579,22 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 									{c?.title} — {ok ? <span className='text-green-400'>completed</span> : <span className='text-red-400'>missed</span>}
 								</div>
 								{earned.length > 0 ? (
-									earned.map(b => (
-										<div key={b} className='mt-2 flex items-center gap-2 text-sm'>
-											<span className='text-xl'>{BOOSTS[b].icon}</span>
-											<span className='font-black text-amber-300'>{BOOSTS[b].label}</span>
-											<span className='text-white/45 text-xs'>next game</span>
-										</div>
-									))
+									earned.map(b => {
+										const info = getBoost(b);
+										if (!info) return null;
+										return (
+											<div key={b} className='mt-2 text-sm'>
+												<div className='flex items-center gap-2'>
+													<span className='text-xl'>{info.icon}</span>
+													<span className='font-black text-amber-300'>{info.label}</span>
+													<span className='text-white/45 text-xs'>next draft</span>
+												</div>
+												<div className='text-[11px] text-white/45 mt-0.5'>
+													{info.desc} Run it back instead: {info.runBack.toLowerCase()}.
+												</div>
+											</div>
+										);
+									})
 								) : (
 									<div className='text-xs text-white/35 mt-1'>No boost this time.</div>
 								)}

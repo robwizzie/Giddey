@@ -9,7 +9,7 @@ import VersusCard from './VersusCard';
 import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
 import { RosterColumn } from './DraftScreen';
-import { CommissionerIntro, PickReveal, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
+import { CommissionerIntro, PickReveal, RewardBanner, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
 
 const POSITIONS: (Position | 'ALL' | 'NEED')[] = ['ALL', 'NEED', 'PG', 'SG', 'SF', 'PF', 'C'];
 const introsShown = new Set<string>();
@@ -147,6 +147,7 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 			{stamp && <Stamp key={stamp} text='UNSOLD' color='#94a3b8' onDone={() => setStamp(null)} />}
 
 			<div className='max-w-3xl mx-auto px-4'>
+				<RewardBanner state={state} />
 				{/* budgets */}
 				<div className='grid grid-cols-2 gap-2 mt-3'>
 					{([0, 1] as Side[]).map(side => (

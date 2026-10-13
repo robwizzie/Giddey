@@ -605,3 +605,9 @@ html, body {
   .vs-shake, .vs-boom-shake, .vs-slam, .vs-zoom-in, .vs-confetti { animation: none !important; }
   .vs-flash { display: none; }
 }
+
+@keyframes vsBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.vs-blink { animation: vsBlink 0.35s ease-in-out infinite; }

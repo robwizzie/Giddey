@@ -21,6 +21,7 @@ import { shareSquads } from '@/lib/versus/shareCard';
 import { ChemBars } from './DraftFx';
 import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { BOOSTS } from '@/lib/versus/wheels';
+import { BAND_INFO } from '@/lib/versus/engine';
 import VersusCard, { RosterRow } from './VersusCard';
 import Scoreboard, { FairnessMeter } from './Scoreboard';
 import { Confetti, SectionTitle, SIDE_COLORS } from './Fx';
@@ -220,19 +221,20 @@ export function BoostScreen({ state, setState }: { state: VersusState; setState:
 	const [chosen, setChosen] = useState<string | null>(null);
 	useEffect(() => setChosen(null), [state.boostQueue.length]);
 	if (!head) return null;
-	const b = BOOSTS[head.boost];
+	const reward = head.from ? BOOSTS[head.from] : undefined;
 	const name = state.settings.names[head.side];
 	const weakest = players(state.teams[head.side]).sort((x, y) => x.overall - y.overall)[0];
 	const opts = state.boostOptions ?? [];
-	const steal = head.boost === 'steal';
+	const sign = head.boost === 'sign';
+	const tier = head.band ? BAND_INFO[head.band].label : '';
 	return (
 		<div className='min-h-screen pb-28'>
 			<Scoreboard state={state} />
 			<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
 				<SectionTitle
-					kicker={`${b.icon} Boost earned`}
-					title={`${name}: ${b.label}`}
-					sub={steal ? `Pick one of ${state.settings.names[other(head.side)]}'s bench players. They get ${weakest.firstName} ${weakest.lastName} (${weakest.overall}) back.` : `Replace ${weakest.firstName} ${weakest.lastName} (${weakest.overall}) with one of these.`}
+					kicker={`${reward?.icon ?? '⬆️'} Challenge reward${reward ? ` · ${reward.label}` : ''}`}
+					title={sign ? `${name} signs a ${tier}` : `${name} upgrades`}
+					sub={sign ? `Running it back — pick one ${tier}-tier free agent to add to your roster.` : `Running it back — replace ${weakest.firstName} ${weakest.lastName} (${weakest.overall}) with one of these.`}
 				/>
 				{opts.length ? <OptionPicker options={opts} chosen={chosen} setChosen={setChosen} /> : <div className='text-center text-white/50'>Nothing to take — boost fizzles.</div>}
 			</div>
@@ -241,7 +243,7 @@ export function BoostScreen({ state, setState }: { state: VersusState; setState:
 					Skip
 				</button>
 				<button disabled={!chosen} onClick={() => setState(resolveBoost(state, chosen))} className='flex-1 btn-green rounded-2xl py-3.5 font-black uppercase tracking-wider text-white disabled:opacity-35'>
-					{steal ? 'Steal him' : 'Upgrade'}
+					{sign ? 'Sign him' : 'Upgrade'}
 				</button>
 			</BottomBar>
 		</div>

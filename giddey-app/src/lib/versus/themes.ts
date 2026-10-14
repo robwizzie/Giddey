@@ -37,7 +37,7 @@ export const THEMES: Theme[] = [
 	{
 		id: 'throwback',
 		label: 'Throwback',
-		icon: '📼',
+		icon: 'hourglass',
 		color: '#f59e0b',
 		desc: 'Legends who played before 2000 only.',
 		filter: p => p.era === 'alltime' && ['50s', '60s', '70s', '80s', '90s'].includes(p.eraLabel ?? ''),
@@ -45,7 +45,7 @@ export const THEMES: Theme[] = [
 	{
 		id: 'eighties90s',
 		label: '80s & 90s Night',
-		icon: '🕹️',
+		icon: 'gamepad',
 		color: '#ec4899',
 		desc: 'Only legends from the 80s and 90s.',
 		filter: p => p.era === 'alltime' && ['80s', '90s'].includes(p.eraLabel ?? ''),
@@ -53,7 +53,7 @@ export const THEMES: Theme[] = [
 	{
 		id: 'youngGuns',
 		label: 'Young Guns',
-		icon: '🐣',
+		icon: 'sprout',
 		color: '#22c55e',
 		desc: 'Only current players drafted in 2022 or later.',
 		filter: p => p.era === 'modern' && p.draftYear >= 2022,
@@ -61,7 +61,7 @@ export const THEMES: Theme[] = [
 	{
 		id: 'division',
 		label: 'Division Night',
-		icon: '🗺️',
+		icon: 'map',
 		color: '#3b82f6',
 		desc: 'Everyone comes from one division’s franchises.',
 		filter: (p, _side, param) => TEAMS_MAP[p.teamId]?.division === param,
@@ -69,7 +69,7 @@ export const THEMES: Theme[] = [
 	{
 		id: 'eastWest',
 		label: 'East vs West',
-		icon: '🧭',
+		icon: 'compass',
 		color: '#06b6d4',
 		split: true,
 		desc: 'One coach drafts only Eastern Conference franchises, the other only Western.',
@@ -81,7 +81,7 @@ export const THEMES: Theme[] = [
 	{
 		id: 'onePerFranchise',
 		label: 'One Per Franchise',
-		icon: '🏟️',
+		icon: 'building',
 		color: '#a855f7',
 		onePerFranchise: true,
 		desc: 'No two players on your roster can come from the same franchise.',
@@ -89,7 +89,7 @@ export const THEMES: Theme[] = [
 	{
 		id: 'cap95',
 		label: 'No One Over 95',
-		icon: '🧢',
+		icon: 'ban',
 		color: '#ef4444',
 		desc: 'Nobody rated above 95 OVR — the true superstars sit this one out.',
 		filter: p => p.overall <= 95,
@@ -97,7 +97,7 @@ export const THEMES: Theme[] = [
 	{
 		id: 'underdog',
 		label: 'Underdog Night',
-		icon: '🐶',
+		icon: 'shield',
 		color: '#64748b',
 		desc: 'Nobody rated above 90 OVR. Role players get their moment.',
 		filter: p => p.overall <= 90,

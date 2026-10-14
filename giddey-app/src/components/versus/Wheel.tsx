@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { weightedIndex } from '@/lib/versus/wheels';
 import { buzz, play } from '@/lib/versus/sound';
+import { broadcastFx } from '@/lib/versus/live';
+import Icon from './Icon';
 
 export interface WheelItem {
 	id: string;
@@ -20,6 +22,10 @@ interface Props {
 	spinLabel?: string;
 	/** shown in the hub once landed */
 	accent?: string;
+	/** replay a spin that happened on another device (spins on mount, lands here) */
+	forced?: number;
+	/** live room: send this spin to the other devices under this title */
+	mirror?: string;
 }
 
 const SPIN_MS = 4600;
@@ -32,7 +38,7 @@ function shade(hex: string, amt: number): string {
 	return `rgb(${r},${g},${b})`;
 }
 
-export default function Wheel({ items, size = 300, onResult, disabled, spinLabel = 'SPIN', accent = '#f97316' }: Props) {
+export default function Wheel({ items, size = 300, onResult, disabled, spinLabel = 'SPIN', accent = '#f97316', forced, mirror }: Props) {
 	const [rotation, setRotation] = useState(0);
 	const [spinning, setSpinning] = useState(false);
 	const [landed, setLanded] = useState<number | null>(null);
@@ -46,9 +52,10 @@ export default function Wheel({ items, size = 300, onResult, disabled, spinLabel
 	const r = size / 2;
 	const fontSize = n > 24 ? 9 : n > 14 ? 10.5 : n > 8 ? 12 : 15;
 
-	const spin = () => {
-		if (spinning || disabled || landed !== null) return;
-		const idx = weightedIndex(items.map(i => ({ weight: i.weight ?? 1 })));
+	const spin = (replay?: number) => {
+		if (spinning || landed !== null || (disabled && replay === undefined)) return;
+		const idx = replay ?? weightedIndex(items.map(i => ({ weight: i.weight ?? 1 })));
+		if (replay === undefined && mirror) broadcastFx({ kind: 'wheel', title: mirror, items: items.map(({ id, label, color }) => ({ id, label, color })), index: idx, accent });
 		// Pointer is at the top (−90°). Segment i spans [i*seg, (i+1)*seg] clockwise from the top.
 		const jitter = (Math.random() - 0.5) * seg * 0.7;
 		const target = 360 - (idx * seg + seg / 2) + jitter;
@@ -75,6 +82,12 @@ export default function Wheel({ items, size = 300, onResult, disabled, spinLabel
 			onResult(idx);
 		}, SPIN_MS + 80);
 	};
+
+	// replaying another device's spin
+	useEffect(() => {
+		if (forced !== undefined) spin(forced);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const arc = (i: number) => {
 		const a0 = ((i * seg - 90) * Math.PI) / 180;
@@ -151,8 +164,8 @@ export default function Wheel({ items, size = 300, onResult, disabled, spinLabel
 
 				{/* hub */}
 				<button
-					onClick={spin}
-					disabled={spinning || disabled || landed !== null}
+					onClick={() => spin()}
+					disabled={spinning || disabled || landed !== null || forced !== undefined}
 					className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full font-black text-white tracking-wider flex items-center justify-center transition-transform active:scale-95 disabled:cursor-default'
 					style={{
 						width: size * 0.26,
@@ -164,7 +177,7 @@ export default function Wheel({ items, size = 300, onResult, disabled, spinLabel
 						animation: !spinning && landed === null && !disabled ? 'vsHubPulse 1.4s ease-in-out infinite' : 'none',
 					}}
 				>
-					{landed !== null ? '✓' : spinning ? '' : spinLabel}
+					{landed !== null ? <Icon name='check' size='1.6em' /> : spinning || forced !== undefined ? '' : spinLabel}
 				</button>
 			</div>
 		</div>

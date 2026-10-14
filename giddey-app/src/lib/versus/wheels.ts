@@ -112,15 +112,15 @@ export interface Boost {
 }
 
 export const BOOSTS: Record<BoostId, Boost> = {
-	keeper: { id: 'keeper', label: 'Keeper', icon: '🔒', desc: 'Keep one player from this team for the next draft.', runBack: 'Upgrade your weakest player', mod: { keeper: true } },
-	tierUp: { id: 'tierUp', label: 'Tier Up', icon: '⬆️', desc: 'Your lowest-tier pick next draft moves up one tier.', runBack: 'Upgrade your weakest player', mod: { tierUps: 1 } },
-	tierUp2: { id: 'tierUp2', label: 'Double Tier Up', icon: '⏫', desc: 'Two of your lowest-tier picks next draft move up a tier.', runBack: 'Upgrade your weakest player', mod: { tierUps: 2 } },
-	guarStar: { id: 'guarStar', label: 'Guaranteed All-Star', icon: '🎯', desc: 'Your lowest pick next draft becomes an All-Star pick.', runBack: 'Upgrade your weakest player', mod: { guarantee: 'star' } },
-	guarSuperstar: { id: 'guarSuperstar', label: 'Guaranteed Superstar', icon: '💎', desc: 'Your lowest pick next draft becomes a Superstar pick.', runBack: 'Upgrade your weakest player', mod: { guarantee: 'superstar' } },
-	extraRotation: { id: 'extraRotation', label: '+1 Rotation Player', icon: '➕', desc: 'An extra Rotation-tier pick next draft.', runBack: 'Sign a Rotation-tier free agent', mod: { extra: 'rotation' } },
-	extraStarter: { id: 'extraStarter', label: '+1 Starter', icon: '➕', desc: 'An extra Starter-tier pick next draft.', runBack: 'Sign a Starter-tier free agent', mod: { extra: 'starter' } },
-	extraStar: { id: 'extraStar', label: '+1 All-Star', icon: '🌟', desc: 'An extra All-Star pick next draft.', runBack: 'Sign an All-Star free agent', mod: { extra: 'star' } },
-	extraSuperstar: { id: 'extraSuperstar', label: '+1 Superstar', icon: '👑', desc: 'An extra Superstar pick next draft.', runBack: 'Sign a Superstar free agent', mod: { extra: 'superstar' } },
+	keeper: { id: 'keeper', label: 'Keeper', icon: 'lock', desc: 'Keep one player from this team for the next draft.', runBack: 'Upgrade your weakest player', mod: { keeper: true } },
+	tierUp: { id: 'tierUp', label: 'Tier Up', icon: 'arrowUp', desc: 'Your lowest-tier pick next draft moves up one tier.', runBack: 'Upgrade your weakest player', mod: { tierUps: 1 } },
+	tierUp2: { id: 'tierUp2', label: 'Double Tier Up', icon: 'chevronsUp', desc: 'Two of your lowest-tier picks next draft move up a tier.', runBack: 'Upgrade your weakest player', mod: { tierUps: 2 } },
+	guarStar: { id: 'guarStar', label: 'Guaranteed All-Star', icon: 'target', desc: 'Your lowest pick next draft becomes an All-Star pick.', runBack: 'Upgrade your weakest player', mod: { guarantee: 'star' } },
+	guarSuperstar: { id: 'guarSuperstar', label: 'Guaranteed Superstar', icon: 'gem', desc: 'Your lowest pick next draft becomes a Superstar pick.', runBack: 'Upgrade your weakest player', mod: { guarantee: 'superstar' } },
+	extraRotation: { id: 'extraRotation', label: '+1 Rotation Player', icon: 'plus', desc: 'An extra Rotation-tier pick next draft.', runBack: 'Sign a Rotation-tier free agent', mod: { extra: 'rotation' } },
+	extraStarter: { id: 'extraStarter', label: '+1 Starter', icon: 'userPlus', desc: 'An extra Starter-tier pick next draft.', runBack: 'Sign a Starter-tier free agent', mod: { extra: 'starter' } },
+	extraStar: { id: 'extraStar', label: '+1 All-Star', icon: 'star', desc: 'An extra All-Star pick next draft.', runBack: 'Sign an All-Star free agent', mod: { extra: 'star' } },
+	extraSuperstar: { id: 'extraSuperstar', label: '+1 Superstar', icon: 'crown', desc: 'An extra Superstar pick next draft.', runBack: 'Sign a Superstar free agent', mod: { extra: 'superstar' } },
 };
 
 export const REWARDS_BY_DIFFICULTY: Record<Difficulty, BoostId[]> = {

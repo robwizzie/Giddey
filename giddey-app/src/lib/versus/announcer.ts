@@ -44,6 +44,12 @@ if (typeof window !== 'undefined') {
 	}
 }
 
+// in a live room only one device should talk (no echo across phones)
+let gate: () => boolean = () => true;
+export function setAnnouncerGate(fn: () => boolean): void {
+	gate = fn;
+}
+
 export function setAnnouncer(on: boolean): void {
 	enabled = on;
 	if (!on) synth()?.cancel();
@@ -56,7 +62,7 @@ export function announcerSupported(): boolean {
 /** Speak a line. `hype` reads it louder, slower and a touch higher */
 export function announce(text: string, opts: { hype?: boolean; interrupt?: boolean } = {}): void {
 	const s = synth();
-	if (!s || !enabled || isMuted()) return;
+	if (!s || !enabled || isMuted() || !gate()) return;
 	try {
 		if (opts.interrupt !== false) s.cancel();
 		const u = new SpeechSynthesisUtterance(text);

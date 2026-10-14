@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { buzz, play } from '@/lib/versus/sound';
+import { broadcastFx } from '@/lib/versus/live';
 
 /**
  * Each coach's color. Mutable on purpose: the Versus page calls
@@ -59,14 +60,15 @@ export function Confetti({ count = 70, colors = ['#f97316', '#38bdf8', '#facc15'
 }
 
 /** 3D coin flip. Result is decided on click, the coin lands on it. */
-export function CoinFlip({ names, onResult }: { names: [string, string]; onResult: (winner: 0 | 1) => void }) {
+export function CoinFlip({ names, onResult, forced, mirror }: { names: [string, string]; onResult: (winner: 0 | 1) => void; forced?: 0 | 1; mirror?: boolean }) {
 	const [rot, setRot] = useState(0);
 	const [flipping, setFlipping] = useState(false);
 	const [winner, setWinner] = useState<0 | 1 | null>(null);
 
-	const flip = () => {
+	const flip = (replay?: 0 | 1) => {
 		if (flipping || winner !== null) return;
-		const w: 0 | 1 = Math.random() < 0.5 ? 0 : 1;
+		const w: 0 | 1 = replay ?? (Math.random() < 0.5 ? 0 : 1);
+		if (replay === undefined && mirror) broadcastFx({ kind: 'coin', names, winner: w });
 		play('whoosh');
 		setFlipping(true);
 		setRot(360 * 8 + (w === 1 ? 180 : 0));
@@ -95,9 +97,14 @@ export function CoinFlip({ names, onResult }: { names: [string, string]; onResul
 		</div>
 	);
 
+	useEffect(() => {
+		if (forced !== undefined) flip(forced);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	return (
 		<div className='flex flex-col items-center gap-6'>
-			<div style={{ perspective: 800 }} onClick={flip} className={winner === null ? 'cursor-pointer' : ''}>
+			<div style={{ perspective: 800 }} onClick={() => forced === undefined && flip()} className={winner === null ? 'cursor-pointer' : ''}>
 				<div
 					className='relative w-44 h-44'
 					style={{
@@ -110,8 +117,8 @@ export function CoinFlip({ names, onResult }: { names: [string, string]; onResul
 					{face(1)}
 				</div>
 			</div>
-			{winner === null && (
-				<button onClick={flip} disabled={flipping} className='btn-primary text-white font-black uppercase tracking-wider px-8 py-3 rounded-xl disabled:opacity-50'>
+			{winner === null && forced === undefined && (
+				<button onClick={() => flip()} disabled={flipping} className='btn-primary text-white font-black uppercase tracking-wider px-8 py-3 rounded-xl disabled:opacity-50'>
 					{flipping ? 'In the air…' : 'Flip the coin'}
 				</button>
 			)}

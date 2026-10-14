@@ -4,7 +4,7 @@ Versus works with no backend: every game is saved on the phone it was played on,
 
 Connecting a Supabase project turns on these features:
 
-- **Two phones and a TV** (no account needed): live draft rooms over Supabase Realtime.
+- **Play on separate devices** (no account needed): each coach drafts, spins and votes on their own phone, and an optional main screen (TV or laptop) shows what both coaches are allowed to see. Runs over Supabase Realtime.
 - **Online leagues**: friends join with an invite code and log games from their own phones.
 - **Public career pages**: a link anyone can open.
 
@@ -50,7 +50,7 @@ Accounts run on [Supabase](https://supabase.com) (free tier), which provides sig
    | `SUPABASE_ANON_KEY` | Project Settings → API → `anon` `public` key |
    | `SUPABASE_GOOGLE` | `1` (only if you did step 5) |
 
-7. **Redeploy.** Re-run **Actions → Deploy to GitHub Pages**, or push to `main`. The 👤 button then appears in Versus.
+7. **Redeploy.** Re-run **Actions → Deploy to GitHub Pages**, or push to `main`. **Account** and **Play on separate devices** then appear in the Versus **⋯** menu.
 
 For local development, put the same values in `giddey-app/.env.local`:
 
@@ -76,7 +76,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 - **The phone's local log is still what the app reads from.** Sync pulls a rivalry's cloud games into it and pushes up any local games between those two names. Games played before signing up upload the first time you link that pair.
 - **Games never change after they're logged.** They're de-duplicated by key, so syncing as often as you like is safe.
 - **Resetting a record** sets `reset_at`. Every phone drops its older copies on the next sync instead of uploading them again.
-- **Live rooms** are Realtime broadcast channels named after a random 6-character code. The phone whose turn it is sends the new state, and the others swap it in. No rows are written.
+- **Live rooms** are Realtime broadcast channels named after a random 6-character code. No rows are written.
+  - Each device takes a seat: coach 1, coach 2, or main screen (links end in `-1`, `-2` or `-S`). One device hosts and runs the shared steps (coin toss, game-day rules, final score).
+  - The coach whose turn it is sends the new state; the others swap it in. Wheel, slot-machine and coin results are replayed on every screen.
+  - Private moves stay on the coach's own phone: their own pack in split rounds, blind-bid picks, predictions and Player of the Game votes. The other phone and the main screen see card backs or "voting…" until it's revealed.
+  - Privacy here is a screen rule between friends, not a security boundary: the shared state travels to every device in the room.
 - **The policies are tested** on a local Postgres 16 with a stub `auth` schema:
   - strangers see nothing
   - nobody can log a game as someone else

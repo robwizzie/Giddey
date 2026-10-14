@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { bestLineup, deadlineOpen, normalizeSettings, other, players, Prediction, tradeDeadline, recordGame, RETIRE_DRAFTS, seriesScore, setSabotage, Settings, Side, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
+import { bestLineup, deadlineOpen, normalizeSettings, other, players, Prediction, tradeDeadline, recordGame, RETIRE_DRAFTS, seriesScore, setSabotage, Settings, Side, teamIcon, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
 import { TierBuilder } from './SetupScreen';
 import { useCanAct, WaitingBar } from './Live';
 import { canSeePrivate, hostLock, mySide } from '@/lib/versus/live';
-import Icon from './Icon';
+import Icon, { IconTile } from './Icon';
 import { getTeamFor, getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { hotHand } from '@/lib/versus/usage';
 import { buzz } from '@/lib/versus/sound';
@@ -50,7 +50,7 @@ function StepDots({ step }: { step: number }) {
 			{labels.map((l, i) => (
 				<div key={l} className='flex items-center gap-2'>
 					<div className={`flex items-center gap-1.5 ${i === step ? 'text-white' : i < step ? 'text-green-400' : 'text-white/30'}`}>
-						<div className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center ${i === step ? 'bg-orange-500' : i < step ? 'bg-green-500/25' : 'bg-white/10'}`}>{i < step ? '✓' : i + 1}</div>
+						<div className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center ${i === step ? 'bg-orange-500' : i < step ? 'bg-green-500/25' : 'bg-white/10'}`}>{i < step ? <Icon name='check' size={12} strokeWidth={3} /> : i + 1}</div>
 						<span className='text-[11px] font-bold uppercase tracking-wider hidden sm:inline'>{l}</span>
 					</div>
 					{i < labels.length - 1 && <div className='w-4 h-px bg-white/15' />}
@@ -82,7 +82,7 @@ function ChallengeCard({ state, side }: { state: VersusState; side: Side }) {
 			<div className='text-xl font-black text-white'>{c.title}</div>
 			<div className='text-sm text-white/65 leading-snug'>{c.desc}</div>
 			<div className='mt-3 flex items-start gap-2 rounded-xl bg-black/30 p-2.5'>
-				<div className='text-xl'>{r.icon}</div>
+				<IconTile name={r.icon} color='#fbbf24' size={32} className='rounded-lg' />
 				<div>
 					<div className='text-xs font-black text-amber-300 uppercase tracking-wider'>Reward: {r.label}</div>
 					<div className='text-[11px] text-white/65 leading-snug'>{r.desc}</div>
@@ -135,9 +135,9 @@ function PotgVote({ state, setState, side }: { state: VersusState; setState: Set
 							className={`shrink-0 rounded-lg px-2 py-1.5 text-left border-2 transition-all ${on ? 'scale-105' : 'opacity-80'}`}
 							style={{ borderColor: on ? '#facc15' : `${SIDE_COLORS[team]}55`, background: on ? 'rgba(250,204,21,0.15)' : `${SIDE_COLORS[team]}14` }}
 						>
-							<div className='text-[11px] font-black text-white whitespace-nowrap'>
-								{on ? '⭐ ' : ''}
-								{p.lastName}
+								<div className='text-[11px] font-black text-white whitespace-nowrap'>
+									{on && <Icon name='star' className='mr-1 text-yellow-300 fill-current' />}
+									{p.lastName}
 							</div>
 							<div className='text-[9px] text-white/45 whitespace-nowrap'>
 								{p.overall} · {names[team]}
@@ -172,13 +172,16 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 	const potg = [...new Set(votes.filter((v): v is string => !!v))];
 	const retireNote =
 		state.settings.retire === 'potg'
-			? `🎖️ Retire rule: a Player of the Game on the winning team sits out that coach's next ${RETIRE_DRAFTS} drafts.`
+			? `Retire rule: a Player of the Game on the winning team sits out that coach's next ${RETIRE_DRAFTS} drafts.`
 			: state.settings.retire === 'starters'
-				? `🎖️ Retire rule: the winner's starting five sit out that coach's next ${RETIRE_DRAFTS} drafts.`
+				? `Retire rule: the winner's starting five sit out that coach's next ${RETIRE_DRAFTS} drafts.`
 				: null;
 	return (
 		<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-4 animate-slide-up'>
-			<div className='text-center text-sm font-black uppercase tracking-widest text-white/60 mb-3'>Final buzzer 🚨</div>
+			<div className='flex items-center justify-center gap-1.5 text-sm font-black uppercase tracking-widest text-white/60 mb-3'>
+				<Icon name='siren' className='text-red-400' />
+				Final buzzer
+			</div>
 			<div className='grid grid-cols-2 gap-3 mb-4'>
 				{([0, 1] as Side[]).map(i => (
 					<button
@@ -198,7 +201,10 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 							placeholder='pts'
 							className='w-20 mx-auto block text-center bg-transparent text-3xl font-black text-white outline-none placeholder:text-white/15 tabular-nums'
 						/>
-						<div className={`text-[10px] font-black uppercase mt-1 ${winner === i ? 'text-green-400' : 'text-white/25'}`}>{winner === i ? '🏆 Winner' : 'Tap if won'}</div>
+						<div className={`inline-flex items-center gap-1 text-[10px] font-black uppercase mt-1 ${winner === i ? 'text-green-400' : 'text-white/25'}`}>
+								{winner === i && <Icon name='trophy' />}
+								{winner === i ? 'Winner' : 'Tap if won'}
+							</div>
 					</button>
 				))}
 			</div>
@@ -213,10 +219,10 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 								</div>
 								<div className='text-sm font-bold text-white truncate'>{c?.title}</div>
 							</div>
-							<button onClick={() => setDone(d => (i ? [d[0], false] : [false, d[1]]))} className={`px-3 py-1.5 rounded-lg text-xs font-black ${done[i] === false ? 'bg-red-500 text-white' : 'bg-white/10 text-white/60'}`}>
+							<button onClick={() => setDone(d => (i ? [d[0], false] : [false, d[1]]))} className={`px-3 py-2 min-h-[36px] rounded-lg text-xs font-black ${done[i] === false ? 'bg-red-500 text-white' : 'bg-white/10 text-white/60'}`}>
 								Missed
 							</button>
-							<button onClick={() => setDone(d => (i ? [d[0], true] : [true, d[1]]))} className={`px-3 py-1.5 rounded-lg text-xs font-black ${done[i] === true ? 'bg-green-500 text-white' : 'bg-white/10 text-white/60'}`}>
+							<button onClick={() => setDone(d => (i ? [d[0], true] : [true, d[1]]))} className={`px-3 py-2 min-h-[36px] rounded-lg text-xs font-black ${done[i] === true ? 'bg-green-500 text-white' : 'bg-white/10 text-white/60'}`}>
 								Done ✓
 							</button>
 						</div>
@@ -226,38 +232,57 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 			{(() => {
 				const ht = state.gameday.halftime;
 				const t = getHalftime(ht?.id);
-				return ht && t?.scoreNote ? <div className='text-[12px] text-sky-200 text-center -mt-2 mb-3'>🕐 {halftimeText(t.scoreNote, names, ht.leader)}</div> : null;
+				return ht && t?.scoreNote ? (
+					<div className='text-[12px] text-sky-200 text-center -mt-2 mb-3'>
+						<Icon name='clock' className='mr-1' />
+						{halftimeText(t.scoreNote, names, ht.leader)}
+					</div>
+				) : null;
 			})()}
 			{state.settings.vegas &&
 				(() => {
 					const line = vegasLine(state, history());
 					const a = parseInt(score[0], 10);
 					const b = parseInt(score[1], 10);
-					if (isNaN(a) || isNaN(b)) return <div className='text-[11px] text-white/40 text-center -mt-2 mb-3'>📈 Enter both scores to settle the spread ({names[line.fav]} −{line.spread}).</div>;
+					if (isNaN(a) || isNaN(b)) return <div className='text-[11px] text-white/40 text-center -mt-2 mb-3'><Icon name='trendUp' className='mr-1' />Enter both scores to settle the spread ({names[line.fav]} −{line.spread}).</div>;
 					const cov = coveredBy(line, [a, b]);
 					return (
 						<div className='text-[12px] text-center -mt-2 mb-3 font-bold'>
 							{cov !== null ? (
 								<span className='text-emerald-300'>
-									📈 {names[cov]} covers +{line.spread} — ⬆️ Tier Up next draft
+										<Icon name='trendUp' className='mr-1' />
+										{names[cov]} covers +{line.spread} — <Icon name='chevronsUp' className='mx-0.5' />
+										Tier Up next draft
 								</span>
 							) : (
 								<span className='text-white/55'>
-									📈 {names[line.fav]} covers −{line.spread}
+										<Icon name='trendUp' className='mr-1' />
+										{names[line.fav]} covers −{line.spread}
 								</span>
 							)}
 						</div>
 					);
 				})()}
 			<div className='mb-4'>
-				<div className='text-center text-[11px] font-black uppercase tracking-widest text-white/50 mb-1'>⭐ Player of the Game</div>
-				<div className='text-center text-[11px] text-white/40 mb-2'>Each coach votes — anyone from either team. Split votes? Both get it. Winners earn a ⭐ Hot hand tag in future drafts.</div>
+				<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/50 mb-1'>
+					<Icon name='star' className='text-yellow-300' />
+					Player of the Game
+				</div>
+				<div className='text-center text-[11px] text-white/40 mb-2'>
+					Each coach votes — anyone from either team. Split votes? Both get it. Winners earn a <Icon name='star' className='mx-0.5 text-yellow-300 fill-current' />
+					Hot hand tag in future drafts.
+				</div>
 				<div className='space-y-2'>
 					{([0, 1] as Side[]).map(i => (
 						<PotgVote key={i} state={state} setState={setState} side={i} />
 					))}
 				</div>
-				{retireNote && <div className='text-[11px] text-amber-200/80 text-center mt-2'>{retireNote}</div>}
+				{retireNote && (
+					<div className='text-[11px] text-amber-200/80 text-center mt-2'>
+						<Icon name='medal' className='mr-1' />
+						{retireNote}
+					</div>
+				)}
 			</div>
 			<button
 				disabled={!ready}
@@ -290,7 +315,7 @@ function MiniPlayer({ player: p, slot, tag }: { player: VersusPlayer; slot: stri
 			</div>
 			<div className='min-w-0 flex-1'>
 				<div className={`${p.lastName.length > 10 ? 'text-[10.5px]' : 'text-[12px]'} font-bold text-white truncate leading-tight`} title={`${p.firstName} ${p.lastName}${hotHand(p.id) ? ` — Player of the Game ×${hotHand(p.id)}` : ''}`}>
-					{hotHand(p.id) > 0 && <span className='mr-0.5'>⭐</span>}
+					{hotHand(p.id) > 0 && <Icon name='star' className='mr-0.5 text-yellow-300 fill-current' />}
 					{p.lastName}
 				</div>
 				<div className='text-[9px] text-white/40 truncate leading-tight'>
@@ -316,8 +341,11 @@ function GameRosters({ state }: { state: VersusState }) {
 					const lu = bestLineup(state.teams[side]);
 					return (
 						<div key={side} className='rounded-2xl p-2.5 border min-w-0' style={{ borderColor: `${SIDE_COLORS[side]}55`, background: `linear-gradient(160deg, ${SIDE_COLORS[side]}18, transparent 60%)` }}>
-							<div className='flex items-baseline justify-between mb-1 px-0.5'>
-								<div className='text-xs font-black uppercase tracking-wider truncate' style={{ color: SIDE_COLORS[side] }}>{teamName(state.settings, side)}</div>
+							<div className='flex items-center justify-between gap-1 mb-1 px-0.5'>
+								<div className='flex items-center gap-1 min-w-0 text-xs font-black uppercase tracking-wider' style={{ color: SIDE_COLORS[side] }}>
+									<Icon name={teamIcon(state.settings, side)} />
+									<span className='truncate'>{teamName(state.settings, side)}</span>
+								</div>
 								<div className='text-sm font-black text-white tabular-nums'>{teamOvr(state.teams[side]).toFixed(1)}</div>
 							</div>
 							<div className='divide-y divide-white/5'>
@@ -374,8 +402,8 @@ function RiskPicker({ side, name, onPick }: { side: Side; name: string; onPick: 
 							<div className='text-[10px] text-white/45 font-bold uppercase tracking-wider mb-2'>{dif === 'easy' ? 'Safe' : dif === 'medium' ? 'Solid' : 'Big swing'}</div>
 							<div className='space-y-1'>
 								{REWARDS_BY_DIFFICULTY[dif].map(b => (
-									<div key={b} className='text-[11px] text-white/80 leading-tight flex gap-1'>
-										<span>{BOOSTS[b].icon}</span>
+									<div key={b} className='text-[11px] text-white/80 leading-tight flex items-start gap-1'>
+										<Icon name={BOOSTS[b].icon} className='shrink-0 mt-px text-amber-300' />
 										<span className='font-bold'>{BOOSTS[b].label}</span>
 									</div>
 								))}
@@ -397,7 +425,7 @@ function LineCard({ state }: { state: VersusState }) {
 	const dog = other(line.fav);
 	return (
 		<div className='rounded-xl border border-emerald-400/30 bg-emerald-400/[0.06] p-3 flex items-center gap-3'>
-			<div className='text-2xl'>📈</div>
+			<IconTile name='trendUp' color='#34d399' size={40} />
 			<div className='min-w-0'>
 				<div className='text-xs font-black uppercase tracking-wider text-emerald-300'>
 					Vegas line: <span style={{ color: SIDE_COLORS[line.fav] }}>{names[line.fav]}</span> −{line.spread}
@@ -406,7 +434,7 @@ function LineCard({ state }: { state: VersusState }) {
 					<span className='font-black' style={{ color: SIDE_COLORS[dog] }}>
 						{names[dog]}
 					</span>{' '}
-					covers by {line.spread < 1 ? 'winning' : `winning or losing by ${Math.floor(line.spread)} or less`} — and earns ⬆️ Tier Up for the next draft. Enter the score to settle it.
+					covers by {line.spread < 1 ? 'winning' : `winning or losing by ${Math.floor(line.spread)} or less`} — and earns <Icon name='chevronsUp' className='text-amber-300' /> Tier Up for the next draft. Enter the score to settle it.
 				</div>
 			</div>
 		</div>
@@ -432,13 +460,17 @@ function PredictionCard({ state, setState }: { state: VersusState; setState: Set
 	};
 	return (
 		<div className='rounded-2xl border border-violet-400/30 bg-violet-400/[0.06] p-4'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-violet-300 text-center mb-1'>🔮 Predictions</div>
-			<div className='text-[12px] text-white/60 text-center mb-3'>Each coach secretly picks the winner and margin. Closer guess earns ➕ +1 Rotation player next draft. Revealed after the game.</div>
+			<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-violet-300 mb-1'>
+				<Icon name='sparkles' />
+				Predictions
+			</div>
+			<div className='text-[12px] text-white/60 text-center mb-3'>Each coach secretly picks the winner and margin. Closer guess earns a +1 Rotation player next draft. Revealed after the game.</div>
 			<div className='grid grid-cols-2 gap-2'>
 				{([0, 1] as Side[]).map(side =>
 					preds[side] ? (
-						<div key={side} className='rounded-xl py-2.5 text-center text-sm font-black border border-white/10 bg-white/5 text-white/70'>
-							🔒 {names[side]} locked in
+						<div key={side} className='flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-sm font-black border border-white/10 bg-white/5 text-white/70 min-w-0'>
+							<Icon name='lock' className='shrink-0' />
+							<span className='truncate'>{names[side]} locked in</span>
 						</div>
 					) : (
 						<button key={side} disabled={!mine[side]} onClick={() => setOpen(side)} className='rounded-xl py-2.5 text-sm font-black border disabled:opacity-40' style={{ borderColor: `${SIDE_COLORS[side]}66`, color: SIDE_COLORS[side], background: `${SIDE_COLORS[side]}14` }}>
@@ -450,7 +482,10 @@ function PredictionCard({ state, setState }: { state: VersusState; setState: Set
 			{open !== null && (
 				<div className='fixed inset-0 z-[80] bg-black/90 backdrop-blur flex items-center justify-center p-6' onClick={() => setOpen(null)}>
 					<div className='w-full max-w-sm rounded-3xl border border-white/10 bg-[#0d1220] p-5 vs-pop' onClick={e => e.stopPropagation()}>
-						<div className='text-center text-[11px] font-black uppercase tracking-widest text-white/45'>Only {names[open]} looks 👀</div>
+						<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/45'>
+							<Icon name='eye' />
+							Only {names[open]} looks
+						</div>
 						<div className='text-center text-xl font-black text-white mb-4'>Who wins?</div>
 						<div className='grid grid-cols-2 gap-2 mb-4'>
 							{([0, 1] as Side[]).map(w => (
@@ -461,16 +496,17 @@ function PredictionCard({ state, setState }: { state: VersusState; setState: Set
 						</div>
 						<div className='text-center text-[11px] font-black uppercase tracking-widest text-white/45 mb-1'>By how much?</div>
 						<div className='flex items-center justify-center gap-4 mb-5'>
-							<button onClick={() => setMargin(m => Math.max(1, m - 1))} className='w-10 h-10 rounded-full bg-white/10 text-white text-xl font-black'>
-								−
+							<button onClick={() => setMargin(m => Math.max(1, m - 1))} aria-label='Smaller margin' className='w-10 h-10 rounded-full bg-white/10 text-white text-xl font-black flex items-center justify-center'>
+								<Icon name='minus' />
 							</button>
 							<div className='text-4xl font-black text-white tabular-nums w-16 text-center'>{margin}</div>
-							<button onClick={() => setMargin(m => Math.min(60, m + 1))} className='w-10 h-10 rounded-full bg-white/10 text-white text-xl font-black'>
-								+
+							<button onClick={() => setMargin(m => Math.min(60, m + 1))} aria-label='Bigger margin' className='w-10 h-10 rounded-full bg-white/10 text-white text-xl font-black flex items-center justify-center'>
+								<Icon name='plus' />
 							</button>
 						</div>
-						<button disabled={winner === null} onClick={() => lock(open)} className='w-full btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'>
-							🔒 Lock it in
+						<button disabled={winner === null} onClick={() => lock(open)} className='w-full inline-flex items-center justify-center gap-2 btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'>
+							<Icon name='lock' />
+							Lock it in
 						</button>
 					</div>
 				</div>
@@ -492,7 +528,7 @@ function HalftimeCard({ state, setState }: { state: VersusState; setState: SetSt
 		if (!t) return null;
 		return (
 			<div className='rounded-xl p-3 border flex gap-3 items-start vs-rise' style={{ borderColor: `${t.color}66`, background: `${t.color}18` }}>
-				<div className='text-2xl'>🕐</div>
+				<IconTile name='clock' color={t.color} size={36} />
 				<div className='text-[12px] text-white/80 leading-snug'>
 					<div className='text-xs font-black uppercase tracking-wider' style={{ color: t.color }}>
 						Second half: {t.label}
@@ -505,7 +541,10 @@ function HalftimeCard({ state, setState }: { state: VersusState; setState: SetSt
 	}
 	return (
 		<div className='rounded-2xl border border-sky-400/30 bg-sky-400/[0.05] p-4'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-sky-300 text-center mb-1'>🕐 Halftime wheel</div>
+			<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-sky-300 mb-1'>
+				<Icon name='clock' />
+				Halftime wheel
+			</div>
 			{lead === null ? (
 				<>
 					<div className='text-sm text-white/65 text-center mb-3'>At the half, pause and tap who&apos;s leading. The team that&apos;s behind spins a second-half twist.</div>
@@ -615,10 +654,18 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 					<div className='animate-fade-in'>
 						{/* this game's rules */}
 						<div className='flex justify-center gap-2 mb-5 flex-wrap'>
-							<Pill color='#f97316'>⏱ {gd.quarter}-min quarters</Pill>
+							<Pill color='#f97316'>
+								<Icon name='timer' />
+								{gd.quarter}-min quarters
+							</Pill>
 							{(() => {
 								const t = getTwist(gd.modifier);
-								return t ? <Pill color={t.color}>🎲 {t.label}</Pill> : null;
+								return t ? (
+									<Pill color={t.color}>
+										<Icon name='dice' />
+										{t.label}
+									</Pill>
+								) : null;
 							})()}
 						</div>
 						{gd.rewards[0] && (
@@ -642,10 +689,11 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 									</span>
 									<span className='text-white/60'> challenge</span>
 								</p>
-								<div className='flex gap-2 mb-4 text-[11px] text-white/50'>
+								<div className='flex flex-wrap justify-center gap-x-3 gap-y-1 mb-4 text-[11px] text-white/50'>
 									{REWARDS_BY_DIFFICULTY[risk].map(b => (
-										<span key={b}>
-											{BOOSTS[b].icon} {BOOSTS[b].label}
+										<span key={b} className='inline-flex items-center gap-1'>
+											<Icon name={BOOSTS[b].icon} className='text-amber-300/80' />
+											{BOOSTS[b].label}
 										</span>
 									))}
 								</div>
@@ -665,7 +713,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 											rewards[spinner] = reward;
 											setRisk(null);
 											set({ challenges, rewards });
-										}, `${c.title} → ${BOOSTS[reward].icon} ${BOOSTS[reward].label}`);
+										}, `${c.title} → ${BOOSTS[reward].label}`);
 									}}
 								/>
 								<button onClick={() => setRisk(null)} className='mt-3 text-xs text-white/35 underline'>
@@ -733,8 +781,9 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 						{!canHost ? (
 							<WaitingBar name={hostLock(names) ?? 'the host'} fixed={false} what='enters the final score' />
 						) : !showForm ? (
-							<button onClick={() => setShowForm(true)} className='w-full btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg mt-2'>
-								🏀 Game over — enter result
+							<button onClick={() => setShowForm(true)} className='w-full inline-flex items-center justify-center gap-2 btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg mt-2'>
+								<Icon name='ball' />
+								Game over — enter result
 							</button>
 						) : (
 							<ResultForm state={state} setState={setState} />
@@ -762,7 +811,7 @@ export function SabotageCard({ state, pending }: { state: VersusState; pending?:
 	const { names } = state.settings;
 	return (
 		<div className='rounded-xl p-3 border flex gap-3 items-start vs-rise' style={{ borderColor: `${info.color}66`, background: `${info.color}18` }}>
-			<div className='text-2xl'>😈</div>
+			<IconTile name='skull' color={info.color} size={36} />
 			<div className='text-[12px] text-white/80 leading-snug'>
 				<div className='text-xs font-black uppercase tracking-wider' style={{ color: info.color }}>
 					Sabotage: {info.label}
@@ -790,7 +839,10 @@ function SabotageSpin({ state, setState }: { state: VersusState; setState: SetSt
 	if (state.pendingSabotage) return <SabotageCard state={state} pending />;
 	return (
 		<div className='rounded-2xl border border-red-500/30 bg-red-500/[0.06] p-4 flex flex-col items-center'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-red-300 mb-1'>😈 Revenge spin</div>
+			<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-red-300 mb-1'>
+				<Icon name='skull' />
+				Revenge spin
+			</div>
 			<div className='text-sm text-white/70 text-center mb-4'>
 				<span className='font-black' style={{ color: SIDE_COLORS[loser] }}>{state.settings.names[loser]}</span> lost — spin a sabotage for{' '}
 				<span className='font-black' style={{ color: SIDE_COLORS[last.winner] }}>{state.settings.names[last.winner]}</span> to suffer next game.
@@ -810,7 +862,10 @@ function HandicapSheet({ state, setState, onClose }: { state: VersusState; setSt
 	return (
 		<div className='fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
 			<div className='w-full max-w-xl max-h-[90vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl p-4 animate-slide-up' onClick={e => e.stopPropagation()}>
-				<div className='text-lg font-black text-white mb-1'>🎯 {state.settings.names[loser]} sets the handicap</div>
+				<div className='flex items-center gap-2 text-lg font-black text-white mb-1'>
+					<Icon name='target' className='text-amber-300' />
+					{state.settings.names[loser]} sets the handicap
+				</div>
 				<div className='text-xs text-white/50 mb-4'>Choose {state.settings.names[winner]}&apos;s roster build for the redraft. Your own build stays as it is. Handicap mode turns on.</div>
 				<TierBuilder s={s} setS={setS} field={field} title={`${state.settings.names[winner]}'s roster`} color={SIDE_COLORS[winner]} />
 				<div className='flex gap-2'>
@@ -850,9 +905,10 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 			<Confetti count={90} colors={[SIDE_COLORS[w], '#facc15', '#ffffff']} />
 			<div className='max-w-3xl mx-auto px-4 pt-10 animate-fade-in'>
 				<div className='text-center mb-8'>
-					<div className='text-6xl mb-2'>🏆</div>
+					<Icon name='trophy' size={60} className='mx-auto mb-2 text-yellow-300 drop-shadow-[0_0_18px_rgba(250,204,21,0.45)]' />
 					<div className='text-[11px] font-black uppercase tracking-[0.3em] text-white/45'>Game {last.game} goes to</div>
-					<div className='text-5xl font-black' style={{ color: SIDE_COLORS[w] }}>
+					<div className='flex items-center justify-center gap-3 text-5xl font-black' style={{ color: SIDE_COLORS[w] }}>
+						<Icon name={teamIcon(state.settings, w)} size={40} />
 						{teamName(state.settings, w)}
 					</div>
 					{last.score[0] !== null && last.score[1] !== null && (
@@ -871,7 +927,10 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 
 				{(last.potg?.length ?? 0) > 0 && (
 					<div className='rounded-2xl border border-yellow-400/40 bg-yellow-400/[0.07] p-4 mb-4 text-center vs-rise'>
-						<div className='text-[11px] font-black uppercase tracking-widest text-yellow-300/80 mb-1'>⭐ Player of the Game{last.potg!.length > 1 ? ' (split vote)' : ''}</div>
+						<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-yellow-300/80 mb-1'>
+							<Icon name='star' className='fill-current' />
+							Player of the Game{last.potg!.length > 1 ? ' (split vote)' : ''}
+						</div>
 						<div className='flex justify-center gap-4 flex-wrap'>
 							{last.potg!.map(id => {
 								const p = getVersusPlayer(id);
@@ -896,7 +955,10 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 					if (!fresh.length) return null;
 					return (
 						<div className='rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-4 mb-4'>
-							<div className='text-[11px] font-black uppercase tracking-widest text-amber-300/80 mb-1'>🎖️ Retired from {names[w]}&apos;s side</div>
+							<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-amber-300/80 mb-1'>
+								<Icon name='medal' />
+								Retired from {names[w]}&apos;s side
+							</div>
 							<div className='text-sm text-white font-bold'>{fresh.map(r => getVersusPlayer(r.id)?.lastName).filter(Boolean).join(', ')}</div>
 							<div className='text-[11px] text-white/50 mt-0.5'>
 								{names[w]} can&apos;t draft {fresh.length === 1 ? 'him' : 'them'} for the next {RETIRE_DRAFTS} drafts. {names[other(w)]} still can — run it back keeps current squads as they are.
@@ -935,7 +997,7 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 						const ok = last.challenges[side];
 						const earned = state.earned[side];
 						// earned in order: challenge reward, spread cover, prediction duel
-						const sources = [...(ok && state.gameday.rewards[side] ? [''] : []), ...(last.covered === side ? [' · 📈 covered the spread'] : []), ...(last.oracle === side ? [' · 🔮 best prediction'] : [])];
+						const sources = [...(ok && state.gameday.rewards[side] ? [''] : []), ...(last.covered === side ? [' · covered the spread'] : []), ...(last.oracle === side ? [' · best prediction'] : [])];
 						const bonusSource = (_side: Side, i: number) => sources[i] ?? '';
 						return (
 							<div key={side} className='rounded-2xl p-4 border' style={{ borderColor: ok ? '#22c55e66' : 'rgba(255,255,255,0.1)', background: ok ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.02)' }}>
@@ -950,7 +1012,7 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 										return (
 											<div key={`${b}-${i}`} className='mt-2 text-sm'>
 												<div className='flex items-center gap-2'>
-													<span className='text-xl'>{info.icon}</span>
+													<IconTile name={info.icon} color='#fbbf24' size={30} className='rounded-lg' />
 													<span className='font-black text-amber-300'>{info.label}</span>
 													<span className='text-white/45 text-xs'>next draft{bonusSource(side, i)}</span>
 												</div>
@@ -977,19 +1039,28 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 				{!canNext && <WaitingBar name={hostLock(names) ?? 'the host'} fixed={false} what='picks what’s next' />}
 				<div className={`space-y-2 ${canNext ? '' : 'hidden'}`}>
 					{deadlineOpen(state) && (
-						<button onClick={() => setState(tradeDeadline(state))} className='w-full rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg bg-gradient-to-r from-emerald-600 to-teal-600 border border-emerald-300/40'>
-							📞 Trade deadline — deal, then run it back
+						<button onClick={() => setState(tradeDeadline(state))} className='w-full inline-flex items-center justify-center gap-2 rounded-2xl py-4 px-3 font-black uppercase tracking-wider text-white text-lg bg-gradient-to-r from-emerald-600 to-teal-600 border border-emerald-300/40'>
+							<Icon name='handshake' className='shrink-0' />
+							Trade deadline — deal, then run it back
 						</button>
 					)}
-					{state.settings.dynasty && <div className='text-[11px] text-white/45 text-center'>👑 Dynasty: squads carry through the season — running it back is the default.</div>}
-					<button onClick={onRunBack} className='w-full btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg'>
-						🔁 Run it back — same squads
+					{state.settings.dynasty && (
+						<div className='text-[11px] text-white/45 text-center'>
+							<Icon name='crown' className='mr-1 text-amber-300/80' />
+							Dynasty: squads carry through the season — running it back is the default.
+						</div>
+					)}
+					<button onClick={onRunBack} className='w-full inline-flex items-center justify-center gap-2 btn-primary rounded-2xl py-4 px-3 font-black uppercase tracking-wider text-white text-lg'>
+							<Icon name='repeat' className='shrink-0' />
+							Run it back — same squads
 					</button>
-					<button onClick={onRedraft} className='w-full rounded-2xl py-4 font-black uppercase tracking-wider text-white bg-white/10 border border-white/15'>
-						🎴 Redraft — {names[other(w)]} wins the coin toss
+					<button onClick={onRedraft} className='w-full inline-flex items-center justify-center gap-2 rounded-2xl py-4 px-3 font-black uppercase tracking-wider text-white bg-white/10 border border-white/15'>
+							<Icon name='layers' className='shrink-0' />
+							Redraft — {names[other(w)]} wins the coin toss
 					</button>
-					<button onClick={() => setHandicapOpen(true)} className='w-full rounded-2xl py-3 text-sm font-black text-amber-300 bg-amber-400/10 border border-amber-400/25'>
-						🎯 {names[other(w)]} sets {names[w]}&apos;s handicap for the redraft
+					<button onClick={() => setHandicapOpen(true)} className='w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3 px-3 text-sm font-black text-amber-300 bg-amber-400/10 border border-amber-400/25'>
+							<Icon name='target' className='shrink-0' />
+							{names[other(w)]} sets {names[w]}&apos;s handicap for the redraft
 					</button>
 					<button
 						onClick={async () => {
@@ -998,9 +1069,10 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 							setRecapMsg(r === 'failed' ? 'Couldn’t draw the recap' : r === 'downloaded' ? '✓ Saved' : null);
 							setTimeout(() => setRecapMsg(null), 2000);
 						}}
-						className='w-full rounded-2xl py-3 text-sm font-black text-fuchsia-200 bg-fuchsia-500/15 border border-fuchsia-400/30'
-					>
-						📸 {recapMsg ?? 'Night recap card'}
+						className='w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3 px-3 text-sm font-black text-fuchsia-200 bg-fuchsia-500/15 border border-fuchsia-400/30'
+						>
+							<Icon name='camera' className='shrink-0' />
+							{recapMsg ?? 'Night recap card'}
 					</button>
 					<button onClick={onNewSeries} className='w-full rounded-2xl py-3 text-sm font-bold text-white/45'>
 						End series &amp; start over

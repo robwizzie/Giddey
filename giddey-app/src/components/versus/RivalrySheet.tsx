@@ -216,7 +216,7 @@ function SeasonPanel({ list, names }: { list: SeasonSummary[]; names: [string, s
 	);
 }
 
-export default function RivalrySheet({ settings, retired = [], onClose, onSync }: { settings: Settings; retired?: Retired[]; onClose: () => void; onSync: () => void }) {
+export default function RivalrySheet({ settings, retired = [], onClose, onSync, onStats }: { settings: Settings; retired?: Retired[]; onClose: () => void; onSync: () => void; onStats?: () => void }) {
 	const [version, setVersion] = useState(0);
 	// any pair who's played on this phone can be viewed, not just tonight's coaches
 	const pairs = useMemo(() => matchups(), [version]);
@@ -242,7 +242,13 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 						<Icon name='chart' className='text-orange-300' />
 						Rivalry
 					</div>
-					<button onClick={onSync} className='ml-auto mr-1 inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-sky-200 bg-sky-500/15 border border-sky-400/30 rounded-full px-3 py-2'>
+					{onStats && (
+						<button onClick={onStats} className='ml-auto mr-1 inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-200 bg-orange-500/15 border border-orange-400/30 rounded-full px-3 py-2'>
+							<Icon name='lineChart' />
+							Stats
+						</button>
+					)}
+					<button onClick={onSync} className={`${onStats ? '' : 'ml-auto '}mr-1 inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-sky-200 bg-sky-500/15 border border-sky-400/30 rounded-full px-3 py-2`}>
 						<Icon name='refresh' />
 						Sync phones
 					</button>

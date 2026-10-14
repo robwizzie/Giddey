@@ -28,6 +28,7 @@ import Icon, { IconTile } from '@/components/versus/Icon';
 import PowerRankings from '@/components/versus/PowerRankings';
 import CareerSheet from '@/components/versus/CareerSheet';
 import HallOfFame from '@/components/versus/HallOfFame';
+import H2HStats from '@/components/versus/H2HStats';
 import { useTurnNotifications } from '@/lib/versus/notify';
 import { broadcastState, hostLock, isScreen, joinRoom, liveAvailable, liveInfo, onRemoteState, parseRoomHash, savedRoom, takenSeats } from '@/lib/versus/live';
 import SyncSheet, { ImportPreview } from '@/components/versus/SyncSheet';
@@ -128,6 +129,7 @@ interface TopBarProps {
 	onRankings: () => void;
 	onCareer: () => void;
 	onHall: () => void;
+	onStats: () => void;
 }
 
 /** Everything that isn't needed every minute lives in the ⋯ menu */
@@ -161,6 +163,7 @@ function MoreMenu(p: TopBarProps) {
 					<div className='fixed inset-0 z-[60]' onClick={() => setOpen(false)} />
 					<div className='absolute right-0 top-10 z-[61] w-64 rounded-2xl border border-white/10 bg-[#0d1220] p-1.5 shadow-2xl animate-fade-in'>
 						{item('arena', 'Leagues', p.onLeagues, '3+ friends · standings & playoffs')}
+						{item('lineChart', 'Head-to-head stats', p.onStats, 'Win share, most-drafted, best nights')}
 						{item('trophy', 'Power rankings', p.onRankings, 'Skill ratings & biggest upsets')}
 						{item('medal', 'Career', p.onCareer, 'Record, titles, badges — share it')}
 						{item('shirt', 'Hall of Fame', p.onHall, 'Retired jerseys & belt history')}
@@ -261,6 +264,7 @@ export default function VersusPage() {
 	const [showRankings, setShowRankings] = useState(false);
 	const [showCareer, setShowCareer] = useState(false);
 	const [showHall, setShowHall] = useState(false);
+	const [showStats, setShowStats] = useState(false);
 	const live = useLive();
 	useTurnNotifications(state);
 	const [leagueCode, setLeagueCode] = useState<string | null>(null);
@@ -483,7 +487,7 @@ export default function VersusPage() {
 	const showReset = state.phase !== 'setup';
 	const wrap = (node: React.ReactNode) => (
 		<div className='min-h-screen vs-bg'>
-			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onAccount={() => setShowAccount(true)} onLive={() => setShowLive(true)} onLeagues={() => setShowLeagues(true)} onRankings={() => setShowRankings(true)} onCareer={() => setShowCareer(true)} onHall={() => setShowHall(true)} />
+			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onAccount={() => setShowAccount(true)} onLive={() => setShowLive(true)} onLeagues={() => setShowLeagues(true)} onRankings={() => setShowRankings(true)} onCareer={() => setShowCareer(true)} onHall={() => setShowHall(true)} onStats={() => setShowStats(true)} />
 			{live && (
 				<div className='max-w-3xl mx-auto px-4 pt-2 flex justify-end'>
 					<LivePill names={state.settings.names} onClick={() => setShowLive(true)} />
@@ -494,10 +498,11 @@ export default function VersusPage() {
 				{node}
 			</div>
 			{showHelp && <HelpSheet settings={state.settings} onClose={() => setShowHelp(false)} />}
-			{showRivalry && <RivalrySheet key={syncs} settings={state.settings} retired={state.retired} onClose={() => setShowRivalry(false)} onSync={() => setShowSync(true)} />}
+			{showRivalry && <RivalrySheet key={syncs} settings={state.settings} retired={state.retired} onClose={() => setShowRivalry(false)} onSync={() => setShowSync(true)} onStats={() => { setShowRivalry(false); setShowStats(true); }} />}
 			{showRankings && <PowerRankings highlight={[...state.settings.names]} onClose={() => setShowRankings(false)} />}
 			{showCareer && <CareerSheet initial={state.settings.names[0]} onClose={() => setShowCareer(false)} />}
 			{showHall && <HallOfFame names={state.settings.names} onClose={() => setShowHall(false)} />}
+			{showStats && <H2HStats key={syncs} settings={state.settings} onClose={() => setShowStats(false)} />}
 			<HandoffBanner
 				onTake={() => {
 					const s = takeHandoff();

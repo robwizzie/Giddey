@@ -19,7 +19,7 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 	const auction = s.style === 'auction' || s.style === 'block';
 	return [
 		{ icon: 'settings', title: 'Set up', desc: 'Pick a quick setup or customize. Pin your franchise guys in Coaches.', on: true },
-		{ icon: 'radio', title: 'Two phones (optional)', desc: 'From the ⋯ menu → Two phones, each coach drafts on their own phone — same couch or across town — and a TV can show the draft board.', on: true },
+		{ icon: 'radio', title: 'Separate devices (optional)', desc: 'From the ⋯ menu → Play on separate devices, each coach drafts, spins and votes on their own phone — same couch or across town. Add a TV or laptop as the main screen to show everything both coaches are allowed to see; private moves stay on each coach’s phone.', on: true },
 		{ icon: 'crown', title: 'Dynasty lottery', desc: 'A new Dynasty season opens with a draft lottery (worse record, more balls), then each coach keeps up to 3 players.', on: s.dynasty && s.season > 0 },
 		{ icon: 'coins', title: 'Coin toss', desc: 'Winner picks first in round 1. In the Finals, the higher seed has home court and picks first instead.', on: true },
 		{

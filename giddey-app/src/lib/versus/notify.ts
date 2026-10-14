@@ -347,7 +347,7 @@ function moveKey(s: VersusState): string {
  * Page hook: in a live room, ping this device's coach when the game turns
  * to them while the page is hidden, and mark the tab title until they look.
  */
-export function useTurnNotifications(state: VersusState): void {
+export function useTurnNotifications(state: VersusState | null): void {
 	const live = useSyncExternalStore(subscribeLive, liveInfo, () => null);
 	const side = live?.role === 'coach' ? live.side : null;
 	const code = live?.code ?? null;
@@ -356,7 +356,11 @@ export function useTurnNotifications(state: VersusState): void {
 
 	// keep the push subscription on this room's seat
 	useEffect(() => {
-		if (code === null || side === null) return;
+		// left the room: stop the pings for it
+		if (code === null || side === null) {
+			if (pushedFor) void dropPush();
+			return;
+		}
 		refresh();
 		void syncPush();
 	}, [code, side]);
@@ -377,7 +381,7 @@ export function useTurnNotifications(state: VersusState): void {
 	}, []);
 
 	useEffect(() => {
-		if (code === null || side === null) {
+		if (!state || code === null || side === null) {
 			was.current = null;
 			return;
 		}

@@ -20,11 +20,12 @@ Accounts run on [Supabase](https://supabase.com) (free tier), which provides sig
 
 1. **Create a project** at [supabase.com](https://supabase.com/dashboard) (the free plan is enough).
 
-2. **Create the tables.** Open **SQL Editor → New query** and run both migrations, in order:
+2. **Create the tables.** Open **SQL Editor → New query** and run the migrations, in order:
    1. [`migrations/20261013000000_versus_accounts.sql`](migrations/20261013000000_versus_accounts.sql) (profiles, rivalries, games)
    2. [`migrations/20261014000000_versus_leagues_careers.sql`](migrations/20261014000000_versus_leagues_careers.sql) (leagues, career pages)
+   3. [`migrations/20261015000000_versus_rooms_push.sql`](migrations/20261015000000_versus_rooms_push.sql) (saved live rooms, turn-alert subscriptions)
 
-   If you use the Supabase CLI, `supabase link` then `supabase db push` does the same thing. Live rooms use Realtime broadcast, which is on by default; nothing to create.
+   If you use the Supabase CLI, `supabase link` then `supabase db push` does the same thing. Live rooms use Realtime broadcast, which is on by default. Migration 3 adds saved rooms ("draft now, play later"); without it live rooms still work, they just aren't saved.
 
 3. **Allow the redirect.** Go to **Authentication → URL Configuration**:
    - Site URL: `https://playgiddey.com/versus`
@@ -76,14 +77,70 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 - **The phone's local log is still what the app reads from.** Sync pulls a rivalry's cloud games into it and pushes up any local games between those two names. Games played before signing up upload the first time you link that pair.
 - **Games never change after they're logged.** They're de-duplicated by key, so syncing as often as you like is safe.
 - **Resetting a record** sets `reset_at`. Every phone drops its older copies on the next sync instead of uploading them again.
-- **Live rooms** are Realtime broadcast channels named after a random 6-character code. No rows are written.
+- **Live rooms** are Realtime broadcast channels named after a random 6-character code.
   - Each device takes a seat: coach 1, coach 2, or main screen (links end in `-1`, `-2` or `-S`). One device hosts and runs the shared steps (coin toss, game-day rules, final score).
   - The coach whose turn it is sends the new state; the others swap it in. Wheel, slot-machine and coin results are replayed on every screen.
   - Private moves stay on the coach's own phone: their own pack in split rounds, blind-bid picks, predictions and Player of the Game votes. The other phone and the main screen see card backs or "voting…" until it's revealed.
   - Privacy here is a screen rule between friends, not a security boundary: the shared state travels to every device in the room.
+  - **Draft now, play later.** The device that makes a move also saves the room (`room_put`, about a second later, or right away when the app is closed). A device that joins loads it (`room_get`) and takes it if it's newer than what the room has. So a coach can close the app mid-draft, come back hours later on the same link, and carry on, even if nobody else is online. Rooms are only reachable by their exact code (the code is the secret, same as the channel). Only a newer version replaces a saved room. Rooms expire 14 days after their last move.
+  - **Turn alerts.** With the app in the background, the page shows a "Your pick, Rob" notification itself, no server needed; the coach turns it on in **Play on separate devices**. With the app fully closed, alerts come by Web Push, which needs the optional setup below.
 - **The policies are tested** on a local Postgres 16 with a stub `auth` schema:
   - strangers see nothing
   - nobody can log a game as someone else
   - invite codes can't be edited
   - a third person can't join a full rivalry
   - you can only edit your own profile
+
+## Optional: turn alerts with the app closed (Web Push)
+
+Each saved room stores whose `turn` it is. When that changes, a Database Webhook calls the `notify-turn` edge function, which sends a push to the browsers subscribed to that coach's seat. Tapping the alert opens the room. Skip all of this and alerts still work whenever the app is open in the background.
+
+You need migration 3 and the [Supabase CLI](https://supabase.com/docs/guides/cli) (`supabase login`, then `supabase link --project-ref <ref>` in `giddey-app/`).
+
+1. **Generate VAPID keys** (once; keep the private key secret):
+
+   ```sh
+   npx web-push generate-vapid-keys
+   ```
+
+2. **Set the function secrets.** `VAPID_SUBJECT` is a contact address push services can reach you at. `WEBHOOK_SECRET` is any random string; it stops strangers from calling the function.
+
+   ```sh
+   supabase secrets set VAPID_PUBLIC_KEY=<public key> VAPID_PRIVATE_KEY=<private key> VAPID_SUBJECT=mailto:you@example.com WEBHOOK_SECRET=<random string>
+   ```
+
+3. **Deploy the function.** The webhook doesn't send a user token, so JWT checks are off; `WEBHOOK_SECRET` protects it instead.
+
+   ```sh
+   supabase functions deploy notify-turn --no-verify-jwt
+   ```
+
+4. **Create the Database Webhook.** Go to **Database → Webhooks → Create a new hook**:
+   - Table: `versus_rooms`, events: **Update** only
+   - Type: **Supabase Edge Functions**, function `notify-turn`, method POST
+   - HTTP header: `x-webhook-secret` = the `WEBHOOK_SECRET` from step 2
+
+   Every saved move calls the function, and it returns early unless the turn changed. To skip those calls, create the trigger in SQL instead, with a `when` condition (fill in your project ref and secret):
+
+   ```sql
+   create trigger versus_rooms_notify_turn
+   after update on public.versus_rooms
+   for each row when (old.turn is distinct from new.turn and new.turn is not null)
+   execute function supabase_functions.http_request(
+     'https://<ref>.supabase.co/functions/v1/notify-turn', 'POST',
+     '{"Content-Type":"application/json","x-webhook-secret":"<WEBHOOK_SECRET>"}', '{}', '5000');
+   ```
+
+5. **Give the site the public key.** In the GitHub repo go to **Settings → Secrets and variables → Actions → Variables** and add `VAPID_PUBLIC_KEY` = the public key from step 1. The deploy workflow passes it to the build as `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. For local development, add `NEXT_PUBLIC_VAPID_PUBLIC_KEY=<public key>` to `giddey-app/.env.local`. Then redeploy.
+
+6. **Optional cleanup.** Expired rooms are ignored, so nothing breaks if they pile up. To delete them, enable **Database → Extensions → pg_cron** and run:
+
+   ```sql
+   select cron.schedule('versus-rooms-cleanup', '17 4 * * *', 'select public.versus_rooms_cleanup()');
+   ```
+
+**How people turn it on.** In a live room, each coach taps **Notify me when it's my turn** in **Play on separate devices** and allows notifications. Push needs:
+- Android, desktop Chrome, Edge or Firefox: works in the browser or the installed app.
+- iPhone and iPad: iOS 16.4 or later, and only in the app added to the Home Screen (Share → Add to Home Screen, then open it from there). Safari tabs can't receive push.
+
+The function deletes subscriptions the push service reports as gone (404/410). Subscriptions are tied to a room seat, and joining another room moves them. The cleanup in step 6 also deletes subscriptions whose room is gone.

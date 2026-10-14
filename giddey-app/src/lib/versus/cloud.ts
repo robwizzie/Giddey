@@ -153,7 +153,17 @@ async function loadProfile(sb: SupabaseClient): Promise<Profile | null> {
 	if (!uid) return null;
 	const { data, error } = await sb.from('versus_profiles').select('id, name, favorites').eq('id', uid).maybeSingle();
 	if (error) throw error;
-	return data as Profile | null;
+	if (data) return data as Profile;
+	// accounts made before Versus (or by another app on the same project) never got a
+	// profile from the sign-up trigger — create it now
+	const meta = state.session?.user.user_metadata as { name?: string } | undefined;
+	const name = (meta?.name?.trim() || state.session?.user.email?.split('@')[0] || 'Coach').slice(0, 12);
+	const made = await sb.from('versus_profiles').upsert({ id: uid, name }, { onConflict: 'id', ignoreDuplicates: true }).select('id, name, favorites').maybeSingle();
+	if (made.error) throw made.error;
+	if (made.data) return made.data as Profile;
+	const again = await sb.from('versus_profiles').select('id, name, favorites').eq('id', uid).maybeSingle();
+	if (again.error) throw again.error;
+	return again.data as Profile | null;
 }
 
 async function loadRivalries(sb: SupabaseClient): Promise<CloudRivalry[]> {
@@ -207,6 +217,7 @@ export async function updateProfile(patch: Partial<Pick<Profile, 'name' | 'favor
 	const sb = await client();
 	const uid = state.session?.user.id;
 	if (!uid) return;
+	if (!state.profile) set({ profile: await loadProfile(sb) });
 	const { data, error } = await sb.from('versus_profiles').update(patch).eq('id', uid).select('id, name, favorites').single();
 	if (error) throw new Error(message(error));
 	set({ profile: data as Profile });

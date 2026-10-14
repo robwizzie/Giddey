@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import {
 	bracket,
 	champion,
@@ -25,6 +25,7 @@ import { loadRivalry, matchups, RivalryGame } from '@/lib/versus/rivalry';
 import { cloudEnabled, joinLeague, leaveCloudLeague, peekLeague, updateCloudLeague, uploadLeague } from '@/lib/versus/cloud';
 import { useCloud } from './AccountSheet';
 import GameDetail from './GameDetail';
+import Icon from './Icon';
 
 const field = 'w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2.5 text-sm text-white outline-none focus:border-white/30 placeholder:text-white/30';
 
@@ -43,10 +44,20 @@ function Seg<T extends string | number>({ label, value, options, onChange }: { l
 	);
 }
 
-function statusOf(l: League, games: RivalryGame[]): string {
+function statusOf(l: League, games: RivalryGame[]): ReactNode {
 	const champ = champion(l, games);
-	if (champ) return `🏆 ${champ} won it`;
-	if (bracket(l, games).length) return '🔥 Playoffs';
+	if (champ)
+		return (
+			<span className='inline-flex items-center gap-1'>
+				<Icon name='trophy' className='text-yellow-300' /> {champ} won it
+			</span>
+		);
+	if (bracket(l, games).length)
+		return (
+			<span className='inline-flex items-center gap-1'>
+				<Icon name='flame' className='text-orange-300' /> Playoffs
+			</span>
+		);
 	const played = regularMatches(l, games).filter(m => m.winner).length;
 	return `${played}/${regularMatches(l, games).length} regular-season games`;
 }
@@ -78,8 +89,8 @@ function CreateLeague({ onDone, onCancel, seedNames }: { onDone: (l: League) => 
 				</div>
 				<div className='flex flex-wrap gap-1.5 mb-2'>
 					{names.map(n => (
-						<button key={n} onClick={() => setNames(names.filter(x => x !== n))} className='rounded-full px-3 py-1 text-xs font-black bg-white text-black'>
-							{n} ✕
+						<button key={n} onClick={() => setNames(names.filter(x => x !== n))} aria-label={`Remove ${n}`} className='inline-flex items-center gap-1 rounded-full pl-3 pr-2 py-1.5 text-xs font-black bg-white text-black'>
+							{n} <Icon name='x' size={14} />
 						</button>
 					))}
 				</div>
@@ -92,8 +103,8 @@ function CreateLeague({ onDone, onCancel, seedNames }: { onDone: (l: League) => 
 				{suggestions.length > 0 && (
 					<div className='flex flex-wrap gap-1.5 mt-2'>
 						{suggestions.map(n => (
-							<button key={n} onClick={() => addName(n)} className='rounded-full px-2.5 py-1 text-[11px] font-bold bg-white/5 text-white/60 border border-white/10'>
-								＋ {n}
+							<button key={n} onClick={() => addName(n)} className='inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold bg-white/5 text-white/60 border border-white/10'>
+								<Icon name='plus' size={12} /> {n}
 							</button>
 						))}
 					</div>
@@ -120,8 +131,10 @@ function CreateLeague({ onDone, onCancel, seedNames }: { onDone: (l: League) => 
 			{cloudEnabled && (
 				<button onClick={() => cloud.session && setOnline(!online)} className={`w-full flex items-center gap-3 text-left rounded-xl px-3 py-2.5 border ${online ? 'border-sky-400/40 bg-sky-500/10' : 'border-white/10 bg-white/[0.04]'}`}>
 					<div className='flex-1'>
-						<div className='text-sm font-black text-white'>☁️ Online league</div>
-						<div className='text-[11px] text-white/50'>{cloud.session ? 'Friends join with an invite code and log games from their own phones. Standings update for everyone.' : 'Sign in from 👤 to share the league with everyone’s phones.'}</div>
+						<div className='flex items-center gap-1.5 text-sm font-black text-white'>
+							<Icon name='cloud' className='text-sky-300' /> Online league
+						</div>
+						<div className='text-[11px] text-white/50'>{cloud.session ? 'Friends join with an invite code and log games from their own phones. Standings update for everyone.' : 'Sign in (⋯ menu → Account) to share the league with everyone’s phones.'}</div>
 					</div>
 					<div className={`w-5 h-5 rounded-full border-2 ${online ? 'border-sky-400 bg-sky-400' : 'border-white/25'}`} />
 				</button>
@@ -163,7 +176,7 @@ function JoinLeague({ code: initial, onDone }: { code?: string; onDone: () => vo
 	const [code, setCode] = useState(initial ?? '');
 	const [peek, setPeek] = useState<{ name: string; names: string[]; claimed: string[] } | null>(null);
 	const [err, setErr] = useState<string | null>(null);
-	if (!cloud.session) return <div className='text-sm text-white/55 rounded-xl bg-white/[0.04] border border-white/10 p-3'>Sign in from 👤 first, then join with the code your commissioner sent.</div>;
+	if (!cloud.session) return <div className='text-sm text-white/55 rounded-xl bg-white/[0.04] border border-white/10 p-3'>Sign in first (⋯ menu → Account), then join with the code your commissioner sent.</div>;
 	return (
 		<div className='space-y-2'>
 			<div className='flex gap-2'>
@@ -230,13 +243,13 @@ function MatchRow({ m, onPlay, onOpen }: { m: Match; onPlay?: () => void; onOpen
 				<span className={m.winner && m.winner === m.names[1] ? 'font-black' : m.winner ? 'text-white/45' : 'font-bold'}>{m.names[1]}</span>
 			</div>
 			{m.games.length > 0 && onOpen && m.stage === 'regular' && (
-				<button onClick={() => onOpen(m.games[m.games.length - 1])} className='text-white/40 shrink-0'>
-					{m.games[0].score[0] !== null ? `${m.games[0].score[0]}–${m.games[0].score[1]}` : '✓'} ›
+				<button onClick={() => onOpen(m.games[m.games.length - 1])} aria-label='Open game' className='inline-flex items-center gap-0.5 text-white/40 shrink-0 py-1'>
+					{m.games[0].score[0] !== null ? `${m.games[0].score[0]}–${m.games[0].score[1]}` : '✓'} <Icon name='chevronRight' size={14} />
 				</button>
 			)}
 			{onPlay && !m.winner && !m.names.includes('TBD') && (
-				<button onClick={onPlay} className='shrink-0 btn-primary rounded-lg px-2.5 py-1 text-[10px] font-black uppercase text-white'>
-					▶ Play
+				<button onClick={onPlay} className='shrink-0 inline-flex items-center gap-1 btn-primary rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase text-white'>
+					<Icon name='play' size={11} className='fill-current' /> Play
 				</button>
 			)}
 		</div>
@@ -274,37 +287,40 @@ function LeagueView({ l, onBack, onPlay }: { l: League; onBack: () => void; onPl
 	};
 	return (
 		<div>
-			<button onClick={onBack} className='text-xs text-white/45 mb-2'>
-				← All leagues
+			<button onClick={onBack} className='inline-flex items-center gap-1 text-xs text-white/45 mb-2 py-1'>
+				<Icon name='chevronLeft' size={14} /> All leagues
 			</button>
 			<div className='text-xl font-black text-white'>{l.name}</div>
 			<div className='text-[11px] text-white/45 mb-3'>
 				{l.names.length} coaches · {l.format.rounds === 2 ? 'home & away' : 'play everyone once'}
 				{l.format.playoff ? ` · top ${l.format.playoff} playoffs${l.format.bestOf > 1 ? `, best of ${l.format.bestOf}` : ''}` : ''}
-				{l.cloud ? ' · ☁️ online' : ' · on this phone'}
+				{l.cloud ? ' · online' : ' · on this phone'}
 			</div>
 			{champ && (
 				<div className='rounded-2xl border-2 border-yellow-400/60 bg-yellow-400/10 p-4 text-center mb-4 vs-pop'>
-					<div className='text-5xl'>🏆</div>
+					<Icon name='trophy' size={48} className='mx-auto mb-1 text-yellow-300' />
 					<div className='text-[11px] font-black uppercase tracking-[0.3em] text-yellow-200/80'>{l.name} champion</div>
 					<div className='text-3xl font-black text-white'>{champ}</div>
 				</div>
 			)}
 			{!champ && next.length > 0 && (
 				<div className='mb-4'>
-					<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-1.5'>▶ Up next</div>
+					<div className='flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-white/45 mb-1.5'>
+						<Icon name='play' size={11} className='fill-current' /> Up next
+					</div>
 					<div className='space-y-1'>
 						{next.slice(0, 4).map(m => (
 							<MatchRow key={m.key} m={m} onPlay={() => play(m)} />
 						))}
 					</div>
-					<div className='text-[10px] text-white/35 mt-1'>Tap ▶ Play: the two coaches are set and the next game you finish counts for the league.</div>
+					<div className='text-[10px] text-white/35 mt-1'>Tap Play: the two coaches are set and the next game you finish counts for the league.</div>
 				</div>
 			)}
 			<div className='flex gap-1 rounded-xl bg-white/[0.05] p-1 mb-3'>
 				{(['standings', 'schedule', 'playoffs'] as const).map(t => (
-					<button key={t} onClick={() => setTab(t)} className={`flex-1 rounded-lg py-2 text-xs font-black capitalize ${tab === t ? 'bg-white text-black' : 'text-white/60'}`}>
-						{t === 'standings' ? '📋 Standings' : t === 'schedule' ? '🗓️ Schedule' : '🏆 Playoffs'}
+					<button key={t} onClick={() => setTab(t)} className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize ${tab === t ? 'bg-white text-black' : 'text-white/60'}`}>
+						<Icon name={t === 'standings' ? 'list' : t === 'schedule' ? 'calendar' : 'trophy'} size={14} />
+						{t === 'standings' ? 'Standings' : t === 'schedule' ? 'Schedule' : 'Playoffs'}
 					</button>
 				))}
 			</div>
@@ -379,8 +395,8 @@ function LeagueView({ l, onBack, onPlay }: { l: League; onBack: () => void; onPl
 				</div>
 			)}
 			{l.cloud ? (
-				<button onClick={share} className='w-full rounded-xl py-2.5 text-sm font-black text-sky-200 bg-sky-500/15 border border-sky-400/30 mb-2'>
-					📨 Invite coaches · {l.cloud.inviteCode}
+				<button onClick={share} className='w-full inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-black text-sky-200 bg-sky-500/15 border border-sky-400/30 mb-2'>
+					<Icon name='send' /> Invite coaches · {l.cloud.inviteCode}
 				</button>
 			) : (
 				cloud.session && (
@@ -393,9 +409,9 @@ function LeagueView({ l, onBack, onPlay }: { l: League; onBack: () => void; onPl
 								setMsg((e as Error).message);
 							}
 						}}
-						className='w-full rounded-xl py-2.5 text-sm font-black text-sky-200 bg-sky-500/15 border border-sky-400/30 mb-2'
+						className='w-full inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-black text-sky-200 bg-sky-500/15 border border-sky-400/30 mb-2'
 					>
-						☁️ Put this league online
+						<Icon name='cloud' /> Put this league online
 					</button>
 				)
 			)}
@@ -431,9 +447,11 @@ export default function LeagueSheet({ onClose, onPlay, seedNames, joinCode }: { 
 		<div className='fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
 			<div className='w-full max-w-lg max-h-[92vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl px-4 pt-4 pb-8 animate-slide-up' onClick={e => e.stopPropagation()}>
 				<div className='flex items-center justify-between mb-3'>
-					<div className='text-lg font-black text-white'>🏟️ Leagues</div>
-					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
-						&times;
+					<div className='flex items-center gap-2 text-lg font-black text-white'>
+						<Icon name='arena' className='text-orange-300' /> Leagues
+					</div>
+					<button onClick={onClose} className='p-2 -mr-2 text-white/50 hover:text-white' aria-label='Close'>
+						<Icon name='x' size={20} />
 					</button>
 				</div>
 				{current ? (
@@ -449,8 +467,8 @@ export default function LeagueSheet({ onClose, onPlay, seedNames, joinCode }: { 
 					/>
 				) : view === 'join' ? (
 					<>
-						<button onClick={() => setView('list')} className='text-xs text-white/45 mb-2'>
-							← All leagues
+						<button onClick={() => setView('list')} className='inline-flex items-center gap-1 text-xs text-white/45 mb-2 py-1'>
+							<Icon name='chevronLeft' size={14} /> All leagues
 						</button>
 						<JoinLeague code={joinCode ?? undefined} onDone={() => setView('list')} />
 					</>
@@ -461,7 +479,10 @@ export default function LeagueSheet({ onClose, onPlay, seedNames, joinCode }: { 
 							<button key={l.id} onClick={() => setView(l.id)} className='w-full text-left rounded-2xl bg-white/[0.04] border border-white/10 p-3 hover:bg-white/[0.07]'>
 								<div className='flex items-center justify-between'>
 									<div className='text-sm font-black text-white truncate'>{l.name}</div>
-									<div className='text-[10px] text-white/40 shrink-0'>{l.cloud ? '☁️ online' : 'this phone'}</div>
+									<div className='inline-flex items-center gap-1 text-[10px] text-white/40 shrink-0'>
+										{l.cloud && <Icon name='cloud' size={12} />}
+										{l.cloud ? 'online' : 'this phone'}
+									</div>
 								</div>
 								<div className='text-[11px] text-white/55'>
 									{l.names.length} coaches · {statusOf(l, leagueGames(l, all))}
@@ -469,8 +490,8 @@ export default function LeagueSheet({ onClose, onPlay, seedNames, joinCode }: { 
 							</button>
 						))}
 						<div className='flex gap-2'>
-							<button onClick={() => setView('new')} className='flex-1 btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white'>
-								＋ New league
+							<button onClick={() => setView('new')} className='flex-1 inline-flex items-center justify-center gap-1.5 btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white'>
+								<Icon name='plus' size={18} /> New league
 							</button>
 							{cloudEnabled && (
 								<button onClick={() => setView('join')} className='rounded-2xl px-4 py-3 font-black text-sm text-white bg-white/10 border border-white/15'>

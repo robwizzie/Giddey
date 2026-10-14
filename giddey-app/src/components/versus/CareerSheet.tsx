@@ -6,6 +6,7 @@ import { loadRivalry } from '@/lib/versus/rivalry';
 import { careerLink, cloudEnabled, publishCareer, unpublishCareer } from '@/lib/versus/cloud';
 import { useCloud } from './AccountSheet';
 import CareerCard from './CareerCard';
+import Icon from './Icon';
 
 /** Any coach's career on this phone; your own can be published as a public link */
 export default function CareerSheet({ initial, onClose }: { initial: string; onClose: () => void }) {
@@ -25,7 +26,7 @@ export default function CareerSheet({ initial, onClose }: { initial: string; onC
 			try {
 				if (navigator.share) {
 					await navigator.share({ title: `${career.name} on Giddey Versus`, text: `${career.wins}–${career.losses}, ${career.titles} title${career.titles === 1 ? '' : 's'}. Come get some:`, url: link });
-					setMsg('✓ Published');
+					setMsg('Published');
 					return;
 				}
 			} catch {
@@ -33,7 +34,7 @@ export default function CareerSheet({ initial, onClose }: { initial: string; onC
 			}
 			try {
 				await navigator.clipboard.writeText(link);
-				setMsg('✓ Published — link copied');
+				setMsg('Published — link copied');
 			} catch {
 				setMsg(link);
 			}
@@ -47,9 +48,12 @@ export default function CareerSheet({ initial, onClose }: { initial: string; onC
 		<div className='fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
 			<div className='w-full max-w-lg max-h-[92vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl px-4 pt-4 pb-8 animate-slide-up' onClick={e => e.stopPropagation()}>
 				<div className='flex items-center justify-between mb-3'>
-					<div className='text-lg font-black text-white'>🎖️ Career</div>
-					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
-						&times;
+					<div className='text-lg font-black text-white inline-flex items-center gap-2'>
+						<Icon name='medal' className='text-orange-300' />
+						Career
+					</div>
+					<button onClick={onClose} className='p-2 -mr-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10' aria-label='Close'>
+						<Icon name='x' size={20} />
 					</button>
 				</div>
 				{names.length > 1 && (
@@ -64,17 +68,21 @@ export default function CareerSheet({ initial, onClose }: { initial: string; onC
 				{!names.length ? <div className='text-sm text-white/55'>No games yet — your career starts with your first result.</div> : <CareerCard c={career} />}
 				{cloudEnabled && names.length > 0 && (
 					<div className='mt-5 rounded-2xl bg-white/[0.04] border border-white/10 p-3'>
-						<div className='text-sm font-black text-white'>🌐 Public career page</div>
+						<div className='flex items-center gap-1.5 text-sm font-black text-white'>
+							<Icon name='globe' className='text-sky-300' />
+							Public career page
+						</div>
 						{!cloud.session ? (
-							<div className='text-[11px] text-white/50'>Sign in from ⋯ → Sign in to get a link anyone can open — perfect for trash talk.</div>
+							<div className='text-[11px] text-white/50'>Sign in from the ⋯ menu → Sign in to get a link anyone can open — perfect for trash talk.</div>
 						) : !mine ? (
 							<div className='text-[11px] text-white/50'>You can publish your own career ({cloud.profile?.name}). Pick your name above.</div>
 						) : (
 							<>
 								<div className='text-[11px] text-white/50 mb-2'>Publishes this snapshot to a public link. Publish again to update it; nothing else about your games is shared.</div>
 								<div className='flex gap-2'>
-									<button disabled={busy} onClick={publish} className='flex-1 btn-primary rounded-xl py-2.5 text-sm font-black uppercase text-white disabled:opacity-40'>
-										{busy ? 'Publishing…' : '📤 Publish & share'}
+									<button disabled={busy} onClick={publish} className='flex-1 btn-primary inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-black uppercase text-white disabled:opacity-40'>
+										{!busy && <Icon name='share' />}
+										{busy ? 'Publishing…' : 'Publish & share'}
 									</button>
 									<button
 										onClick={async () => {

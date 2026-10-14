@@ -2,6 +2,7 @@
 
 import type { CareerData } from '@/lib/versus/career';
 import { getVersusPlayer } from '@/lib/versus/pool';
+import Icon from './Icon';
 
 function Big({ label, value }: { label: string; value: string | number }) {
 	return (
@@ -25,8 +26,10 @@ export default function CareerCard({ c }: { c: CareerData }) {
 					{c.since ? ` since ${new Date(c.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}` : ''}
 				</div>
 				{(c.titles > 0 || c.leagueTitles.length > 0) && (
-					<div className='text-3xl mt-2' title='Titles'>
-						{'🏆'.repeat(Math.min(c.titles + c.leagueTitles.length, 8))}
+					<div className='flex items-center justify-center gap-1 text-3xl text-yellow-300 mt-2' title={`${c.titles + c.leagueTitles.length} title${c.titles + c.leagueTitles.length === 1 ? '' : 's'}`}>
+						{Array.from({ length: Math.min(c.titles + c.leagueTitles.length, 8) }, (_, i) => (
+							<Icon key={i} name='trophy' />
+						))}
 					</div>
 				)}
 			</div>
@@ -40,11 +43,15 @@ export default function CareerCard({ c }: { c: CareerData }) {
 			</div>
 			{c.badges.length > 0 && (
 				<div className='rounded-2xl bg-white/[0.04] border border-white/10 p-3'>
-					<div className='text-[10px] font-black uppercase tracking-widest text-white/45 mb-2'>🏅 Badges · {c.badges.length}</div>
+					<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white/45 mb-2'>
+						<Icon name='medal' />
+						Badges · {c.badges.length}
+					</div>
 					<div className='flex flex-wrap gap-1.5'>
 						{c.badges.map(b => (
-							<span key={b.title} className='rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black text-white'>
-								{b.icon} {b.title}
+							<span key={b.title} className='inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black text-white'>
+								<Icon name={b.icon} className='text-yellow-300' />
+								{b.title}
 							</span>
 						))}
 					</div>
@@ -52,7 +59,10 @@ export default function CareerCard({ c }: { c: CareerData }) {
 			)}
 			<div className='grid grid-cols-2 gap-2'>
 				<div className='rounded-2xl bg-white/[0.04] border border-white/10 p-3'>
-					<div className='text-[10px] font-black uppercase tracking-widest text-white/45 mb-1'>🔥 Go-to guys</div>
+					<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white/45 mb-1'>
+						<Icon name='flame' />
+						Go-to guys
+					</div>
 					{c.favorites.length ? (
 						c.favorites.map(f => {
 							const p = getVersusPlayer(f.id);
@@ -70,7 +80,10 @@ export default function CareerCard({ c }: { c: CareerData }) {
 					)}
 				</div>
 				<div className='rounded-2xl bg-white/[0.04] border border-white/10 p-3'>
-					<div className='text-[10px] font-black uppercase tracking-widest text-white/45 mb-1'>⚔️ Rivals</div>
+					<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white/45 mb-1'>
+						<Icon name='swords' />
+						Rivals
+					</div>
 					{c.rivals.length ? (
 						c.rivals.map(r => (
 							<div key={r.name} className='flex justify-between text-[12px] py-0.5'>
@@ -87,10 +100,16 @@ export default function CareerCard({ c }: { c: CareerData }) {
 			</div>
 			{c.bestWin && (
 				<div className='text-center text-[12px] text-white/60'>
-					💥 Biggest win: <span className='font-black text-white'>{c.bestWin.score}</span> over {c.bestWin.opponent}
+					<Icon name='zap' className='mr-1 text-orange-300' />
+					Biggest win: <span className='font-black text-white'>{c.bestWin.score}</span> over {c.bestWin.opponent}
 				</div>
 			)}
-			{c.leagueTitles.length > 0 && <div className='text-center text-[12px] text-yellow-200'>🏟️ League champion: {c.leagueTitles.join(', ')}</div>}
+			{c.leagueTitles.length > 0 && (
+				<div className='text-center text-[12px] text-yellow-200'>
+					<Icon name='arena' className='mr-1' />
+					League champion: {c.leagueTitles.join(', ')}
+				</div>
+			)}
 		</div>
 	);
 }

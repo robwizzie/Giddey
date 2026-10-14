@@ -4,6 +4,7 @@ import { Grade, Side, VersusState } from '@/lib/versus/engine';
 import { gradeColor, pickCallout } from '@/lib/versus/grades';
 import { getVersusPlayer } from '@/lib/versus/pool';
 import { SIDE_COLORS } from './Fx';
+import Icon from './Icon';
 
 /** Letter grade + analyst take for both coaches */
 export function GradeCards({ grades, names, state }: { grades: [Grade, Grade]; names: [string, string]; state?: VersusState }) {
@@ -28,9 +29,12 @@ export function GradeCards({ grades, names, state }: { grades: [Grade, Grade]; n
 						{mine.length > 0 && (
 							<div className='mt-2 space-y-0.5'>
 								{mine.map(({ e, c }) => (
-									<div key={`${e.round}-${e.id}`} className='text-[10px] leading-tight'>
-										<span className={c!.kind === 'steal' ? 'text-green-300 font-black' : 'text-amber-300 font-black'}>{c!.kind === 'steal' ? '💰 STEAL' : '🤨 REACH'}</span>{' '}
-										<span className='text-white/70'>{getVersusPlayer(e.id)?.lastName}</span>
+									<div key={`${e.round}-${e.id}`} className='flex items-center gap-1 text-[10px] leading-tight min-w-0'>
+										<span className={`inline-flex items-center gap-0.5 font-black shrink-0 ${c!.kind === 'steal' ? 'text-green-300' : 'text-amber-300'}`}>
+											<Icon name={c!.kind === 'steal' ? 'gem' : 'alert'} />
+											{c!.kind === 'steal' ? 'STEAL' : 'REACH'}
+										</span>
+										<span className='text-white/70 truncate'>{getVersusPlayer(e.id)?.lastName}</span>
 									</div>
 								))}
 							</div>

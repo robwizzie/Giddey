@@ -24,9 +24,16 @@ export type Phase = 'setup' | 'coin' | 'lottery' | 'dynasty' | 'theme' | 'keeper
 
 export interface Identity {
 	team: string;
-	emoji: string;
+	/** team logo: an icon name (see TEAM_ICONS) */
+	icon: string;
 	color: string;
 }
+
+/** Logos a coach can pick for their team */
+export const TEAM_ICONS = ['flame', 'snowflake', 'crown', 'zap', 'rocket', 'target', 'shield', 'swords', 'skull', 'ghost', 'star', 'gem', 'bomb', 'trophy', 'heart', 'waves'];
+
+// saves from before icons: map the old emoji to the closest logo
+const EMOJI_TO_ICON: Record<string, string> = { '🔥': 'flame', '🧊': 'snowflake', '👑': 'crown', '⚡': 'zap', '🚀': 'rocket', '🎯': 'target', '🏆': 'trophy', '💎': 'gem', '☠️': 'skull', '🌪️': 'waves', '🐍': 'swords', '🦅': 'star', '🐐': 'crown', '🐺': 'ghost', '🦁': 'shield', '🍀': 'heart' };
 
 export interface Settings {
 	names: [string, string];
@@ -99,8 +106,8 @@ export const SIDE_PALETTE = ['#f97316', '#38bdf8', '#22c55e', '#e11d48', '#a855f
 export const DEFAULT_SETTINGS: Settings = {
 	names: ['', ''],
 	identity: [
-		{ team: '', emoji: '🔥', color: '#f97316' },
-		{ team: '', emoji: '🧊', color: '#38bdf8' },
+		{ team: '', icon: 'flame', color: '#f97316' },
+		{ team: '', icon: 'snowflake', color: '#38bdf8' },
 	],
 	pool: 'mixed',
 	eraWarsModern: 0,
@@ -150,12 +157,12 @@ export const MAX_ROSTER = 15;
 export const MAX_PER_TIER = 8;
 
 export const TIER_PRESETS: { id: string; label: string; icon: string; desc: string; tiers: Record<Band, number> }[] = [
-	{ id: 'balanced', label: 'Balanced', icon: '⚖️', desc: 'A star, some help, real depth', tiers: { superstar: 1, star: 2, starter: 2, rotation: 2, deep: 1 } },
-	{ id: 'five', label: 'Starting Five', icon: '🖐️', desc: '5 picks, no bench', tiers: { superstar: 1, star: 2, starter: 2, rotation: 0, deep: 0 } },
-	{ id: 'bigthree', label: 'Big Three', icon: '🔥', desc: '3 superstars + role players', tiers: { superstar: 3, star: 0, starter: 1, rotation: 2, deep: 2 } },
-	{ id: 'super', label: 'Superteams', icon: '🚀', desc: 'Overpowered. Nothing but stars', tiers: { superstar: 4, star: 4, starter: 0, rotation: 0, deep: 0 } },
-	{ id: 'underdogs', label: 'Underdogs', icon: '🐕', desc: 'No stars — pure grit', tiers: { superstar: 0, star: 0, starter: 2, rotation: 3, deep: 3 } },
-	{ id: 'deep', label: 'Full Rotation', icon: '📋', desc: '12-man 2K-style roster', tiers: { superstar: 1, star: 2, starter: 3, rotation: 3, deep: 3 } },
+	{ id: 'balanced', label: 'Balanced', icon: 'scale', desc: 'A star, some help, real depth', tiers: { superstar: 1, star: 2, starter: 2, rotation: 2, deep: 1 } },
+	{ id: 'five', label: 'Starting Five', icon: 'hand', desc: '5 picks, no bench', tiers: { superstar: 1, star: 2, starter: 2, rotation: 0, deep: 0 } },
+	{ id: 'bigthree', label: 'Big Three', icon: 'flame', desc: '3 superstars + role players', tiers: { superstar: 3, star: 0, starter: 1, rotation: 2, deep: 2 } },
+	{ id: 'super', label: 'Superteams', icon: 'rocket', desc: 'Overpowered. Nothing but stars', tiers: { superstar: 4, star: 4, starter: 0, rotation: 0, deep: 0 } },
+	{ id: 'underdogs', label: 'Underdogs', icon: 'shield', desc: 'No stars — pure grit', tiers: { superstar: 0, star: 0, starter: 2, rotation: 3, deep: 3 } },
+	{ id: 'deep', label: 'Full Rotation', icon: 'clipboard', desc: '12-man 2K-style roster', tiers: { superstar: 1, star: 2, starter: 3, rotation: 3, deep: 3 } },
 ];
 
 export function rosterTotal(tiers: Record<Band, number>): number {
@@ -257,10 +264,11 @@ export function normalizeSettings(raw: Partial<Settings> & { rosterSize?: number
 	};
 	const tiers = { ...(raw.tiers ?? legacy[raw.rosterSize ?? 8] ?? DEFAULT_SETTINGS.tiers) };
 	const tiers2 = { ...(raw.tiers2 ?? tiers) };
-	const identity: [Identity, Identity] = [
-		{ ...DEFAULT_SETTINGS.identity[0], ...(raw.identity?.[0] ?? {}) },
-		{ ...DEFAULT_SETTINGS.identity[1], ...(raw.identity?.[1] ?? {}) },
-	];
+	const identity = ([0, 1] as Side[]).map(i => {
+		const old = raw.identity?.[i] as (Partial<Identity> & { emoji?: string }) | undefined;
+		const icon = old?.icon && TEAM_ICONS.includes(old.icon) ? old.icon : (old?.emoji && EMOJI_TO_ICON[old.emoji]) || DEFAULT_SETTINGS.identity[i].icon;
+		return { team: old?.team ?? '', color: old?.color ?? DEFAULT_SETTINGS.identity[i].color, icon };
+	}) as [Identity, Identity];
 	const favorites: [string[], string[]] = [[...(raw.favorites?.[0] ?? [])], [...(raw.favorites?.[1] ?? [])]];
 	const custom: CustomWheels = { ...EMPTY_CUSTOM, ...(raw.custom ?? {}) };
 	const s: Settings = { ...DEFAULT_SETTINGS, ...raw, tiers, tiers2, identity, favorites, custom, rosterSize: 0 };
@@ -273,11 +281,13 @@ export function sideColor(settings: Settings, side: Side): string {
 	return settings.identity?.[side]?.color ?? DEFAULT_SETTINGS.identity[side].color;
 }
 
-/** "🔥 Mamba Mentality" or just the coach's name */
+/** "Mamba Mentality", or just the coach's name */
 export function teamName(settings: Settings, side: Side): string {
-	const id = settings.identity?.[side];
-	const name = id?.team?.trim() || settings.names[side];
-	return id?.emoji ? `${id.emoji} ${name}` : name;
+	return settings.identity?.[side]?.team?.trim() || settings.names[side];
+}
+
+export function teamIcon(settings: Settings, side: Side): string {
+	return settings.identity?.[side]?.icon ?? DEFAULT_SETTINGS.identity[side].icon;
 }
 
 /**
@@ -472,6 +482,8 @@ export interface GameDay {
 	halftime?: Halftime | null;
 	/** each coach's secret pick before tip-off */
 	predictions?: [Prediction | null, Prediction | null];
+	/** each coach's Player of the Game vote (secret until the result is in) */
+	votes?: [string | null, string | null];
 }
 
 export interface Prediction {

@@ -6,6 +6,7 @@ import { MAX_FAVORITES, Settings } from '@/lib/versus/engine';
 import { buildPayload, decodeSync, encodeSync, mergeGames, previewMerge, qrSized, syncLink, SyncPayload } from '@/lib/versus/sync';
 import { loadRivalry } from '@/lib/versus/rivalry';
 import { getVersusPlayer } from '@/lib/versus/pool';
+import Icon, { IconTile } from './Icon';
 
 /** Confirm an incoming sync before merging it */
 export function ImportPreview({ payload, settings, onDone, onCancel }: { payload: SyncPayload; settings: Settings; onDone: (favorites: [string[], string[]]) => void; onCancel: () => void }) {
@@ -16,23 +17,31 @@ export function ImportPreview({ payload, settings, onDone, onCancel }: { payload
 	return (
 		<div className='fixed inset-0 z-[90] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onCancel}>
 			<div className='w-full max-w-md bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 animate-slide-up' onClick={e => e.stopPropagation()}>
-				<div className='text-4xl text-center mb-1'>🔄</div>
+				<div className='flex justify-center mb-2'>
+					<IconTile name='refresh' color='#38bdf8' size={48} />
+				</div>
 				<div className='text-lg font-black text-white text-center'>Sync from the other phone</div>
 				<div className='text-xs text-white/50 text-center mb-4'>
 					{payload.games.length} game{payload.games.length === 1 ? '' : 's'} in this link{from ? ` (${from})` : ''}
 				</div>
 				<div className='rounded-xl bg-white/[0.05] border border-white/10 p-3 text-sm text-white/80 space-y-1 mb-4'>
-					<div>
-						🏀 <span className='font-black text-white'>{prev.added}</span> new game{prev.added === 1 ? '' : 's'} to add
+					<div className='flex items-start gap-2'>
+						<Icon name='ball' className='mt-0.5 shrink-0 text-orange-300' />
+						<span>
+						<span className='font-black text-white'>{prev.added}</span> new game{prev.added === 1 ? '' : 's'} to add
 						{prev.total - prev.added > 0 && <span className='text-white/45'> · {prev.total - prev.added} already here</span>}
+						</span>
 					</div>
 					{favCount > 0 && (
-						<div>
-							💙 {favCount} franchise guy{favCount === 1 ? '' : 's'} for{' '}
+						<div className='flex items-start gap-2'>
+							<Icon name='heart' className='mt-0.5 shrink-0 text-blue-400 fill-current' />
+							<span>
+							{favCount} franchise guy{favCount === 1 ? '' : 's'} for{' '}
 							{[0, 1]
 								.filter(i => prev.favorites[i].length)
 								.map(i => `${settings.names[i]} (${prev.favorites[i].map(id => getVersusPlayer(id)?.lastName).join(', ')})`)
 								.join(' and ')}
+							</span>
 						</div>
 					)}
 					<div className='text-[11px] text-white/45'>Seasons, badges, usage and the rivalry chart all update from the merged games. Nothing here gets deleted.</div>
@@ -103,7 +112,7 @@ export default function SyncSheet({ settings, onClose, onImported }: { settings:
 		}
 		try {
 			await navigator.clipboard.writeText(link);
-			flash('✓ Link copied — text it to the other phone');
+			flash('Link copied — text it to the other phone');
 		} catch {
 			flash('Couldn’t copy — long-press the box below instead');
 		}
@@ -113,9 +122,11 @@ export default function SyncSheet({ settings, onClose, onImported }: { settings:
 		<div className='fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
 			<div className='w-full max-w-lg max-h-[92vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl px-4 pt-4 pb-8 animate-slide-up' onClick={e => e.stopPropagation()}>
 				<div className='flex items-center justify-between mb-1'>
-					<div className='text-lg font-black text-white'>🔄 Sync phones</div>
-					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
-						&times;
+					<div className='flex items-center gap-2 text-lg font-black text-white'>
+						<Icon name='refresh' className='text-sky-300' /> Sync phones
+					</div>
+					<button onClick={onClose} className='p-2 -mr-2 text-white/50 hover:text-white' aria-label='Close'>
+						<Icon name='x' size={20} />
 					</button>
 				</div>
 				<div className='text-xs text-white/50 mb-4'>
@@ -137,8 +148,8 @@ export default function SyncSheet({ settings, onClose, onImported }: { settings:
 							{qr && qr.count < total ? ` The QR holds your newest ${qr.count} of ${total} games — use the link for all of them.` : qr ? ` Holds all ${total} games.` : ''}
 						</div>
 					</div>
-					<button onClick={share} disabled={!link} className='mt-3 w-full btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'>
-						📤 Share sync link
+					<button onClick={share} disabled={!link} className='mt-3 w-full inline-flex items-center justify-center gap-2 btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'>
+						<Icon name='share' /> Share sync link
 					</button>
 					{msg && qr && <div className='text-center text-xs text-green-300 mt-2'>{msg}</div>}
 				</div>

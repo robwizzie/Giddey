@@ -18,6 +18,7 @@ import {
 	verifyEmailCode,
 } from '@/lib/versus/cloud';
 import { Settings } from '@/lib/versus/engine';
+import Icon from './Icon';
 
 export function useCloud() {
 	return useSyncExternalStore(subscribeCloud, cloudState, cloudState);
@@ -52,10 +53,19 @@ function SignIn() {
 		<div className='space-y-3'>
 			<div className='rounded-xl bg-white/[0.04] border border-white/10 p-3 text-[12px] text-white/65 leading-relaxed'>
 				Versus works without an account — everything saves on this phone. Sign in to:
-				<ul className='mt-1 space-y-0.5 text-white/80'>
-					<li>☁️ back up every rivalry and see it on any phone or the installed app</li>
-					<li>🤝 share one live record with your opponent — games either of you logs show up for both</li>
-					<li>💙 keep your franchise guys with you</li>
+				<ul className='mt-2 space-y-1.5 text-white/80'>
+					<li className='flex gap-2'>
+						<Icon name='cloud' className='mt-0.5 shrink-0 text-sky-300' />
+						<span>back up every rivalry and see it on any phone or the installed app</span>
+					</li>
+					<li className='flex gap-2'>
+						<Icon name='handshake' className='mt-0.5 shrink-0 text-emerald-300' />
+						<span>share one live record with your opponent — games either of you logs show up for both</span>
+					</li>
+					<li className='flex gap-2'>
+						<Icon name='heart' className='mt-0.5 shrink-0 text-blue-400 fill-current' />
+						<span>keep your franchise guys with you</span>
+					</li>
 				</ul>
 			</div>
 			{!sent ? (
@@ -67,9 +77,10 @@ function SignIn() {
 							await sendSignInEmail(email);
 							setSent(true);
 						})}
-						className='w-full btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'
+						className='w-full inline-flex items-center justify-center gap-2 btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'
 					>
-						{busy ? 'Sending…' : '✉️ Email me a sign-in code'}
+						{!busy && <Icon name='mail' />}
+						{busy ? 'Sending…' : 'Email me a sign-in code'}
 					</button>
 					{googleEnabled && (
 						<button disabled={busy} onClick={() => run(signInWithGoogle)} className='w-full rounded-2xl py-3 font-black text-sm text-black bg-white disabled:opacity-40'>
@@ -112,7 +123,7 @@ function RivalryCard({ r, onPlay, myId }: { r: CloudRivalry; onPlay: (names: [st
 		}
 		try {
 			await navigator.clipboard.writeText(url);
-			setMsg('✓ Invite link copied');
+			setMsg('Invite link copied');
 		} catch {
 			setMsg(`Code: ${r.inviteCode}`);
 		}
@@ -126,7 +137,7 @@ function RivalryCard({ r, onPlay, myId }: { r: CloudRivalry; onPlay: (names: [st
 					</div>
 					<div className='text-[11px] text-white/50'>
 						{r.games} game{r.games === 1 ? '' : 's'} ·{' '}
-						{theirs ? <span className='text-emerald-300'>✓ {r.names[r.mySeat === 0 ? 1 : 0]} joined</span> : <span className='text-amber-300'>{r.names[r.mySeat === 0 ? 1 : 0]} hasn&apos;t joined yet</span>}
+						{theirs ? <span className='inline-flex items-center gap-0.5 text-emerald-300'><Icon name='check' size={12} /> {r.names[r.mySeat === 0 ? 1 : 0]} joined</span> : <span className='text-amber-300'>{r.names[r.mySeat === 0 ? 1 : 0]} hasn&apos;t joined yet</span>}
 					</div>
 				</div>
 				<button onClick={() => onPlay(r.names)} className='shrink-0 btn-primary rounded-xl px-3 py-2 text-xs font-black uppercase text-white'>
@@ -135,8 +146,8 @@ function RivalryCard({ r, onPlay, myId }: { r: CloudRivalry; onPlay: (names: [st
 			</div>
 			<div className='flex gap-2 mt-2'>
 				{!theirs && (
-					<button onClick={share} className='flex-1 rounded-xl py-2 text-xs font-black text-sky-200 bg-sky-500/15 border border-sky-400/30'>
-						📨 Invite {r.names[r.mySeat === 0 ? 1 : 0]} · {r.inviteCode}
+					<button onClick={share} className='flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black text-sky-200 bg-sky-500/15 border border-sky-400/30'>
+						<Icon name='send' size={14} /> Invite {r.names[r.mySeat === 0 ? 1 : 0]} · {r.inviteCode}
 					</button>
 				)}
 				<button
@@ -183,9 +194,11 @@ export default function AccountSheet({ settings, onClose, onPlay, joinCode }: { 
 		<div className='fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
 			<div className='w-full max-w-lg max-h-[92vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl px-4 pt-4 pb-8 animate-slide-up' onClick={e => e.stopPropagation()}>
 				<div className='flex items-center justify-between mb-3'>
-					<div className='text-lg font-black text-white'>👤 {cloud.session ? 'Your account' : 'Sign in (optional)'}</div>
-					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
-						&times;
+					<div className='flex items-center gap-2 text-lg font-black text-white'>
+						<Icon name='user' className='text-orange-300' /> {cloud.session ? 'Your account' : 'Sign in (optional)'}
+					</div>
+					<button onClick={onClose} className='p-2 -mr-2 text-white/50 hover:text-white' aria-label='Close'>
+						<Icon name='x' size={20} />
 					</button>
 				</div>
 
@@ -193,7 +206,7 @@ export default function AccountSheet({ settings, onClose, onPlay, joinCode }: { 
 					<div className='text-center text-white/50 py-10'>Loading…</div>
 				) : !cloud.session ? (
 					<>
-						{joinCode && <div className='rounded-xl bg-sky-500/10 border border-sky-400/30 text-sky-100 text-sm p-3 mb-3'>📨 You&apos;ve been invited to a rivalry. Sign in and you&apos;ll join it automatically.</div>}
+						{joinCode && <div className='flex gap-2 rounded-xl bg-sky-500/10 border border-sky-400/30 text-sky-100 text-sm p-3 mb-3'><Icon name='send' className='mt-0.5 shrink-0' /><span>You&apos;ve been invited to a rivalry. Sign in and you&apos;ll join it automatically.</span></div>}
 						<SignIn />
 					</>
 				) : (
@@ -220,9 +233,12 @@ export default function AccountSheet({ settings, onClose, onPlay, joinCode }: { 
 						{/* rivalries */}
 						<div>
 							<div className='flex items-center justify-between mb-2'>
-								<div className='text-[11px] font-black uppercase tracking-widest text-white/45'>☁️ Your rivalries</div>
-								<button onClick={() => void syncNow()} className='text-[11px] text-white/45'>
-									{cloud.syncing ? 'Syncing…' : `Synced ${ago(cloud.lastSync)} · ↻`}
+								<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/45'>
+									<Icon name='cloud' size={13} /> Your rivalries
+								</div>
+								<button onClick={() => void syncNow()} aria-label='Sync now' className='inline-flex items-center gap-1 py-1 text-[11px] text-white/45'>
+									{cloud.syncing ? 'Syncing…' : `Synced ${ago(cloud.lastSync)}`}
+									<Icon name='refresh' size={12} className={cloud.syncing ? 'animate-spin' : ''} />
 								</button>
 							</div>
 							{cloud.rivalries.length ? (
@@ -238,7 +254,9 @@ export default function AccountSheet({ settings, onClose, onPlay, joinCode }: { 
 
 						{/* new */}
 						<div className='rounded-2xl bg-white/[0.04] border border-white/10 p-3'>
-							<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-1'>➕ Start a rivalry</div>
+							<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/45 mb-1'>
+								<Icon name='plus' size={13} /> Start a rivalry
+							</div>
 							<div className='text-[11px] text-white/45 mb-2'>
 								You&apos;re <span className='font-black text-white'>{me?.name}</span>. Games you&apos;ve already played against this name on this phone upload automatically.
 							</div>
@@ -252,7 +270,9 @@ export default function AccountSheet({ settings, onClose, onPlay, joinCode }: { 
 
 						{/* join */}
 						<div className='rounded-2xl bg-white/[0.04] border border-white/10 p-3'>
-							<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>🤝 Join with a code</div>
+							<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>
+								<Icon name='handshake' size={13} /> Join with a code
+							</div>
 							<div className='flex gap-2'>
 								<input className={`${field} uppercase tracking-widest font-black`} maxLength={8} placeholder='A1B2C3D4' value={code} onChange={e => setCode(e.target.value.toUpperCase())} />
 								<button disabled={busy || code.trim().length < 6} onClick={() => run(async () => { await joinRivalry(code); setCode(''); })} className='shrink-0 rounded-xl px-4 text-xs font-black uppercase text-white bg-white/10 border border-white/15 disabled:opacity-40'>

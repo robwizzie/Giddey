@@ -9,10 +9,11 @@ import type { RivalryGame } from '@/lib/versus/rivalry';
 import { seatGames } from '@/lib/versus/history';
 import { seasons, SeasonSummary, winsNeeded } from '@/lib/versus/seasons';
 import { achievementsFor } from '@/lib/versus/achievements';
-import GameDetail, { GameRow } from './GameDetail';
+import GameDetail, { GameRow, STYLE_META } from './GameDetail';
 import { deleteCloudGames, linkedRivalry } from '@/lib/versus/cloud';
 import { getSabotage } from '@/lib/versus/wheels';
 import { SIDE_COLORS } from './Fx';
+import Icon from './Icon';
 
 function Stat({ label, values, fmt = v => String(v) }: { label: string; values: [number, number]; fmt?: (v: number) => string }) {
 	const better: Side | null = values[0] === values[1] ? null : values[0] > values[1] ? 0 : 1;
@@ -29,8 +30,6 @@ function Stat({ label, values, fmt = v => String(v) }: { label: string; values: 
 	);
 }
 
-const STYLE_LABEL: Record<string, string> = { snake: '🐍 Snake', cut: '✂️ You Cut, I Choose', franchise: '🎡 Franchise wheel', auction: '💰 Auction', block: '🔨 Auction Block' };
-
 /** Series lead after every game — above the line coach 1 leads, below coach 2 */
 function LeadChart({ stats, names }: { stats: RivalryStats; names: [string, string] }) {
 	const pts = [{ lead: 0 }, ...stats.timeline];
@@ -44,7 +43,10 @@ function LeadChart({ stats, names }: { stats: RivalryStats; names: [string, stri
 	const peak = (side: Side) => Math.max(0, ...pts.map(p => (side === 0 ? p.lead : -p.lead)));
 	return (
 		<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>📈 Head-to-head over time</div>
+			<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>
+				<Icon name='lineChart' />
+				Head-to-head over time
+			</div>
 			<svg viewBox={`0 0 ${W} ${H}`} className='w-full h-32' preserveAspectRatio='none'>
 				<defs>
 					<clipPath id='vs-above'>
@@ -71,11 +73,14 @@ function LeadChart({ stats, names }: { stats: RivalryStats; names: [string, stri
 	);
 }
 
-function RecordRows({ title, rows }: { title: string; rows: { label: string; wins: [number, number] }[] }) {
+function RecordRows({ title, icon, rows }: { title: string; icon?: string; rows: { label: string; icon?: string; wins: [number, number] }[] }) {
 	if (!rows.length) return null;
 	return (
 		<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>{title}</div>
+			<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>
+				{icon && <Icon name={icon} />}
+				{title}
+			</div>
 			<div className='space-y-2'>
 				{rows.map(r => {
 					const n = r.wins[0] + r.wins[1];
@@ -85,7 +90,10 @@ function RecordRows({ title, rows }: { title: string; rows: { label: string; win
 								<span className='font-black tabular-nums' style={{ color: SIDE_COLORS[0] }}>
 									{r.wins[0]}
 								</span>
-								<span className='text-white font-bold truncate px-2'>{r.label}</span>
+								<span className='inline-flex items-center gap-1 min-w-0 text-white font-bold px-2'>
+									{r.icon && <Icon name={r.icon} className='text-white/60' />}
+									<span className='truncate'>{r.label}</span>
+								</span>
 								<span className='font-black tabular-nums' style={{ color: SIDE_COLORS[1] }}>
 									{r.wins[1]}
 								</span>
@@ -133,7 +141,18 @@ function SeasonPanel({ list, names }: { list: SeasonSummary[]; names: [string, s
 						<div className='text-[10px] font-black uppercase tracking-widest' style={{ color: SIDE_COLORS[side] }}>
 							{names[side]}
 						</div>
-						<div className='text-2xl font-black text-yellow-300'>{'🏆'.repeat(Math.min(t[side], 5)) || <span className='text-white/25 text-base'>No titles</span>}</div>
+						<div className={`flex items-center gap-0.5 h-8 text-2xl font-black text-yellow-300 ${side ? 'justify-end' : ''}`}>
+							{t[side] ? (
+								<>
+									{Array.from({ length: Math.min(t[side], 5) }, (_, i) => (
+										<Icon key={i} name='trophy' />
+									))}
+									{t[side] > 5 && <span className='text-base ml-1'>×{t[side]}</span>}
+								</>
+							) : (
+								<span className='text-white/25 text-base'>No titles</span>
+							)}
+						</div>
 					</div>
 				))}
 			</div>
@@ -169,12 +188,16 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 		<div className='fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
 			<div className='w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl px-4 pt-4 pb-8 animate-slide-up' onClick={e => e.stopPropagation()}>
 				<div className='flex items-center justify-between mb-4'>
-					<div className='text-lg font-black text-white'>📊 Rivalry</div>
-					<button onClick={onSync} className='ml-auto mr-2 text-xs font-black uppercase tracking-widest text-sky-200 bg-sky-500/15 border border-sky-400/30 rounded-full px-3 py-1.5'>
-						🔄 Sync phones
+					<div className='text-lg font-black text-white inline-flex items-center gap-2'>
+						<Icon name='chart' className='text-orange-300' />
+						Rivalry
+					</div>
+					<button onClick={onSync} className='ml-auto mr-1 inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-sky-200 bg-sky-500/15 border border-sky-400/30 rounded-full px-3 py-2'>
+						<Icon name='refresh' />
+						Sync phones
 					</button>
-					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
-						&times;
+					<button onClick={onClose} className='p-2 -mr-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10' aria-label='Close'>
+						<Icon name='x' size={20} />
 					</button>
 				</div>
 
@@ -197,9 +220,9 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 
 				{!stats.games ? (
 					<div className='text-center py-12 text-white/50'>
-						<div className='text-5xl mb-3'>🏀</div>
+						<Icon name='ball' size={48} className='mx-auto mb-3 text-orange-300/70' />
 						{names[0].trim() && names[1].trim() ? `No games between ${names[0]} and ${names[1]} yet.` : 'No games on this phone yet.'} Play one and the record starts here — it survives new series.
-						<div className='mt-3 text-xs'>Played on the other phone? Tap 🔄 Sync phones.</div>
+						<div className='mt-3 text-xs'>Played on the other phone? Tap Sync phones.</div>
 					</div>
 				) : (
 					<>
@@ -223,7 +246,12 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 								{leader === null ? `All square after ${stats.games} games.` : `${names[leader]} leads the all-time series ${Math.max(a.wins, b.wins)}–${Math.min(a.wins, b.wins)}.`}
 								{(() => {
 									const s = a.streak > 0 ? { side: 0 as Side, n: a.streak } : b.streak > 0 ? { side: 1 as Side, n: b.streak } : null;
-									return s && s.n >= 2 ? ` ${names[s.side]} has won ${s.n} straight 🔥` : '';
+									return s && s.n >= 2 ? (
+										<>
+											{` ${names[s.side]} has won ${s.n} straight `}
+											<Icon name='flame' className='text-orange-400' />
+										</>
+									) : null;
 								})()}
 							</div>
 						</div>
@@ -231,14 +259,15 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 						<div className='flex gap-1 rounded-xl bg-white/[0.05] p-1 mb-4 overflow-x-auto [scrollbar-width:none]'>
 							{(
 								[
-									['overview', '📈 Overview'],
-									['games', '🗓️ Games'],
-									['players', '🏀 Players'],
-									['records', '🏆 Records'],
-									['badges', '🏅 Badges'],
-								] as [Tab, string][]
-							).map(([id, label]) => (
-								<button key={id} onClick={() => setTab(id)} className={`flex-1 shrink-0 whitespace-nowrap rounded-lg px-2.5 py-2 text-[11px] font-black ${tab === id ? 'bg-white text-black' : 'text-white/60'}`}>
+									['overview', 'lineChart', 'Overview'],
+									['games', 'calendar', 'Games'],
+									['players', 'ball', 'Players'],
+									['records', 'trophy', 'Records'],
+									['badges', 'medal', 'Badges'],
+								] as [Tab, string, string][]
+							).map(([id, icon, label]) => (
+								<button key={id} onClick={() => setTab(id)} className={`flex-1 shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[11px] font-black ${tab === id ? 'bg-white text-black' : 'text-white/60'}`}>
+									<Icon name={icon} />
 									{label}
 								</button>
 							))}
@@ -272,7 +301,8 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 										<div className='mt-2 space-y-1'>
 											{stats.upsets.map((u, i) => (
 												<div key={i} className='text-[12px] text-white/65'>
-													🐶 <span className='font-black text-white'>{u.winner}</span> won as a {u.gap}-OVR underdog
+													<Icon name='zap' className='mr-1 text-amber-300' />
+													<span className='font-black text-white'>{u.winner}</span> won as a {u.gap}-OVR underdog
 												</div>
 											))}
 										</div>
@@ -335,7 +365,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 													.sort((x, y) => Number(y.done) - Number(x.done) || y.have / y.need - x.have / x.need)
 													.map(x => (
 														<div key={x.a.id} className={`flex items-start gap-2 ${x.done ? '' : 'opacity-45'}`} title={x.a.desc}>
-															<div className={`text-lg leading-none ${x.done ? '' : 'grayscale'}`}>{x.a.icon}</div>
+															<Icon name={x.a.icon} size={18} className={`mt-px ${x.done ? 'text-yellow-300' : 'text-white/60'}`} />
 															<div className='min-w-0 flex-1'>
 																<div className='text-[11px] font-black text-white leading-tight'>{x.a.title}</div>
 																<div className='text-[9px] text-white/50 leading-tight'>{x.a.desc}</div>
@@ -358,7 +388,10 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 							<>
 								{seasonList.some(x => x.champion !== null) && (
 									<div className='rounded-2xl border border-yellow-400/30 bg-yellow-400/[0.05] p-4 mb-4'>
-										<div className='text-[11px] font-black uppercase tracking-widest text-yellow-300/80 mb-2'>🏆 Banners</div>
+										<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-yellow-300/80 mb-2'>
+											<Icon name='trophy' />
+											Banners
+										</div>
 										<div className='space-y-1.5'>
 											{seasonList
 												.filter(x => x.champion !== null)
@@ -385,7 +418,10 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 									return (
 										<div className='grid grid-cols-2 gap-2 mb-4'>
 											<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-3'>
-												<div className='text-[10px] font-black uppercase tracking-widest text-white/45'>📝 Do grades hold up?</div>
+												<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white/45'>
+													<Icon name='clipboard' />
+													Do grades hold up?
+												</div>
 												{graded.length ? (
 													<>
 														<div className='text-2xl font-black text-white mt-1'>{pct(held, graded.length)}%</div>
@@ -398,7 +434,10 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 												)}
 											</div>
 											<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-3'>
-												<div className='text-[10px] font-black uppercase tracking-widest text-white/45'>📈 Against the spread</div>
+												<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white/45'>
+													<Icon name='trendUp' />
+													Against the spread
+												</div>
 												{lined.length ? (
 													<div className='text-sm text-white mt-1'>
 														<span className='text-2xl font-black' style={{ color: SIDE_COLORS[0] }}>
@@ -419,8 +458,8 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 										</div>
 									);
 								})()}
-								<RecordRows title='🎴 Record by draft style' rows={stats.byStyle.map(r => ({ label: STYLE_LABEL[r.style] ?? r.style, wins: r.wins }))} />
-								<RecordRows title='🎡 Record by theme' rows={stats.byTheme.map(r => ({ label: `${getTheme(r.theme)?.icon ?? ''} ${getTheme(r.theme)?.label ?? r.theme}`, wins: r.wins }))} />
+								<RecordRows title='Record by draft style' icon='layers' rows={stats.byStyle.map(r => ({ label: STYLE_META[r.style]?.label ?? r.style, icon: STYLE_META[r.style]?.icon, wins: r.wins }))} />
+								<RecordRows title='Record by theme' icon='wheel' rows={stats.byTheme.map(r => ({ label: getTheme(r.theme)?.label ?? r.theme, icon: getTheme(r.theme)?.icon, wins: r.wins }))} />
 						{/* Records */}
 						<div className='grid grid-cols-2 gap-2 mb-4'>
 							<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-3'>
@@ -458,7 +497,10 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 							<>
 								{stats.potg.length > 0 && (
 									<div className='rounded-2xl border border-yellow-400/30 bg-yellow-400/[0.05] p-3 mb-4'>
-										<div className='text-[10px] font-black uppercase tracking-widest text-yellow-300/80 mb-1.5'>⭐ Player of the Game leaders</div>
+										<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-yellow-300/80 mb-1.5'>
+											<Icon name='star' className='fill-current' />
+											Player of the Game leaders
+										</div>
 										{stats.potg.map(x => (
 											<div key={x.id} className='flex items-center gap-2'>
 												<div className='w-1.5 h-1.5 rounded-full shrink-0' style={{ background: SIDE_COLORS[x.side] }} />
@@ -476,9 +518,15 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 												{names[side]}
 											</div>
 											<div className='text-[10px] text-white/40 mb-2'>{stats.coaches[side].distinct} different players used</div>
-											<div className='text-[10px] font-black uppercase tracking-widest text-white/45 mb-0.5'>🔥 Most used</div>
+											<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white/45 mb-0.5'>
+												<Icon name='flame' />
+												Most used
+											</div>
 											{stats.coaches[side].topPicks.length ? stats.coaches[side].topPicks.map(tp => <PlayerLine key={tp.id} id={tp.id} right={`×${tp.count}`} />) : <div className='text-xs text-white/40'>—</div>}
-											<div className='text-[10px] font-black uppercase tracking-widest text-white/45 mt-2.5 mb-0.5'>🆕 Best never used</div>
+											<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white/45 mt-2.5 mb-0.5'>
+												<Icon name='sparkles' />
+												Best never used
+											</div>
 											{stats.coaches[side].neverUsed.map(id => (
 												<PlayerLine key={id} id={id} right={`${getVersusPlayer(id)?.overall ?? ''}`} />
 											))}
@@ -487,7 +535,10 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 								</div>
 								{isCurrent && retired.length > 0 && (
 									<div className='rounded-2xl border border-amber-400/30 bg-amber-400/[0.05] p-3 mb-4'>
-										<div className='text-[10px] font-black uppercase tracking-widest text-amber-300/80 mb-1.5'>🎖️ Retired right now</div>
+										<div className='flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-amber-300/80 mb-1.5'>
+											<Icon name='medal' />
+											Retired right now
+										</div>
 										{retired.map(r => (
 											<div key={`${r.side}-${r.id}`} className='flex items-center gap-2'>
 												<div className='w-1.5 h-1.5 rounded-full shrink-0' style={{ background: SIDE_COLORS[r.side] }} />

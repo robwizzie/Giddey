@@ -5,6 +5,7 @@ import { LiveGate, useCanAct } from './Live';
 import { availableFavorites, chooseFavorite, other, pickThemeParam, setTheme, themeOptions, VersusState } from '@/lib/versus/engine';
 import { getTheme, themeTitle, ThemeId } from '@/lib/versus/themes';
 import { getVersusPlayer } from '@/lib/versus/pool';
+import Icon, { IconTile } from './Icon';
 import Wheel from './Wheel';
 import VersusCard from './VersusCard';
 import { Confetti, SectionTitle, SIDE_COLORS } from './Fx';
@@ -34,7 +35,8 @@ export function ThemeScreen({ state, setState }: { state: VersusState; setState:
 				{!landed ? (
 					<div className='flex flex-col items-center'>
 						<Wheel
-							items={options.map(t => ({ id: t.id, label: `${t.icon} ${t.label}`, color: t.color }))}
+							mirror='Theme draft'
+							items={options.map(t => ({ id: t.id, label: t.label, color: t.color }))}
 							size={size}
 							accent='#a855f7'
 							disabled={!canSpin}
@@ -45,8 +47,9 @@ export function ThemeScreen({ state, setState }: { state: VersusState; setState:
 						/>
 						<div className='mt-4 flex flex-wrap justify-center gap-1.5 max-w-md'>
 							{options.map(t => (
-								<span key={t.id} className='text-[10px] font-bold text-white/55 bg-white/5 rounded-full px-2 py-0.5'>
-									{t.icon} {t.label}
+								<span key={t.id} className='inline-flex items-center gap-1 text-[10px] font-bold text-white/55 bg-white/5 rounded-full px-2 py-0.5'>
+									<Icon name={t.icon} style={{ color: t.color }} />
+									{t.label}
 								</span>
 							))}
 						</div>
@@ -55,7 +58,7 @@ export function ThemeScreen({ state, setState }: { state: VersusState; setState:
 					theme && (
 						<div className='flex flex-col items-center text-center vs-pop'>
 							<Confetti count={50} colors={[theme.color, '#ffffff']} />
-							<div className='text-7xl mb-2'>{theme.icon}</div>
+							<IconTile name={theme.icon} color={theme.color} size={88} className='mb-3 rounded-3xl' />
 							<div className='text-3xl font-black text-white'>{themeTitle(landed, state.settings.names)}</div>
 							<div className='text-sm text-white/65 mt-2 max-w-sm'>{theme.desc}</div>
 							{landed.id === 'division' && <div className='text-sm font-black mt-2' style={{ color: theme.color }}>Tonight: the {landed.param}</div>}
@@ -94,7 +97,7 @@ export function FavoritesScreen({ state, setState }: { state: VersusState; setSt
 	return (
 		<div className='min-h-screen pb-28'>
 			<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
-				<SectionTitle kicker='💙 Favorites round' title={`${name}, grab your franchise guy`} sub='Take one of your pinned players before the draft starts. He fills one of your rounds in his tier.' />
+				<SectionTitle kicker='Favorites round' title={`${name}, grab your franchise guy`} sub='Take one of your pinned players before the draft starts. He fills one of your rounds in his tier.' />
 				{otherPick && (
 					<div className='text-center text-xs text-white/55 mb-4'>
 						<span className='font-black' style={{ color: SIDE_COLORS[other(side)] }}>

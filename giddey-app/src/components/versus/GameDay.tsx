@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { bestLineup, deadlineOpen, normalizeSettings, other, players, Prediction, tradeDeadline, recordGame, RETIRE_DRAFTS, seriesScore, setSabotage, Settings, Side, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
 import { TierBuilder } from './SetupScreen';
 import { useCanAct, WaitingBar } from './Live';
-import { liveInfo } from '@/lib/versus/live';
+import { canSeePrivate, hostLock, mySide } from '@/lib/versus/live';
+import Icon from './Icon';
 import { getTeamFor, getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { hotHand } from '@/lib/versus/usage';
 import { buzz } from '@/lib/versus/sound';
@@ -93,9 +94,27 @@ function ChallengeCard({ state, side }: { state: VersusState; side: Side }) {
 }
 
 /** One coach's Player of the Game vote — anyone from either roster */
-function PotgVote({ state, side, value, onChange }: { state: VersusState; side: Side; value: string | null; onChange: (id: string | null) => void }) {
+function PotgVote({ state, setState, side }: { state: VersusState; setState: SetState; side: Side }) {
 	const { names } = state.settings;
 	const canVote = useCanAct(side, names);
+	const votes = state.gameday.votes ?? [null, null];
+	const value = votes[side];
+	const onChange = (id: string | null) => {
+		const next: [string | null, string | null] = [...votes];
+		next[side] = id;
+		setState({ ...state, gameday: { ...state.gameday, votes: next } });
+	};
+	// another coach's vote stays secret until the result is locked in
+	if (!canSeePrivate(side))
+		return (
+			<div className='rounded-xl bg-black/25 p-3 flex items-center gap-2 text-sm'>
+				<span className='font-black' style={{ color: SIDE_COLORS[side] }}>
+					{names[side]}
+				</span>
+				<span className='text-white/60'>{value ? 'has voted' : 'is voting on their phone…'}</span>
+				{value && <Icon name='lock' className='ml-auto text-white/40' />}
+			</div>
+		);
 	const both = [...players(state.teams[0]).map(p => ({ p, team: 0 as Side })), ...players(state.teams[1]).map(p => ({ p, team: 1 as Side }))].sort((a, b) => b.p.overall - a.p.overall);
 	return (
 		<div className='rounded-xl bg-black/25 p-2.5'>
@@ -134,7 +153,7 @@ function PotgVote({ state, side, value, onChange }: { state: VersusState; side: 
 function ResultForm({ state, setState }: { state: VersusState; setState: SetState }) {
 	const { names } = state.settings;
 	const [winner, setWinner] = useState<Side | null>(null);
-	const [votes, setVotes] = useState<[string | null, string | null]>([null, null]);
+	const votes = state.gameday.votes ?? [null, null];
 	const [score, setScore] = useState<[string, string]>(['', '']);
 	const [done, setDone] = useState<[boolean | null, boolean | null]>([null, null]);
 
@@ -235,7 +254,7 @@ function ResultForm({ state, setState }: { state: VersusState; setState: SetStat
 				<div className='text-center text-[11px] text-white/40 mb-2'>Each coach votes — anyone from either team. Split votes? Both get it. Winners earn a ⭐ Hot hand tag in future drafts.</div>
 				<div className='space-y-2'>
 					{([0, 1] as Side[]).map(i => (
-						<PotgVote key={i} state={state} side={i} value={votes[i]} onChange={id => setVotes(v => (i ? [v[0], id] : [id, v[1]]))} />
+						<PotgVote key={i} state={state} setState={setState} side={i} />
 					))}
 				</div>
 				{retireNote && <div className='text-[11px] text-amber-200/80 text-center mt-2'>{retireNote}</div>}
@@ -516,6 +535,7 @@ function HalftimeCard({ state, setState }: { state: VersusState; setState: SetSt
 						)}
 					</div>
 					<Wheel
+						mirror='Halftime wheel'
 						items={activeHalftime()}
 						size={size}
 						accent='#38bdf8'
@@ -555,6 +575,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 	const spinner: Side = !gd.rewards[0] ? 0 : 1;
 	const canSpin = useCanAct(spinner, names);
 	const canHost = useCanAct(null, names, true);
+	const liveSide = mySide();
 	const segs = risk
 		? challengeSegments(rosterSize, risk)
 				.filter(sg => sg.id !== gd.challenges[other(spinner)])
@@ -571,9 +592,10 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 					<div className='animate-fade-in'>
 						<p className='text-sm text-white/55 mb-4 text-center'>One pull sets the quarter length (2–5 min) and a rule twist for both teams.</p>
 						{!canHost ? (
-							<WaitingBar name={names[liveInfo()?.hostSide ?? 0]} fixed={false} />
+							<WaitingBar name={hostLock(names) ?? 'the host'} fixed={false} what='is pulling for the rules' />
 						) : (
 						<SlotMachine
+							mirror='Tonight’s rules'
 							reels={[
 								{ title: 'Quarters', items: QUARTER_REEL },
 								{ title: 'Twist', items: activeTwists().map(t => ({ id: t.id, label: t.label, color: t.color, weight: t.weight })) },
@@ -628,6 +650,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 									))}
 								</div>
 								<Wheel
+									mirror={`${names[spinner]}'s ${DIFFICULTY_INFO[risk].label} challenge`}
 									key={`ch-${spinner}-${risk}`}
 									items={segs}
 									size={size}
@@ -700,7 +723,16 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 						{!showForm && <PredictionCard state={state} setState={setState} />}
 						<HalftimeCard state={state} setState={setState} />
 
-						{!showForm ? (
+						{!canHost && liveSide !== null && (
+							<div className='rounded-2xl border border-white/10 bg-white/[0.03] p-4'>
+								<div className='text-center text-[11px] font-black uppercase tracking-widest text-white/50 mb-2'>Your Player of the Game vote</div>
+								<PotgVote state={state} setState={setState} side={liveSide} />
+								<div className='text-center text-[11px] text-white/40 mt-2'>Secret until the result is in. Anyone from either team.</div>
+							</div>
+						)}
+						{!canHost ? (
+							<WaitingBar name={hostLock(names) ?? 'the host'} fixed={false} what='enters the final score' />
+						) : !showForm ? (
 							<button onClick={() => setShowForm(true)} className='w-full btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg mt-2'>
 								🏀 Game over — enter result
 							</button>
@@ -763,7 +795,7 @@ function SabotageSpin({ state, setState }: { state: VersusState; setState: SetSt
 				<span className='font-black' style={{ color: SIDE_COLORS[loser] }}>{state.settings.names[loser]}</span> lost — spin a sabotage for{' '}
 				<span className='font-black' style={{ color: SIDE_COLORS[last.winner] }}>{state.settings.names[last.winner]}</span> to suffer next game.
 			</div>
-			<Wheel items={activeSabotages()} size={size} accent='#ef4444' spinLabel='SPIN' disabled={!canSpin} onResult={i => setTimeout(() => setState(setSabotage(state, activeSabotages()[i].id)), 900)} />
+			<Wheel mirror={`${state.settings.names[loser]}'s revenge spin`} items={activeSabotages()} size={size} accent='#ef4444' spinLabel='SPIN' disabled={!canSpin} onResult={i => setTimeout(() => setState(setSabotage(state, activeSabotages()[i].id)), 900)} />
 		</div>
 	);
 }
@@ -942,7 +974,7 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 
 				{handicapOpen && <HandicapSheet state={state} setState={setState} onClose={() => setHandicapOpen(false)} />}
 
-				{!canNext && <WaitingBar name={names[liveInfo()?.hostSide ?? 0]} fixed={false} />}
+				{!canNext && <WaitingBar name={hostLock(names) ?? 'the host'} fixed={false} what='picks what’s next' />}
 				<div className={`space-y-2 ${canNext ? '' : 'hidden'}`}>
 					{deadlineOpen(state) && (
 						<button onClick={() => setState(tradeDeadline(state))} className='w-full rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg bg-gradient-to-r from-emerald-600 to-teal-600 border border-emerald-300/40'>

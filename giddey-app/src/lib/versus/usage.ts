@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 //  PLAYER USAGE — who each coach has played with, built from the
-//  permanent rivalry log. Drives the freshness boost, the 🆕 / 🔥 card
+//  permanent rivalry log. Drives the freshness boost, the Never drafted / Nth time card
 //  tags, Fresh Faces and Hot Hand badges.
 //
 //  The page rebuilds this whenever the log or coach names change and

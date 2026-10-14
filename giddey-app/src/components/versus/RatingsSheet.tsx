@@ -1,6 +1,7 @@
 'use client';
 
 import { fmtDate, RATING_UPDATES } from '@/lib/versus/ratingChanges';
+import Icon from './Icon';
 
 /** Risers & fallers from every 2K rating update */
 export default function RatingsSheet({ onClose }: { onClose: () => void }) {
@@ -8,12 +9,15 @@ export default function RatingsSheet({ onClose }: { onClose: () => void }) {
 		<div className='fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
 			<div className='w-full max-w-lg max-h-[88vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl px-4 pt-4 pb-8 animate-slide-up' onClick={e => e.stopPropagation()}>
 				<div className='flex items-center justify-between mb-1'>
-					<div className='text-lg font-black text-white'>📈 2K27 rating updates</div>
-					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
-						&times;
+					<div className='text-lg font-black text-white inline-flex items-center gap-2'>
+						<Icon name='trendUp' className='text-emerald-300' />
+						2K27 rating updates
+					</div>
+					<button onClick={onClose} className='p-2 -mr-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10' aria-label='Close'>
+						<Icon name='x' size={20} />
 					</button>
 				</div>
-				<div className='text-xs text-white/50 mb-4'>Overalls follow 2K&apos;s in-season updates. Cards show 📈 / 📉 when a player has moved since launch.</div>
+				<div className='text-xs text-white/50 mb-4'>Overalls follow 2K&apos;s in-season updates. Cards show a green or red OVR tag when a player has moved since launch.</div>
 				{!RATING_UPDATES.length && <div className='text-sm text-white/60 rounded-xl bg-white/[0.04] border border-white/10 p-3'>Still on 2K27 launch ratings — no updates yet.</div>}
 				<div className='space-y-4'>
 					{RATING_UPDATES.map(u => {
@@ -28,7 +32,7 @@ export default function RatingsSheet({ onClose }: { onClose: () => void }) {
 										const d = c.to - c.from;
 										return (
 											<div key={c.id} className='flex items-center gap-2 px-3 py-1.5 text-[12px]'>
-												<span className='w-4'>{d > 0 ? '📈' : d < 0 ? '📉' : '🔁'}</span>
+												<Icon name={d > 0 ? 'trendUp' : d < 0 ? 'trendDown' : 'swap'} size={14} className={d > 0 ? 'text-emerald-300' : d < 0 ? 'text-red-300' : 'text-white/50'} />
 												<span className='flex-1 min-w-0 truncate text-white font-bold'>{c.name}</span>
 												{c.team && (
 													<span className='text-white/45 shrink-0'>

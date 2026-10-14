@@ -30,12 +30,13 @@ import { TEAMS_MAP } from '@/lib/teams';
 import { buzz, play } from '@/lib/versus/sound';
 import VersusCard, { RosterRow } from './VersusCard';
 import { TaggedCard } from './Tags';
-import { themeTitle } from '@/lib/versus/themes';
+import { getTheme, themeTitle } from '@/lib/versus/themes';
 import Wheel from './Wheel';
 import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
+import Icon from './Icon';
 import { LiveGate, useCanAct } from './Live';
-import { liveInfo } from '@/lib/versus/live';
+import { canSeePrivate, liveInfo } from '@/lib/versus/live';
 import { BlindReveal, ChemBars, CommissionerIntro, Handoff, PickReveal, RewardBanner, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
 
 function useCardWidth(count: number) {
@@ -83,7 +84,7 @@ export function RosterColumn({ state, side, active }: { state: VersusState; side
 							key={p.id}
 							player={p}
 							highlight={state.draft?.lastPick?.id === p.id && i === ps.length - 1}
-							tag={keeper === p.id ? 'Keeper' : state.draft?.favorites?.[side] === p.id ? '💙 Fav' : price !== undefined ? `$${price}` : undefined}
+							tag={keeper === p.id ? 'Keeper' : state.draft?.favorites?.[side] === p.id ? 'Fav' : price !== undefined ? `$${price}` : undefined}
 							tagColor={keeper === p.id ? '#7c3aed' : state.draft?.favorites?.[side] === p.id ? '#1d4ed8' : '#15803d'}
 						/>
 					);
@@ -93,8 +94,9 @@ export function RosterColumn({ state, side, active }: { state: VersusState; side
 				))}
 			</div>
 			{(state.settings.freshFaces ?? 0) > 0 && (
-				<div className={`mt-2 text-[10px] font-black ${freshNeeded(state, side) ? 'text-lime-300' : 'text-green-400'}`}>
-					🌱 Fresh faces {state.settings.freshFaces - freshNeeded(state, side)}/{state.settings.freshFaces}
+				<div className={`mt-2 flex items-center gap-1 text-[10px] font-black ${freshNeeded(state, side) ? 'text-lime-300' : 'text-green-400'}`}>
+					<Icon name='sprout' />
+					Fresh faces {state.settings.freshFaces - freshNeeded(state, side)}/{state.settings.freshFaces}
 				</div>
 			)}
 			{need.length > 0 && ids.length > 0 && (
@@ -165,6 +167,9 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 	const [handoffDone, setHandoffDone] = useState<string | null>(null);
 	// live room: only the coach on the clock acts, on their own phone
 	const canAct = useCanAct(actor, names);
+	// a coach's own pack (split rounds / solo rounds) is private to that coach
+	const privatePack = (!shared || d.solo) && !d.offered.length && d.stage === 'pick';
+	const hidePack = privatePack && !canSeePrivate(actor);
 
 	// new picks → reveal (single pick) or blind reveal (both secret picks)
 	const seen = useRef({ log: d.log.length, collisions: d.collisions, round: d.round });
@@ -281,7 +286,7 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 				<Handoff
 					to={actor}
 					name={names[actor]}
-					note={d.turn === 0 ? (d.collisions ? 'Collision — new pack. Pick again in secret.' : `🙈 Blind bid round! ${names[opp]}, look away.`) : `Pick in secret — ${names[opp]} already locked theirs in. Don't take the same guy.`}
+					note={d.turn === 0 ? (d.collisions ? 'Collision — new pack. Pick again in secret.' : `Blind bid round! ${names[opp]}, look away.`) : `Pick in secret — ${names[opp]} already locked theirs in. Don't take the same guy.`}
 					onReady={() => setHandoffDone(handoffKey)}
 				/>
 			)}
@@ -293,15 +298,21 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 				<div className='flex items-center justify-between mt-2 gap-2'>
 					<div className='text-[11px] font-black uppercase tracking-widest text-white/40 truncate'>{roundLabel}</div>
 					<div className='text-[11px] font-black uppercase tracking-widest truncate' style={{ color: BAND_INFO[band].color }}>
-						{isSecret ? '🙈 Blind bid · ' : ''}
+						{isSecret && (
+							<>
+								<Icon name='eyeOff' className='mr-1' />
+								Blind bid ·{' '}
+							</>
+						)}
 						{BAND_INFO[band].label}
 						{poolTag ? ` · ${poolTag}` : ''}
 						{d.franchise ? ` · ${TEAMS_MAP[d.franchise].name}` : ''}
 					</div>
 				</div>
 				{state.theme && (
-					<div className='mt-2 text-center text-[11px] font-black uppercase tracking-widest text-white/60'>
-						🎡 Theme: <span className='text-white'>{themeTitle(state.theme, state.settings.names)}</span>
+					<div className='mt-2 flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/60'>
+						<Icon name={getTheme(state.theme.id)?.icon ?? 'wheel'} style={{ color: getTheme(state.theme.id)?.color }} />
+						Theme: <span className='text-white'>{themeTitle(state.theme, state.settings.names)}</span>
 					</div>
 				)}
 
@@ -325,6 +336,7 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 				{d.stage === 'spin' && (
 					<div className='mt-6 flex flex-col items-center'>
 						<Wheel
+							mirror={`${names[actor]} spins for a franchise`}
 							key={`fw-${d.round}`}
 							items={franchiseItems}
 							size={Math.min(320, cardW * 2.6)}
@@ -346,7 +358,17 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 				)}
 
 				{/* Pack */}
-				{d.stage !== 'spin' && !needHandoff && (
+				{hidePack && (
+					<div className='mt-6'>
+						<div className='flex flex-wrap justify-center gap-3'>
+							{visible.map(id => (
+								<VersusCard key={id} player={getVersusPlayer(id)!} width={cardW} hidden />
+							))}
+						</div>
+						<div className='text-center text-xs text-white/50 mt-3'>{names[actor]}&apos;s own pack — only they can see it.</div>
+					</div>
+				)}
+				{d.stage !== 'spin' && !needHandoff && !hidePack && (
 					<div className='mt-6 flex flex-wrap justify-center gap-x-3 gap-y-5'>
 						{visible.map((id, i) => {
 							const p = getVersusPlayer(id)!;
@@ -390,8 +412,12 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 							disabled={d.rerolls[actor] <= 0 || (!!d.offered.length && !isCutStage) || isSecret}
 							className='shrink-0 rounded-2xl px-4 py-3.5 font-black text-sm bg-white/10 text-white disabled:opacity-30 border border-white/10 active:scale-95 transition-transform'
 							title='Replace the pack with new cards from the same tier'
+							aria-label={`Reroll the pack (${d.rerolls[actor]} left)`}
 						>
-							🎲 {d.rerolls[actor]}
+							<span className='inline-flex items-center gap-1.5'>
+								<Icon name='dice' size={18} />
+								{d.rerolls[actor]}
+							</span>
 						</button>
 						<button
 							onClick={confirm}
@@ -408,7 +434,12 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 									: `Pick ${2 - selected.length} more`
 								: selectedPlayer
 									? isSecret
-										? `Lock in ${blind ? 'mystery ' + selectedPlayer.position : selectedPlayer.lastName} 🔒`
+										? (
+												<>
+													Lock in {blind ? 'mystery ' + selectedPlayer.position : selectedPlayer.lastName}
+													<Icon name='lock' className='ml-1.5' />
+												</>
+											)
 										: blind
 											? `Draft mystery ${selectedPlayer.position}`
 											: `Draft ${selectedPlayer.lastName}`

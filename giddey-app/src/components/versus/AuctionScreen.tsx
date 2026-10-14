@@ -9,6 +9,7 @@ import { playerTags, TagChip, TaggedCard } from './Tags';
 import VersusCard from './VersusCard';
 import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
+import Icon from './Icon';
 import { RosterColumn } from './DraftScreen';
 import { LiveGate, useCanAct } from './Live';
 import { CommissionerIntro, PickReveal, RewardBanner, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
@@ -34,7 +35,14 @@ function BoardRow({ p, value, need, selected, onClick, state, side }: { p: Versu
 					{p.firstName} {p.lastName}
 				</div>
 				<div className='text-[10px] text-white/45 truncate leading-tight'>
-					{lock ? `🔒 ${lock}` : `${p.position}/${p.secondaryPosition} · ${p.era === 'alltime' ? `${p.eraLabel ?? ''} ${team.name}`.trim() : team.abbreviation}`}
+					{lock ? (
+						<span className='inline-flex items-center gap-1'>
+							<Icon name='lock' className='shrink-0' />
+							{lock}
+						</span>
+					) : (
+						`${p.position}/${p.secondaryPosition} · ${p.era === 'alltime' ? `${p.eraLabel ?? ''} ${team.name}`.trim() : team.abbreviation}`
+					)}
 				</div>
 				{tags.length > 0 && !lock && (
 					<div className='mt-0.5'>
@@ -223,7 +231,7 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 								<span className='text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full' style={{ background: `${BAND_INFO[lot.band].color}22`, color: BAND_INFO[lot.band].color }}>
 									{BAND_INFO[lot.band].label} slot
 								</span>
-								{lot.mystery && <span className='text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/10 text-white/80'>🎁 Mystery</span>}
+								{lot.mystery && <span className='inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/10 text-white/80'><Icon name='gift' />Mystery</span>}
 								{lot.mustSell && <span className='text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300'>Must sell</span>}
 							</div>
 						)}
@@ -375,12 +383,12 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 					) : (
 						<div className='flex gap-2 items-stretch'>
 							<div className='flex items-center rounded-2xl bg-white/10 border border-white/10 shrink-0'>
-								<button onClick={() => setOpening(o => Math.max(1, o - 1))} className='px-3 py-3 font-black text-white text-lg'>
-									−
+								<button onClick={() => setOpening(o => Math.max(1, o - 1))} aria-label='Lower opening bid' className='px-3 py-3 min-w-[40px] flex items-center justify-center font-black text-white text-lg'>
+									<Icon name='minus' />
 								</button>
 								<div className='w-12 text-center font-black text-green-400 tabular-nums'>${opening}</div>
-								<button onClick={() => setOpening(o => Math.min(myMax, o + 1))} className='px-3 py-3 font-black text-white text-lg'>
-									+
+								<button onClick={() => setOpening(o => Math.min(myMax, o + 1))} aria-label='Raise opening bid' className='px-3 py-3 min-w-[40px] flex items-center justify-center font-black text-white text-lg'>
+									<Icon name='plus' />
 								</button>
 							</div>
 							<button

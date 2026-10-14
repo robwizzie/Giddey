@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { CareerData } from '@/lib/versus/career';
 import { cloudEnabled, fetchCareer } from '@/lib/versus/cloud';
 import CareerCard from '@/components/versus/CareerCard';
+import Icon from '@/components/versus/Icon';
 
 /** Public career page: /versus/career#<slug> */
 export default function CareerPage() {
@@ -23,7 +24,7 @@ export default function CareerPage() {
 				{state.status === 'loading' && <div className='text-center text-white/50 py-20'>Loading…</div>}
 				{(state.status === 'missing' || state.status === 'off') && (
 					<div className='text-center text-white/60 py-20'>
-						<div className='text-5xl mb-3'>🏀</div>
+						<Icon name='ball' size={48} className='mx-auto mb-3 text-orange-300/70' />
 						{state.status === 'off' ? 'Career pages aren’t set up on this site.' : 'This career page doesn’t exist (or was unpublished).'}
 					</div>
 				)}

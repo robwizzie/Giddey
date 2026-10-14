@@ -6,7 +6,7 @@ import { beginDraft, freshPreDraft, initialState, migrateState, nextGame, normal
 import { loadRivalry, logGame } from '@/lib/versus/rivalry';
 import { buildUsage, setUsage } from '@/lib/versus/usage';
 import { setHistory } from '@/lib/versus/history';
-import { setAnnouncer } from '@/lib/versus/announcer';
+import { setAnnouncer, setAnnouncerGate } from '@/lib/versus/announcer';
 import { setCustomWheels } from '@/lib/versus/wheels';
 import { dynastyOpener, homeCourt } from '@/lib/versus/engine';
 import { DynastyKeepScreen, LotteryScreen } from '@/components/versus/Dynasty';
@@ -22,11 +22,12 @@ import HelpSheet from '@/components/versus/HelpSheet';
 import LeagueSheet from '@/components/versus/LeagueSheet';
 import type { LeagueTag } from '@/lib/versus/league';
 import { registerVersusSW } from '@/components/versus/InstallButton';
-import LiveSheet, { LivePill, useLive } from '@/components/versus/Live';
+import LiveSheet, { FxMirror, LivePill, useLive } from '@/components/versus/Live';
 import TvBoard from '@/components/versus/TvBoard';
+import Icon, { IconTile } from '@/components/versus/Icon';
 import PowerRankings from '@/components/versus/PowerRankings';
 import CareerSheet from '@/components/versus/CareerSheet';
-import { broadcastState, joinRoom, liveAvailable, onRemoteState, savedRoom } from '@/lib/versus/live';
+import { broadcastState, hostLock, joinRoom, liveAvailable, liveInfo, onRemoteState, parseRoomHash, savedRoom, takenSeats } from '@/lib/versus/live';
 import SyncSheet, { ImportPreview } from '@/components/versus/SyncSheet';
 import { decodeJson, decodeSync, SyncPayload } from '@/lib/versus/sync';
 import { mergeWheels, SharedWheels } from '@/components/versus/CustomWheelsEditor';
@@ -65,9 +66,11 @@ function SettingsSheet({ state, onSave, onClose }: { state: VersusState; onSave:
 		<div className='fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
 			<div className='w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl px-4 pt-4 pb-28 relative animate-slide-up' onClick={e => e.stopPropagation()}>
 				<div className='flex items-center justify-between mb-4 sticky -top-4 bg-[#0d1220] py-2 z-10'>
-					<div className='text-lg font-black text-white'>⚙️ Series settings</div>
-					<button onClick={onClose} className='text-white/50 hover:text-white text-2xl leading-none px-2' aria-label='Close'>
-						&times;
+					<div className='flex items-center gap-2 text-lg font-black text-white'>
+						<Icon name='settings' className='text-orange-300' /> Series settings
+					</div>
+					<button onClick={onClose} className='p-2 -mr-2 text-white/50 hover:text-white' aria-label='Close'>
+						<Icon name='x' size={20} />
 					</button>
 				</div>
 				{!lockDraft && state.phase !== 'coin' && (
@@ -100,11 +103,11 @@ function MuteButton() {
 				setMuted(!muted);
 				if (muted) play('tick');
 			}}
-			className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center'
+			className='w-9 h-9 rounded-lg bg-white/10 hover:bg-white/15 text-white/85 flex items-center justify-center'
 			aria-label={muted ? 'Unmute sound' : 'Mute sound'}
 			title={muted ? 'Unmute' : 'Mute'}
 		>
-			{muted ? '🔇' : '🔊'}
+			<Icon name={muted ? 'mute' : 'volume'} size={18} />
 		</button>
 	);
 }
@@ -135,7 +138,7 @@ function MoreMenu(p: TopBarProps) {
 			}}
 			className='w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/10 rounded-xl'
 		>
-			<span className='text-lg w-6 text-center'>{icon}</span>
+			<Icon name={icon} size={18} className='w-6 shrink-0 text-orange-300' />
 			<span className='min-w-0'>
 				<span className='block text-sm font-black text-white'>{label}</span>
 				{sub && <span className='block text-[10px] text-white/45'>{sub}</span>}
@@ -144,21 +147,21 @@ function MoreMenu(p: TopBarProps) {
 	);
 	return (
 		<div className='relative'>
-			<button onClick={() => setOpen(o => !o)} className='relative w-8 h-8 rounded-lg bg-white/10 text-lg leading-none flex items-center justify-center text-white' aria-label='More options' title='More options'>
-				⋯
+			<button onClick={() => setOpen(o => !o)} className='relative w-9 h-9 rounded-lg bg-white/10 hover:bg-white/15 flex items-center justify-center text-white/85' aria-label='More options' title='More options'>
+				<Icon name='more' size={18} />
 				{cloudEnabled && cloud.session && <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#111] ${cloud.error ? 'bg-red-400' : cloud.syncing ? 'bg-amber-300' : 'bg-emerald-400'}`} />}
 			</button>
 			{open && (
 				<>
 					<div className='fixed inset-0 z-[60]' onClick={() => setOpen(false)} />
 					<div className='absolute right-0 top-10 z-[61] w-64 rounded-2xl border border-white/10 bg-[#0d1220] p-1.5 shadow-2xl animate-fade-in'>
-						{item('🏟️', 'Leagues', p.onLeagues, '3+ friends · standings & playoffs')}
-						{item('🏆', 'Power rankings', p.onRankings, 'Skill ratings & biggest upsets')}
-						{item('🎖️', 'Career', p.onCareer, 'Record, titles, badges — share it')}
-						{liveAvailable && item('📡', 'Two phones · TV', p.onLive, 'Draft from separate phones')}
-						{cloudEnabled && item('👤', cloud.session ? 'Account' : 'Sign in (optional)', p.onAccount, cloud.session ? (cloud.syncing ? 'Syncing…' : 'Cloud rivalries & sync') : 'Back up & share your rivalries')}
-						{item('❓', 'How it works', p.onHelp)}
-						{p.showReset && item('🆕', 'New series', p.onReset, 'Clears the current teams & score')}
+						{item('arena', 'Leagues', p.onLeagues, '3+ friends · standings & playoffs')}
+						{item('trophy', 'Power rankings', p.onRankings, 'Skill ratings & biggest upsets')}
+						{item('medal', 'Career', p.onCareer, 'Record, titles, badges — share it')}
+						{liveAvailable && item('cast', 'Play on separate devices', p.onLive, 'Each coach on their own phone, plus a TV')}
+						{cloudEnabled && item('user', cloud.session ? 'Account' : 'Sign in (optional)', p.onAccount, cloud.session ? (cloud.syncing ? 'Syncing…' : 'Cloud rivalries & sync') : 'Back up & share your rivalries')}
+						{item('help', 'How it works', p.onHelp)}
+						{p.showReset && item('refresh', 'New series', p.onReset, 'Clears the current teams & score')}
 					</div>
 				</>
 			)}
@@ -177,12 +180,12 @@ function TopBar(p: TopBarProps) {
 				</Link>
 				<div className='flex items-center gap-1.5'>
 					<MuteButton />
-					<button onClick={p.onRivalry} className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='Rivalry record' title='Rivalry record'>
-						📊
+					<button onClick={p.onRivalry} className='w-9 h-9 rounded-lg bg-white/10 hover:bg-white/15 text-white/85 flex items-center justify-center' aria-label='Rivalry record' title='Rivalry record'>
+						<Icon name='chart' size={18} />
 					</button>
 					{p.showReset && (
-						<button onClick={p.onSettings} className='w-8 h-8 rounded-lg bg-white/10 text-sm flex items-center justify-center' aria-label='Settings' title='Settings'>
-							⚙️
+						<button onClick={p.onSettings} className='w-9 h-9 rounded-lg bg-white/10 hover:bg-white/15 text-white/85 flex items-center justify-center' aria-label='Settings' title='Settings'>
+							<Icon name='settings' size={18} />
 						</button>
 					)}
 					<MoreMenu {...p} />
@@ -246,13 +249,13 @@ export default function VersusPage() {
 		}
 		void startCloud();
 		// live room: a join / TV link, or the room this phone was in before a refresh
-		const live = location.hash.match(/^#(live|tv)=([A-Za-z0-9]{6})/);
-		if (live && liveAvailable) {
+		const room = parseRoomHash(location.hash);
+		if (room && liveAvailable) {
 			history.replaceState(null, '', location.pathname + location.search);
-			void joinRoom(live[2].toUpperCase(), live[1] === 'tv' ? 'tv' : 'guest');
+			void joinRoom(room.code, { role: room.role, side: room.side, host: false });
 		} else if (liveAvailable) {
 			const saved = savedRoom();
-			if (saved) void joinRoom(saved.code, saved.role, saved.hostSide, saved.role === 'host' ? s : undefined);
+			if (saved) void joinRoom(saved.code, { role: saved.role, side: saved.side, host: saved.host }, saved.host ? s : undefined);
 		}
 		// someone shared their custom wheels
 		if (location.hash.startsWith('#wheels=')) {
@@ -399,6 +402,13 @@ export default function VersusPage() {
 
 	if (!state) return <div className='min-h-screen' />;
 	setAnnouncer(state.settings.announcer);
+	// live room: the main screen does the talking (or the host when there's no screen)
+	setAnnouncerGate(() => {
+		const l = liveInfo();
+		if (!l) return true;
+		if (l.role === 'screen') return true;
+		return l.host && !takenSeats().screens;
+	});
 	setCustomWheels(state.settings.custom);
 	// coaches' chosen colors feed every component that reads SIDE_COLORS
 	setSideColors([sideColor(state.settings, 0), sideColor(state.settings, 1)]);
@@ -420,6 +430,7 @@ export default function VersusPage() {
 			{showRivalry && <RivalrySheet key={syncs} settings={state.settings} retired={state.retired} onClose={() => setShowRivalry(false)} onSync={() => setShowSync(true)} />}
 			{showRankings && <PowerRankings highlight={[...state.settings.names]} onClose={() => setShowRankings(false)} />}
 			{showCareer && <CareerSheet initial={state.settings.names[0]} onClose={() => setShowCareer(false)} />}
+			{live && <FxMirror />}
 			{showLive && <LiveSheet state={state} onClose={() => setShowLive(false)} />}
 			{showLeagues && <LeagueSheet seedNames={[...state.settings.names]} joinCode={leagueCode} onPlay={(names, tag) => playRivalry(names, tag)} onClose={() => { setShowLeagues(false); setLeagueCode(null); }} />}
 			{showAccount && <AccountSheet settings={state.settings} joinCode={joinCode} onPlay={playRivalry} onClose={() => setShowAccount(false)} />}
@@ -431,7 +442,9 @@ export default function VersusPage() {
 					return (
 						<div className='fixed inset-0 z-[90] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={() => setSharedWheels(null)}>
 							<div className='w-full max-w-md bg-[#0d1220] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 animate-slide-up' onClick={e => e.stopPropagation()}>
-								<div className='text-4xl text-center mb-1'>🎡</div>
+								<div className='flex justify-center mb-2'>
+									<IconTile name='wheel' color='#f97316' size={48} />
+								</div>
 								<div className='text-lg font-black text-white text-center'>{sharedWheels.from} shared their wheels</div>
 								<div className='text-sm text-white/65 text-center mb-4'>
 									{[`${w.challenges?.length ?? 0} challenges`, `${w.sabotages?.length ?? 0} sabotages`, `${w.twists?.length ?? 0} twists`, `${w.halftime?.length ?? 0} halftime rules`].join(' · ')}
@@ -502,23 +515,23 @@ export default function VersusPage() {
 
 	switch (state.phase) {
 		case 'setup':
-			if (live && live.role !== 'host')
+			if (live && !live.host)
 				return wrap(
 					<div className='max-w-md mx-auto px-4 pt-16 text-center'>
-						<div className='text-5xl mb-3'>📡</div>
+						<Icon name='radio' size={48} className='mx-auto mb-3 text-sky-300' />
 						<div className='text-xl font-black text-white'>Connected to room {live.code}</div>
-						<div className='text-sm text-white/55 mt-1'>{live.connected ? `${state.settings.names[live.hostSide] || 'The host'} is setting up the draft — it starts here automatically.` : 'Connecting…'}</div>
+						<div className='text-sm text-white/55 mt-1'>{live.connected ? `${hostLock(state.settings.names) ?? 'The host'} is setting up the draft — it starts here automatically.` : 'Connecting…'}</div>
 					</div>,
 				);
 			return wrap(<SetupScreen key={JSON.stringify([state.settings.names, state.settings.league, syncs])} initial={state.settings ?? DEFAULT_SETTINGS} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onLeagues={() => setShowLeagues(true)} onStart={(settings: Settings) => setState({ ...state, settings, phase: 'coin', coinWinner: null })} />);
 		case 'coin': {
 			// live room: the host flips and starts the draft
-			if (live && live.role !== 'host')
+			if (live && !live.host)
 				return wrap(
 					<div className='max-w-md mx-auto px-4 pt-16 text-center'>
-						<div className='text-5xl mb-3'>🪙</div>
+						<Icon name='coins' size={48} className='mx-auto mb-3 text-amber-300' />
 						<div className='text-xl font-black text-white'>Coin toss</div>
-						<div className='text-sm text-white/55 mt-1'>{state.coinWinner !== null ? `${state.settings.names[state.coinWinner]} picks first — waiting for the draft to start…` : `${state.settings.names[live.hostSide]} is flipping on their phone…`}</div>
+						<div className='text-sm text-white/55 mt-1'>{state.coinWinner !== null ? `${state.settings.names[state.coinWinner]} picks first — waiting for the draft to start…` : `${hostLock(state.settings.names) ?? 'The host'} is flipping the coin…`}</div>
 					</div>,
 				);
 			// Dynasty season opener: the lottery replaces the coin flip
@@ -529,7 +542,7 @@ export default function VersusPage() {
 				return wrap(
 					<div className='max-w-3xl mx-auto px-4 pt-10 flex flex-col items-center text-center animate-fade-in'>
 						<SectionTitle kicker='The Finals' title='Home court' sub='The higher seed from the regular season picks first in every Finals draft.' />
-						<div className='text-7xl mb-2'>🏠</div>
+						<Icon name='home' size={64} className='mb-3' style={{ color: SIDE_COLORS[seed] }} />
 						<div className='text-3xl font-black' style={{ color: SIDE_COLORS[seed] }}>
 							{state.settings.names[seed]} picks first
 						</div>
@@ -544,7 +557,7 @@ export default function VersusPage() {
 			return wrap(
 				<div className='max-w-3xl mx-auto px-4 pt-10 flex flex-col items-center animate-fade-in'>
 					<SectionTitle kicker='Coin toss' title='Who picks first?' sub='Winner gets the first pick of round 1.' />
-					<CoinFlip names={state.settings.names} onResult={w => setState({ ...state, coinWinner: w })} />
+					<CoinFlip mirror names={state.settings.names} onResult={w => setState({ ...state, coinWinner: w })} />
 					{state.coinWinner !== null && (
 						<>
 							<Confetti count={50} colors={[SIDE_COLORS[state.coinWinner], '#ffffff']} />
@@ -575,7 +588,7 @@ export default function VersusPage() {
 		case 'keepers':
 			return wrap(<KeepersScreen state={state} setState={setState} />);
 		case 'draft':
-			if (live?.role === 'tv') return wrap(<TvBoard state={state} />);
+			if (live?.role === 'screen') return wrap(<TvBoard state={state} />);
 			return wrap(state.draft?.auction ? <AuctionScreen state={state} setState={setState} /> : <DraftScreen state={state} setState={setState} />);
 		case 'equalizer':
 			return wrap(<EqualizerScreen state={state} setState={setState} />);

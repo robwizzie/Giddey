@@ -45,7 +45,7 @@ export function buildRecap(s: VersusState): Recap | null {
 		const had = new Set(achievementsFor(before, side).filter(x => x.done).map(x => x.a.id));
 		return achievementsFor(all, side)
 			.filter(x => x.done && !had.has(x.a.id))
-			.map(x => `${x.a.icon} ${x.a.title}`);
+			.map(x => x.a.title);
 	}) as [string[], string[]];
 	// power ratings: before tonight's first game → after its last
 	const raw = loadRivalry();
@@ -68,7 +68,7 @@ export function buildRecap(s: VersusState): Recap | null {
 	const season = !sum
 		? null
 		: sum.champion !== null
-			? `🏆 ${n[sum.champion]} won Season ${sum.n} (${sum.finalsWins[sum.champion]}–${sum.finalsWins[sum.champion === 0 ? 1 : 0]})`
+			? `${n[sum.champion]} won Season ${sum.n} (${sum.finalsWins[sum.champion]}–${sum.finalsWins[sum.champion === 0 ? 1 : 0]})`
 			: sum.regular[0] + sum.regular[1] >= sum.len
 				? `Season ${sum.n} Finals: ${n[0]} ${sum.finalsWins[0]}–${sum.finalsWins[1]} ${n[1]} · first to ${winsNeeded(sum.finals)}`
 				: `Season ${sum.n}: ${n[0]} ${sum.regular[0]}–${sum.regular[1]} ${n[1]} · ${sum.len - sum.regular[0] - sum.regular[1]} to play`;
@@ -148,7 +148,7 @@ export async function renderRecap(s: VersusState): Promise<Blob | null> {
 		const twist = getTwist(g.twist ?? null)?.label;
 		ctx.fillStyle = 'rgba(255,255,255,0.6)';
 		ctx.font = `600 28px ${FONT}`;
-		ctx.fillText([potg && `⭐ ${potg}`, twist && `🎲 ${twist}`, g.season?.stage === 'finals' && '🏆 Finals'].filter(Boolean).join('   ') || ' ', 110, y + 96);
+		ctx.fillText([potg && `POTG ${potg}`, twist && `Twist: ${twist}`, g.season?.stage === 'finals' && 'Finals'].filter(Boolean).join('   ') || ' ', 110, y + 96);
 		ctx.textAlign = 'right';
 		ctx.fillStyle = 'rgba(255,255,255,0.35)';
 		ctx.font = `800 30px ${FONT}`;

@@ -11,6 +11,7 @@ import { computeElo, eloGameKey } from '@/lib/versus/elo';
 import { loadRivalry } from '@/lib/versus/rivalry';
 import { champion, leagueGames, loadLeagues, standings } from '@/lib/versus/league';
 import { Confetti, SIDE_COLORS } from './Fx';
+import Icon, { IconTile } from './Icon';
 
 /** Spread result for the game that just ended */
 export function CoverCard({ state, last }: { state: VersusState; last: GameResult }) {
@@ -21,8 +22,9 @@ export function CoverCard({ state, last }: { state: VersusState; last: GameResul
 	const settled = last.score[0] !== null && last.score[1] !== null;
 	return (
 		<div className={`rounded-2xl border p-4 mb-4 ${last.covered !== null && last.covered !== undefined ? 'border-emerald-400/50 bg-emerald-400/[0.08]' : 'border-white/10 bg-white/[0.03]'}`}>
-			<div className='text-[11px] font-black uppercase tracking-widest text-emerald-300/80 mb-1'>
-				📈 Line: {names[fav]} −{spread}
+			<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-emerald-300/80 mb-1'>
+				<Icon name='trendUp' />
+				Line: {names[fav]} −{spread}
 			</div>
 			{!settled ? (
 				<div className='text-sm text-white/55'>No final score entered, so the spread wasn&apos;t settled.</div>
@@ -31,7 +33,10 @@ export function CoverCard({ state, last }: { state: VersusState; last: GameResul
 					<span className='font-black' style={{ color: SIDE_COLORS[dog] }}>
 						{names[dog]}
 					</span>{' '}
-					covered as the underdog — <span className='font-black text-amber-300'>⬆️ Tier Up</span> for the next draft.
+					covered as the underdog — <span className='font-black text-amber-300 whitespace-nowrap'>
+						<Icon name='chevronsUp' className='mr-0.5' />
+						Tier Up
+					</span> for the next draft.
 				</div>
 			) : (
 				<div className='text-sm text-white/75'>
@@ -65,7 +70,7 @@ export function SeasonCard({ state, last }: { state: VersusState; last: GameResu
 		return (
 			<div className='relative rounded-3xl border-2 p-5 mb-4 text-center overflow-hidden vs-pop' style={{ borderColor: '#facc15', background: `linear-gradient(170deg, ${SIDE_COLORS[champ]}40, #facc1522 60%, transparent)` }}>
 				<Confetti count={140} colors={['#facc15', SIDE_COLORS[champ], '#ffffff']} />
-				<div className='text-6xl'>🏆</div>
+				<Icon name='trophy' size={60} className='text-yellow-300 drop-shadow-[0_0_18px_rgba(250,204,21,0.45)]' />
 				<div className='text-[11px] font-black uppercase tracking-[0.3em] text-yellow-200/80 mt-1'>Season {summary.n} champion</div>
 				<div className='text-4xl font-black' style={{ color: SIDE_COLORS[champ] }}>
 					{names[champ]}
@@ -75,10 +80,11 @@ export function SeasonCard({ state, last }: { state: VersusState; last: GameResu
 				</div>
 				{mvp && (
 					<div className='mt-2 text-sm text-yellow-200'>
-						🏅 Finals MVP: <span className='font-black text-white'>{mvp.firstName} {mvp.lastName}</span>
+						<Icon name='medal' className='mr-1' />
+						Finals MVP: <span className='font-black text-white'>{mvp.firstName} {mvp.lastName}</span>
 					</div>
 				)}
-				<div className='text-[11px] text-white/45 mt-2'>The banner hangs in the 📊 Rivalry page. Next game starts Season {summary.n + 1}.</div>
+				<div className='text-[11px] text-white/45 mt-2'>The banner hangs in the Rivalry page. Next game starts Season {summary.n + 1}.</div>
 			</div>
 		);
 	}
@@ -87,13 +93,19 @@ export function SeasonCard({ state, last }: { state: VersusState; last: GameResu
 	const leader: Side | null = inFinals ? (summary.finalsWins[0] === summary.finalsWins[1] ? null : summary.finalsWins[0] > summary.finalsWins[1] ? 0 : 1) : summary.regular[0] === summary.regular[1] ? null : summary.regular[0] > summary.regular[1] ? 0 : 1;
 	return (
 		<div className='rounded-2xl border border-yellow-400/25 bg-yellow-400/[0.04] p-4 mb-4'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-yellow-200/80 mb-2 text-center'>🏆 Season {summary.n} {inFinals ? '· Finals' : `· ${reg}/${summary.len} games`}</div>
+			<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-yellow-200/80 mb-2'>
+				<Icon name='trophy' />
+				Season {summary.n} {inFinals ? '· Finals' : `· ${reg}/${summary.len} games`}</div>
 			<div className='flex items-center justify-center gap-6'>
 				{([0, 1] as Side[]).map(side => (
 					<div key={side} className='text-center'>
-						<div className='text-xs font-black uppercase' style={{ color: SIDE_COLORS[side] }}>
+						<div className='inline-flex items-center gap-1 text-xs font-black uppercase' style={{ color: SIDE_COLORS[side] }}>
 							{names[side]}
-							{summary.seed === side && <span title='Home court'> 🏠</span>}
+							{summary.seed === side && (
+								<span title='Home court' aria-label='Home court' className='text-yellow-200'>
+									<Icon name='home' />
+								</span>
+							)}
 						</div>
 						<div className='text-3xl font-black text-white tabular-nums'>{inFinals ? summary.finalsWins[side] : summary.regular[side]}</div>
 					</div>
@@ -122,12 +134,16 @@ export function LeagueResultCard({ last, onOpen }: { last: GameResult; onOpen: (
 	if (!info) return null;
 	return (
 		<div className='rounded-2xl border border-emerald-400/40 bg-emerald-500/[0.07] p-4 mb-4'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-emerald-300 text-center mb-2'>
-				🏟️ Counted for {info.l.name}
+			<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-emerald-300 mb-2'>
+				<Icon name='arena' />
+				Counted for {info.l.name}
 				{info.playoff ? ' · playoffs' : ''}
 			</div>
 			{info.champ ? (
-				<div className='text-center text-2xl font-black text-white mb-2'>🏆 {info.champ} wins the league!</div>
+				<div className='flex items-center justify-center gap-2 text-2xl font-black text-white mb-2'>
+					<Icon name='trophy' className='text-yellow-300' />
+					{info.champ} wins the league!
+				</div>
 			) : (
 				<div className='space-y-0.5 mb-2'>
 					{info.table.slice(0, 4).map((r, i) => (
@@ -157,7 +173,10 @@ export function PredictionReveal({ state, last }: { state: VersusState; last: Ga
 	if (!p?.[0] || !p[1]) return null;
 	return (
 		<div className='rounded-2xl border border-violet-400/30 bg-violet-400/[0.06] p-4 mb-4'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-violet-300 text-center mb-2'>🔮 Predictions</div>
+			<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-violet-300 mb-2'>
+				<Icon name='sparkles' />
+				Predictions
+			</div>
 			<div className='grid grid-cols-2 gap-2 text-center'>
 				{([0, 1] as Side[]).map(side => (
 					<div key={side} className={`rounded-xl p-2 ${last.oracle === side ? 'bg-violet-400/15 border border-violet-300/50' : ''}`}>
@@ -167,7 +186,9 @@ export function PredictionReveal({ state, last }: { state: VersusState; last: Ga
 						<div className='text-sm font-black text-white'>
 							{names[p[side]!.winner]} by {p[side]!.margin}
 						</div>
-						{last.oracle === side && <div className='text-[10px] text-violet-200 font-black'>Closest · ➕ +1 Rotation</div>}
+						{last.oracle === side && <div className='inline-flex items-center gap-1 text-[10px] text-violet-200 font-black'>
+								Closest · <Icon name='userPlus' /> +1 Rotation
+							</div>}
 					</div>
 				))}
 			</div>
@@ -205,7 +226,10 @@ export function EloCard({ state }: { state: VersusState }) {
 					</div>
 				);
 			})}
-			<div className='text-[10px] text-white/40 text-center w-20 leading-tight'>🏆 Power rating</div>
+			<div className='flex flex-col items-center gap-0.5 text-[10px] text-white/40 text-center w-20 leading-tight'>
+				<Icon name='gauge' size={16} className='text-white/50' />
+				Power rating
+			</div>
 		</div>
 	);
 }
@@ -224,12 +248,15 @@ export function NewBadges({ state }: { state: VersusState }) {
 	if (!fresh[0].length && !fresh[1].length) return null;
 	return (
 		<div className='rounded-2xl border border-fuchsia-400/30 bg-fuchsia-400/[0.06] p-4 mb-4'>
-			<div className='text-[11px] font-black uppercase tracking-widest text-fuchsia-300/90 mb-2 text-center'>🏅 Badge unlocked</div>
+			<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-fuchsia-300/90 mb-2'>
+				<Icon name='award' />
+				Badge unlocked
+			</div>
 			<div className='space-y-2'>
 				{([0, 1] as Side[]).flatMap(side =>
 					fresh[side].map(x => (
 						<div key={`${side}-${x.a.id}`} className='flex items-center gap-3 vs-pop'>
-							<div className='text-3xl'>{x.a.icon}</div>
+							<IconTile name={x.a.icon} color={SIDE_COLORS[side]} size={40} />
 							<div className='min-w-0'>
 								<div className='text-sm font-black text-white'>
 									<span style={{ color: SIDE_COLORS[side] }}>{names[side]}</span> · {x.a.title}

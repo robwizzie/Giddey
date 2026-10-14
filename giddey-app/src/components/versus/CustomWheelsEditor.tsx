@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { Settings } from '@/lib/versus/engine';
 import { CustomItem, CustomKind, CustomWheels, Difficulty, DIFFICULTY_INFO, EMPTY_CUSTOM, newCustomId } from '@/lib/versus/wheels';
 import { encodeJson } from '@/lib/versus/sync';
+import Icon from './Icon';
 
 const KINDS: { id: CustomKind; icon: string; label: string; hint: string; example: string }[] = [
-	{ id: 'challenges', icon: '🎯', label: 'Challenges', hint: 'Something to pull off in the game. Pick how hard it is — harder pays a bigger draft reward.', example: 'Score with your center from three' },
-	{ id: 'sabotages', icon: '😈', label: 'Sabotages', hint: 'What the loser can inflict on the winner next game.', example: 'You have to use the Jumbotron camera angle' },
-	{ id: 'twists', icon: '🎲', label: 'Twists', hint: 'A rule for both teams, set by the game-day slot machine.', example: 'Every made three = loser does a push-up' },
-	{ id: 'halftime', icon: '🕐', label: 'Halftime', hint: 'A second-half rule. Use {L} for the coach who leads at the half and {T} for the one trailing.', example: '{L} can only score in the paint in Q3' },
+	{ id: 'challenges', icon: 'target', label: 'Challenges', hint: 'Something to pull off in the game. Pick how hard it is — harder pays a bigger draft reward.', example: 'Score with your center from three' },
+	{ id: 'sabotages', icon: 'bomb', label: 'Sabotages', hint: 'What the loser can inflict on the winner next game.', example: 'You have to use the Jumbotron camera angle' },
+	{ id: 'twists', icon: 'dice', label: 'Twists', hint: 'A rule for both teams, set by the game-day slot machine.', example: 'Every made three = loser does a push-up' },
+	{ id: 'halftime', icon: 'clock', label: 'Halftime', hint: 'A second-half rule. Use {L} for the coach who leads at the half and {T} for the one trailing.', example: '{L} can only score in the paint in Q3' },
 ];
 
 export interface SharedWheels {
@@ -66,7 +67,7 @@ export default function CustomWheelsEditor({ s, setS }: { s: Settings; setS: (fn
 		}
 		try {
 			await navigator.clipboard.writeText(link);
-			setMsg('✓ Link copied — send it to your rival');
+			setMsg('Link copied — send it to your rival');
 		} catch {
 			setMsg('Couldn’t copy the link');
 		}
@@ -77,8 +78,8 @@ export default function CustomWheelsEditor({ s, setS }: { s: Settings; setS: (fn
 		<div className='space-y-3'>
 			<div className='flex gap-1 rounded-xl bg-white/[0.05] p-1 overflow-x-auto [scrollbar-width:none]'>
 				{KINDS.map(k => (
-					<button key={k.id} onClick={() => setKind(k.id)} className={`flex-1 shrink-0 whitespace-nowrap rounded-lg px-2 py-1.5 text-[11px] font-black ${kind === k.id ? 'bg-white text-black' : 'text-white/60'}`}>
-						{k.icon} {k.label} {c[k.id].length ? `· ${c[k.id].length}` : ''}
+					<button key={k.id} onClick={() => setKind(k.id)} className={`flex-1 shrink-0 inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2 py-2 text-[11px] font-black ${kind === k.id ? 'bg-white text-black' : 'text-white/60'}`}>
+						<Icon name={k.icon} size={13} /> {k.label} {c[k.id].length ? `· ${c[k.id].length}` : ''}
 					</button>
 				))}
 			</div>
@@ -98,8 +99,8 @@ export default function CustomWheelsEditor({ s, setS }: { s: Settings; setS: (fn
 								</div>
 								{x.desc !== x.label && <div className='text-[11px] text-white/50 leading-snug'>{x.desc}</div>}
 							</div>
-							<button onClick={() => update(w => ({ ...w, [kind]: w[kind].filter(y => y.id !== x.id) }))} className='text-white/35 hover:text-white text-lg leading-none px-1' aria-label={`Remove ${x.label}`}>
-								×
+							<button onClick={() => update(w => ({ ...w, [kind]: w[kind].filter(y => y.id !== x.id) }))} className='-my-1 -mr-2 p-2 text-white/35 hover:text-white' aria-label={`Remove ${x.label}`}>
+								<Icon name='x' size={16} />
 							</button>
 						</div>
 					))}
@@ -117,8 +118,8 @@ export default function CustomWheelsEditor({ s, setS }: { s: Settings; setS: (fn
 						))}
 					</div>
 				)}
-				<button disabled={!label.trim()} onClick={add} className='w-full rounded-xl py-2 text-sm font-black text-white bg-white/10 border border-white/15 disabled:opacity-40'>
-					＋ Add to {info.label.toLowerCase()}
+				<button disabled={!label.trim()} onClick={add} className='w-full inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-black text-white bg-white/10 border border-white/15 disabled:opacity-40'>
+					<Icon name='plus' size={16} /> Add to {info.label.toLowerCase()}
 				</button>
 			</div>
 			<div className='flex gap-2'>
@@ -129,8 +130,8 @@ export default function CustomWheelsEditor({ s, setS }: { s: Settings; setS: (fn
 				))}
 			</div>
 			<div className='text-[10px] text-white/35 -mt-1'>“Only mine” replaces a wheel once it has at least 2 of your items (challenges: per difficulty).</div>
-			<button onClick={share} className='w-full rounded-xl py-2.5 text-sm font-black text-sky-200 bg-sky-500/15 border border-sky-400/30'>
-				📤 Share my wheels
+			<button onClick={share} className='w-full inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-black text-sky-200 bg-sky-500/15 border border-sky-400/30'>
+				<Icon name='share' size={16} /> Share my wheels
 			</button>
 			{msg && <div className='text-center text-xs text-emerald-300'>{msg}</div>}
 		</div>

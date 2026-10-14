@@ -5,7 +5,9 @@ import { LiveGate } from './Live';
 import { afterLottery, chooseDynastyKeeps, DYNASTY_KEEPS, lotteryBalls, other, players, runLottery, Side, VersusState } from '@/lib/versus/engine';
 import { getVersusPlayer } from '@/lib/versus/pool';
 import { announce } from '@/lib/versus/announcer';
+import { broadcastFx } from '@/lib/versus/live';
 import { buzz, play } from '@/lib/versus/sound';
+import Icon from './Icon';
 import { RosterRow } from './VersusCard';
 import { Confetti, SectionTitle, SIDE_COLORS } from './Fx';
 
@@ -92,12 +94,20 @@ export function LotteryScreen({ state, setState }: { state: VersusState; setStat
 								setDrawn(next);
 								play('reveal');
 								buzz([40, 30, 80]);
+								broadcastFx({ kind: 'lottery', names, winner: w });
 								announce(`The ping-pong balls have spoken. ${names[w]} wins the lottery!`, { hype: true });
 							}, 2600);
 						}}
 						className='flex-1 btn-primary rounded-2xl py-3.5 font-black uppercase tracking-wider text-white disabled:opacity-50'
 					>
-						{spinning ? 'Drawing…' : '🎱 Draw the lottery'}
+						{spinning ? (
+							'Drawing…'
+						) : (
+							<span className='inline-flex items-center justify-center gap-2'>
+								<Icon name='dice' />
+								Draw the lottery
+							</span>
+						)}
 					</button>
 				) : (
 					<button onClick={() => setState(afterLottery(drawn!))} className='flex-1 btn-primary rounded-2xl py-3.5 font-black uppercase tracking-wider text-white'>

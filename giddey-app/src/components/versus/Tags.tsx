@@ -4,8 +4,10 @@ import { freshNeeded, ineligibleReason, other, Side, VersusState } from '@/lib/v
 import { hotHand, isFreshFor, neverDrafted, timesUsed, usage } from '@/lib/versus/usage';
 import { SIDE_COLORS } from './Fx';
 import { ratingDelta } from '@/lib/versus/ratingChanges';
+import Icon from './Icon';
 
 export interface Tag {
+	/** Icon name (see Icon.tsx) */
 	icon: string;
 	text: string;
 	color: string;
@@ -24,22 +26,22 @@ export function playerTags(state: VersusState, side: Side, id: string, max = 2):
 	const tags: Tag[] = [];
 	const names = state.settings.names;
 	const favs = state.settings.favorites ?? [[], []];
-	if (favs[side]?.includes(id)) tags.push({ icon: '💙', text: 'Your guy', color: SIDE_COLORS[side], title: 'One of your pinned franchise guys' });
-	else if (favs[other(side)]?.includes(id)) tags.push({ icon: '🎯', text: `${names[other(side)]}'s guy`, color: SIDE_COLORS[other(side)], title: `One of ${names[other(side)]}'s franchise guys — take him first?` });
+	if (favs[side]?.includes(id)) tags.push({ icon: 'heart', text: 'Your guy', color: SIDE_COLORS[side], title: 'One of your pinned franchise guys' });
+	else if (favs[other(side)]?.includes(id)) tags.push({ icon: 'target', text: `${names[other(side)]}'s guy`, color: SIDE_COLORS[other(side)], title: `One of ${names[other(side)]}'s franchise guys — take him first?` });
 	// with no history yet every card would read "never drafted" — skip until there is some
 	const hasHistory = usage().any.size > 0;
 	if (!hasHistory) {
-		if (freshNeeded(state, side) > 0) tags.push({ icon: '🌱', text: 'Fresh face', color: '#4ade80', title: 'You have never used him — counts toward Fresh Faces' });
-	} else if (neverDrafted(id)) tags.push({ icon: '🆕', text: 'Never drafted', color: '#22c55e', title: 'Neither of you has ever played with him' });
+		if (freshNeeded(state, side) > 0) tags.push({ icon: 'sprout', text: 'Fresh face', color: '#4ade80', title: 'You have never used him — counts toward Fresh Faces' });
+	} else if (neverDrafted(id)) tags.push({ icon: 'sparkles', text: 'Never drafted', color: '#22c55e', title: 'Neither of you has ever played with him' });
 	else {
 		const used = timesUsed(side, id);
-		if (used >= 2) tags.push({ icon: '🔥', text: `Your ${ordinal(used + 1)} time`, color: '#f97316', title: `You've played ${used} games with him` });
-		else if (freshNeeded(state, side) > 0 && isFreshFor(side, id)) tags.push({ icon: '🌱', text: 'Fresh face', color: '#4ade80', title: 'You have never used him — counts toward Fresh Faces' });
+		if (used >= 2) tags.push({ icon: 'flame', text: `Your ${ordinal(used + 1)} time`, color: '#f97316', title: `You've played ${used} games with him` });
+		else if (freshNeeded(state, side) > 0 && isFreshFor(side, id)) tags.push({ icon: 'sprout', text: 'Fresh face', color: '#4ade80', title: 'You have never used him — counts toward Fresh Faces' });
 	}
 	const moved = ratingDelta(id);
-	if (moved) tags.push({ icon: moved > 0 ? '📈' : '📉', text: `${moved > 0 ? '+' : ''}${moved} OVR`, color: moved > 0 ? '#34d399' : '#f87171', title: `2K rating ${moved > 0 ? 'up' : 'down'} ${Math.abs(moved)} since launch` });
+	if (moved) tags.push({ icon: moved > 0 ? 'trendUp' : 'trendDown', text: `${moved > 0 ? '+' : ''}${moved} OVR`, color: moved > 0 ? '#34d399' : '#f87171', title: `2K rating ${moved > 0 ? 'up' : 'down'} ${Math.abs(moved)} since launch` });
 	const hot = hotHand(id);
-	if (hot) tags.push({ icon: '⭐', text: hot > 1 ? `Hot hand ×${hot}` : 'Hot hand', color: '#facc15', title: `Player of the Game ${hot} time${hot === 1 ? '' : 's'}` });
+	if (hot) tags.push({ icon: 'star', text: hot > 1 ? `Hot hand ×${hot}` : 'Hot hand', color: '#facc15', title: `Player of the Game ${hot} time${hot === 1 ? '' : 's'}` });
 	return tags.slice(0, max);
 }
 
@@ -50,7 +52,8 @@ export function TagChip({ tag, small }: { tag: Tag; small?: boolean }) {
 			className={`inline-flex items-center gap-0.5 rounded-full font-black uppercase whitespace-nowrap shadow-[0_2px_6px_rgba(0,0,0,0.6)] ${small ? 'text-[8px] px-1.5 py-[1px]' : 'text-[9px] px-1.5 py-0.5'}`}
 			style={{ background: '#0b0f19', color: tag.color, border: `1px solid ${tag.color}88` }}
 		>
-			{tag.icon} {tag.text}
+			<Icon name={tag.icon} size={small ? 9 : 10} strokeWidth={2.75} className={tag.icon === 'star' || tag.icon === 'heart' ? 'fill-current' : ''} />
+			{tag.text}
 		</span>
 	);
 }
@@ -67,7 +70,10 @@ export function TaggedCard({ state, side, id, children, hideTags }: { state: Ver
 			<div style={lock ? { opacity: 0.35, filter: 'grayscale(0.8)' } : undefined}>{children}</div>
 			{lock && (
 				<div className='absolute inset-0 flex items-center justify-center pointer-events-none z-30'>
-					<span className='text-[10px] font-black uppercase tracking-wide text-white bg-black/85 border border-white/20 rounded-lg px-2 py-1 text-center leading-tight max-w-[90%]'>🔒 {lock}</span>
+					<span className='text-[10px] font-black uppercase tracking-wide text-white bg-black/85 border border-white/20 rounded-lg px-2 py-1 text-center leading-tight max-w-[90%] inline-flex items-center gap-1'>
+						<Icon name='lock' size={11} />
+						{lock}
+					</span>
 				</div>
 			)}
 			{tags.length > 0 && (
@@ -82,12 +88,12 @@ export function TaggedCard({ state, side, id, children, hideTags }: { state: Ver
 }
 
 /** Legend explaining every tag — shown in the help sheet and on draft screens */
-export const TAG_LEGEND: { icon: string; label: string; desc: string }[] = [
-	{ icon: '🆕', label: 'Never drafted', desc: 'Neither of you has ever played with him. Freshness boost makes these come up more.' },
-	{ icon: '🔥', label: 'Your Nth time', desc: 'You keep taking him. Overused players come up less often.' },
-	{ icon: '🌱', label: 'Fresh face', desc: 'You personally have never used him — counts toward the Fresh Faces rule.' },
-	{ icon: '⭐', label: 'Hot hand', desc: 'He has won Player of the Game before.' },
-	{ icon: '📈', label: '+2 OVR / 📉 -1 OVR', desc: '2K has updated his rating since launch.' },
-	{ icon: '💙', label: 'Your guy / 🎯 their guy', desc: 'A pinned franchise guy — yours, or your opponent’s (steal him first?).' },
-	{ icon: '🔒', label: 'Locked', desc: 'You can’t take him right now: retired from your side, a second player from one franchise, or you still owe Fresh Faces.' },
+export const TAG_LEGEND: { icon: string; label: string; desc: string; color: string }[] = [
+	{ icon: 'sparkles', color: '#22c55e', label: 'Never drafted', desc: 'Neither of you has ever played with him. Freshness boost makes these come up more.' },
+	{ icon: 'flame', color: '#f97316', label: 'Your Nth time', desc: 'You keep taking him. Overused players come up less often.' },
+	{ icon: 'sprout', color: '#4ade80', label: 'Fresh face', desc: 'You personally have never used him — counts toward the Fresh Faces rule.' },
+	{ icon: 'star', color: '#facc15', label: 'Hot hand', desc: 'He has won Player of the Game before.' },
+	{ icon: 'trendUp', color: '#34d399', label: '+2 OVR / −1 OVR', desc: '2K has updated his rating since launch (green up, red down).' },
+	{ icon: 'heart', color: '#60a5fa', label: 'Your guy / their guy', desc: 'A pinned franchise guy — yours, or your opponent’s (steal him first?).' },
+	{ icon: 'lock', color: '#94a3b8', label: 'Locked', desc: 'You can’t take him right now: retired from your side, a second player from one franchise, or you still owe Fresh Faces.' },
 ];

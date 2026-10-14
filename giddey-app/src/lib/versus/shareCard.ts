@@ -212,7 +212,28 @@ export async function renderShareCard(s: VersusState): Promise<Blob | null> {
 		if (a && b && a.overall !== b.overall) {
 			ctx.fillStyle = a.overall > b.overall ? colors[0] : colors[1];
 			ctx.font = '900 24px -apple-system, sans-serif';
-			ctx.fillText(`${a.overall > b.overall ? '◀' : '▶'} ${Math.abs(a.overall - b.overall)}`, W / 2, y + 98);
+			// a small drawn arrowhead points at the stronger player (no glyphs that could render as emoji)
+			const txt = String(Math.abs(a.overall - b.overall));
+			const tw = ctx.measureText(txt).width;
+			const left = a.overall > b.overall;
+			const x0 = W / 2 - (tw + 22) / 2;
+			const tx = left ? x0 : x0 + tw + 8;
+			const cy = y + 89;
+			ctx.beginPath();
+			if (left) {
+				ctx.moveTo(tx, cy);
+				ctx.lineTo(tx + 14, cy - 9);
+				ctx.lineTo(tx + 14, cy + 9);
+			} else {
+				ctx.moveTo(tx + 14, cy);
+				ctx.lineTo(tx, cy - 9);
+				ctx.lineTo(tx, cy + 9);
+			}
+			ctx.closePath();
+			ctx.fill();
+			ctx.textAlign = 'left';
+			ctx.fillText(txt, left ? x0 + 22 : x0, y + 98);
+			ctx.textAlign = 'center';
 		}
 	});
 

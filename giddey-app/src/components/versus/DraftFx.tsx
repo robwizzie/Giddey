@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BAND_INFO, bandOf, Side, teamName, VersusState } from '@/lib/versus/engine';
+import { BAND_INFO, bandOf, Side, teamIcon, teamName, VersusState } from '@/lib/versus/engine';
 import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { getPlayerHeadshotUrls } from '@/lib/images';
 import { CATEGORY_INFO, Category, lineupChemistry } from '@/lib/versus/chemistry';
@@ -13,6 +13,7 @@ import { getBoost } from '@/lib/versus/wheels';
 import Headshot from '@/components/Headshot';
 import VersusCard from './VersusCard';
 import { Confetti, SIDE_COLORS } from './Fx';
+import Icon, { IconTile } from './Icon';
 
 export function ordinal(n: number) {
 	const s = ['th', 'st', 'nd', 'rd'];
@@ -26,10 +27,26 @@ export function CommissionerIntro({ state, onDone }: { state: VersusState; onDon
 	const [step, setStep] = useState(0);
 	const first = state.draft?.order[0] ?? 0;
 	const year = new Date().getFullYear();
-	const lines = [
+	const vsTeam = (side: Side) => (
+		<span className='inline-flex items-center gap-2' style={{ color: SIDE_COLORS[side] }}>
+			<Icon name={teamIcon(state.settings, side)} />
+			{teamName(state.settings, side)}
+		</span>
+	);
+	const lines: { kicker: string; text: React.ReactNode; sound: 'crowd' | 'gavel' | 'whoosh' }[] = [
 		{ kicker: 'Ladies and gentlemen…', text: 'The commissioner approaches the podium', sound: 'crowd' as const },
 		{ kicker: `Game ${state.gameNo}`, text: `Welcome to the ${year} Giddey Versus Draft`, sound: 'gavel' as const },
-		{ kicker: 'Tonight', text: `${teamName(state.settings, 0)}  vs  ${teamName(state.settings, 1)}`, sound: 'whoosh' as const },
+		{
+			kicker: 'Tonight',
+			text: (
+				<span className='inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1'>
+					{vsTeam(0)}
+					<span className='text-white/40 text-2xl sm:text-3xl'>vs</span>
+					{vsTeam(1)}
+				</span>
+			),
+			sound: 'whoosh' as const,
+		},
 		{ kicker: 'With the first pick', text: `${state.settings.names[first]} is on the clock`, sound: 'whoosh' as const },
 	];
 	useEffect(() => {
@@ -115,7 +132,10 @@ export function ShotClockRing({ left, total, color }: { left: number; total: num
 export function ViolationToast({ text }: { text: string }) {
 	return (
 		<div className='fixed top-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-black shadow-2xl vs-pop whitespace-nowrap'>
-			⏱️ {text}
+			<span className='inline-flex items-center gap-1.5'>
+				<Icon name='timer' />
+				{text}
+			</span>
 		</div>
 	);
 }
@@ -131,8 +151,9 @@ export function CalloutBadge({ kind, text }: { kind: 'steal' | 'reach'; text: st
 	const steal = kind === 'steal';
 	return (
 		<div className='mt-3 vs-slam' style={{ animationDelay: '900ms' }}>
-			<span className={`inline-block rounded-lg px-3 py-1 text-sm font-black uppercase tracking-wider border-2 ${steal ? 'text-green-300 border-green-400 bg-green-500/15' : 'text-amber-300 border-amber-400 bg-amber-500/15'}`} style={{ transform: 'rotate(-3deg)' }}>
-				{steal ? '💰' : '🤨'} {text}
+			<span className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-black uppercase tracking-wider border-2 ${steal ? 'text-green-300 border-green-400 bg-green-500/15' : 'text-amber-300 border-amber-400 bg-amber-500/15'}`} style={{ transform: 'rotate(-3deg)' }}>
+				<Icon name={steal ? 'gem' : 'alert'} />
+				{text}
 			</span>
 		</div>
 	);
@@ -261,7 +282,7 @@ export function BlindReveal({ state, picks, collision, onDone }: { state: Versus
 		const p = getVersusPlayer(collision)!;
 		return (
 			<div className='fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm px-6 text-center vs-boom-shake' onClick={onDone}>
-				<div className='text-6xl mb-3'>💥</div>
+				<Icon name='bomb' size={64} className='mb-3 text-red-400 vs-slam' />
 				<div className='text-4xl font-black text-red-400 mb-2 vs-slam'>COLLISION!</div>
 				<div className='text-white/70 mb-5'>You both went for him. Nobody gets him — new pack.</div>
 				<div className='flex gap-3 items-center'>
@@ -298,7 +319,7 @@ export function BlindReveal({ state, picks, collision, onDone }: { state: Versus
 export function Handoff({ to, name, note, onReady }: { to: Side; name: string; note?: string; onReady: () => void }) {
 	return (
 		<div className='fixed inset-0 z-[55] bg-[#0a0e17] flex flex-col items-center justify-center px-6 text-center animate-fade-in'>
-			<div className='text-5xl mb-4'>🙈</div>
+			<IconTile name='eyeOff' color={SIDE_COLORS[to]} size={72} className='mb-5 rounded-2xl' />
 			<div className='text-sm text-white/50 uppercase tracking-widest font-bold mb-2'>Hand the phone to</div>
 			<div className='text-5xl font-black mb-3' style={{ color: SIDE_COLORS[to] }}>
 				{name}
@@ -333,7 +354,12 @@ export function ChemBars({ ids, rosterSize, color, compact }: { ids: string[]; r
 					</div>
 				);
 			})}
-			{chem.hint && ids.length >= 3 && <div className={`${compact ? 'text-[9px]' : 'text-[11px]'} text-amber-300/90 font-bold leading-tight pt-0.5`}>⚠️ {chem.hint}</div>}
+			{chem.hint && ids.length >= 3 && (
+				<div className={`${compact ? 'text-[9px]' : 'text-[11px]'} text-amber-300/90 font-bold leading-tight pt-0.5 flex items-start gap-1`}>
+					<Icon name='alert' className='shrink-0 mt-px' />
+					<span>{chem.hint}</span>
+				</div>
+			)}
 		</div>
 	);
 }
@@ -345,18 +371,22 @@ export function RewardBanner({ state }: { state: VersusState }) {
 	if (!rewards || (!rewards[0].length && !rewards[1].length)) return null;
 	return (
 		<div className='mt-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.07] px-3 py-2 space-y-1'>
-			<div className='text-[10px] font-black uppercase tracking-widest text-amber-300'>🎁 Challenge rewards this draft</div>
+			<div className='flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-300'>
+				<Icon name='gift' />
+				Challenge rewards this draft
+			</div>
 			{([0, 1] as Side[]).map(side =>
 				rewards[side].length ? (
-					<div key={side} className='text-[12px] text-white/80 flex flex-wrap gap-x-2'>
+					<div key={side} className='text-[12px] text-white/80 flex flex-wrap items-center gap-x-2'>
 						<span className='font-black' style={{ color: SIDE_COLORS[side] }}>
 							{state.settings.names[side]}:
 						</span>
 						{rewards[side].map((r, i) => {
 							const b = getBoost(r);
 							return b ? (
-								<span key={i}>
-									{b.icon} {b.label}
+								<span key={i} className='inline-flex items-center gap-1'>
+									<Icon name={b.icon} className='text-amber-300' />
+									{b.label}
 								</span>
 							) : null;
 						})}

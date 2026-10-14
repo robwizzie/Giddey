@@ -295,18 +295,21 @@ export function BeltMoment({ state, last }: { state: VersusState; last: GameResu
 	const [show, setShow] = useState(false);
 	useEffect(() => {
 		if (!info?.b.changed) return;
-		let seen = false;
 		try {
-			seen = sessionStorage.getItem(BELT_SEEN) === info.key;
-			sessionStorage.setItem(BELT_SEEN, info.key);
+			if (sessionStorage.getItem(BELT_SEEN) === info.key) return;
 		} catch {
 			/* storage blocked — show it anyway */
 		}
-		if (!seen) {
-			// after the "Ballgame!" moment lands
-			const t = setTimeout(() => setShow(true), 1400);
-			return () => clearTimeout(t);
-		}
+		// after the "Ballgame!" moment lands
+		const t = setTimeout(() => {
+			try {
+				sessionStorage.setItem(BELT_SEEN, info.key);
+			} catch {
+				/* storage blocked */
+			}
+			setShow(true);
+		}, 1400);
+		return () => clearTimeout(t);
 	}, [info]);
 	if (!info) return null;
 	const { b } = info;

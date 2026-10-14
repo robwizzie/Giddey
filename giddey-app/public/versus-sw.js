@@ -65,3 +65,53 @@ self.addEventListener('fetch', event => {
 	if (request.destination === 'image') return event.respondWith(staleWhileRevalidate(request, IMAGES));
 	if (url.origin === location.origin) return event.respondWith(staleWhileRevalidate(request, ASSETS));
 });
+
+// ─── Turn alerts (live rooms) ───────────────────────────────────
+// Push from the notify-turn edge function: { title, body, url, tag }.
+// Skipped when the app is open and in front, or when the page already
+// showed the same alert a moment ago (it does that itself while hidden).
+self.addEventListener('push', event => {
+	let data = {};
+	try {
+		data = event.data ? event.data.json() : {};
+	} catch {
+		data = { body: event.data ? event.data.text() : '' };
+	}
+	const title = data.title || 'Your turn';
+	const url = data.url || '/versus';
+	const tag = data.tag || 'giddey-turn';
+	event.waitUntil(
+		(async () => {
+			const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+			if (wins.some(c => c.visibilityState === 'visible' && c.focused)) return;
+			const shown = await self.registration.getNotifications({ tag });
+			if (shown.some(n => n.data && n.data.url === url && Date.now() - (n.data.at || 0) < 60000)) return;
+			await self.registration.showNotification(title, {
+				body: data.body || '',
+				tag,
+				renotify: true,
+				icon: '/versus-icons/icon-192.png',
+				badge: '/versus-icons/icon-192.png',
+				data: { url, at: Date.now() },
+			});
+		})(),
+	);
+});
+
+// Tap: bring the open app forward (switching rooms if needed), or open the room
+self.addEventListener('notificationclick', event => {
+	event.notification.close();
+	const url = new URL((event.notification.data && event.notification.data.url) || '/versus', self.location.origin).href;
+	event.waitUntil(
+		(async () => {
+			const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+			const win = wins.find(c => new URL(c.url).pathname.startsWith('/versus'));
+			if (win) {
+				await win.focus();
+				win.postMessage({ type: 'giddey-open-room', url });
+				return;
+			}
+			await self.clients.openWindow(url);
+		})(),
+	);
+});

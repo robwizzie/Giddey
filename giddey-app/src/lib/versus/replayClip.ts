@@ -150,7 +150,7 @@ export function drawReplayFrame(ctx: CanvasRenderingContext2D, W: number, H: num
 
 	// columns
 	const colTop = top + 160;
-	const footer = H > 1500 ? 260 : 120;
+	const footer = H > 1500 ? 340 : 210;
 	const rows = Math.max(1, ...[0, 1].map(s => list.filter(p => p.side === s).length));
 	const gap = 12;
 	const rowH = Math.min(110, (H - colTop - footer - gap * (rows - 1)) / rows);
@@ -244,13 +244,13 @@ export function drawReplayFrame(ctx: CanvasRenderingContext2D, W: number, H: num
 	const ids: [string[], string[]] = [[], []];
 	for (const p of list.slice(0, shown)) ids[p.side].push(p.id);
 	const done = elapsed >= list.length * per;
-	const fy = H - footer + 70;
+	const fy = H - footer + (H > 1500 ? 200 : 165);
 	for (const side of [0, 1] as Side[]) {
 		const ovr = teamOvr(ids[side]);
 		ctx.textAlign = 'center';
 		ctx.fillStyle = 'rgba(255,255,255,0.5)';
 		ctx.font = font(24, 800);
-		ctx.fillText('TEAM OVR', colX(side) + colW / 2, fy - 40);
+		ctx.fillText('TEAM OVR', colX(side) + colW / 2, fy - 62);
 		ctx.fillStyle = colors[side];
 		ctx.font = font(64);
 		ctx.fillText(ovr ? ovr.toFixed(1) : '—', colX(side) + colW / 2, fy + 20);
@@ -264,7 +264,7 @@ export function drawReplayFrame(ctx: CanvasRenderingContext2D, W: number, H: num
 		ctx.textAlign = 'center';
 		ctx.fillStyle = lead === null ? '#ffffff' : colors[lead];
 		ctx.font = font(34);
-		ctx.fillText(lead === null ? 'DEAD EVEN ON PAPER' : `${names[lead].toUpperCase()} WINS THE DRAFT`, W / 2, fy - 100);
+		ctx.fillText(lead === null ? 'DEAD EVEN ON PAPER' : `${names[lead].toUpperCase()} WINS THE DRAFT`, W / 2, fy - 112);
 		ctx.restore();
 	}
 	ctx.textAlign = 'center';

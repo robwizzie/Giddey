@@ -4,6 +4,7 @@ import { fairness, seriesScore, teamIcon, teamOvr, VersusState } from '@/lib/ver
 import Icon from './Icon';
 import { SIDE_COLORS } from './Fx';
 import { CoachBadges } from './Badges';
+import { BeltBadge } from './Belt';
 
 export function FairnessMeter({ a, b, compact }: { a: string[]; b: string[]; compact?: boolean }) {
 	const oa = teamOvr(a);
@@ -44,7 +45,7 @@ export default function Scoreboard({ state, sub }: { state: VersusState; sub?: R
 							<div className='min-w-0'>
 								<div className='text-[10px] font-black uppercase tracking-widest truncate' style={{ color: SIDE_COLORS[i] }}>
 									<Icon name={teamIcon(state.settings, i as 0 | 1)} className='mr-1' />
-									{names[i]}
+									{names[i]} <BeltBadge side={i as 0 | 1} />
 									{hasSeries && <span className='text-white/40'> · {i ? w1 : w0}W</span>} <CoachBadges side={i as 0 | 1} compact />
 								</div>
 								<div className='text-2xl font-black text-white leading-none tabular-nums'>{ovr[i] ? ovr[i].toFixed(1) : '—'}</div>

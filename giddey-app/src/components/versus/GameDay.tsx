@@ -596,7 +596,7 @@ function HalftimeCard({ state, setState }: { state: VersusState; setState: SetSt
 }
 
 // short wheel labels for roster challenges (the wheel cuts labels at 14 chars)
-const ROSTER_SHORT: Record<string, string> = { star20: '20 pts', star30: '30 pts', two15: '15 pts', low3: 'a 3', low8: '8 pts', c8: '8 reb', pg6: '6 ast', dd: 'dbl-dbl', dunk: '2 dunks', bench10: '10 pts' };
+const ROSTER_SHORT: Record<string, string> = { star20: '20 pts', star30: '30 pts', two15: '15 pts', low3: '1 three', low8: '8 pts', c8: '8 reb', pg6: '6 ast', dd: 'dbl-dbl', dunk: '2 dunks', bench10: '10 pts' };
 const MAX_ROSTER_SEGS = 3;
 const MAX_SEGS = 10;
 
@@ -664,7 +664,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 	const segs = useMemo(
 		() => (risk ? challengeWheel(state, spinner, risk) : []),
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[risk, spinner, gd.challenges[other(spinner)], state.teams[spinner]],
+		[risk, spinner, gd.challenges[other(spinner)], state.teams[spinner].join()],
 	);
 
 	// broadcast intro: plays on its own on a single phone and on the main screen,

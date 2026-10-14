@@ -48,7 +48,8 @@ export default function DraftReplay({ names, picks, colors, title, onClose }: { 
 	const [speed, setSpeed] = useState<1 | 2>(1);
 	const [clip, setClip] = useState<{ state: 'idle' | 'recording' | 'done' | 'error'; p: number; msg?: string }>({ state: 'idle', p: 0 });
 	const [canClip] = useState(() => canRecordClip());
-	const done = shown >= list.length;
+	// one extra beat after the last pick, then the verdict
+	const done = shown > list.length;
 
 	useEffect(() => {
 		if (!playing || done) return;
@@ -58,9 +59,9 @@ export default function DraftReplay({ names, picks, colors, title, onClose }: { 
 
 	// sound on each new pick
 	useEffect(() => {
+		if (shown === list.length + 1) play('crowd');
 		if (shown < 1 || shown > list.length) return;
 		play(list[shown - 1].superstar ? 'boom' : 'whoosh');
-		if (shown === list.length) setTimeout(() => play('crowd'), 500);
 	}, [shown, list]);
 
 	useEffect(() => {
@@ -156,7 +157,7 @@ export default function DraftReplay({ names, picks, colors, title, onClose }: { 
 									</div>
 									<div className='text-sm lg:text-2xl font-black text-white tabular-nums'>{ovr[side] ? ovr[side].toFixed(1) : '—'}</div>
 								</div>
-								<div className='flex-1 min-h-0 grid gap-1.5 lg:gap-2.5' style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, maxHeight: rows * 76 }}>
+								<div className='flex-1 min-h-0 grid gap-1.5 lg:gap-2.5' style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, maxHeight: rows * 96 }}>
 									{Array.from({ length: rows }, (_, i) => {
 										const p = mine[i];
 										const visible = p && p.n <= shown;
@@ -172,7 +173,7 @@ export default function DraftReplay({ names, picks, colors, title, onClose }: { 
 			{/* progress + controls */}
 			<div className='px-4 lg:px-10 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 w-full max-w-5xl mx-auto'>
 				<div className='h-1 rounded-full bg-white/10 overflow-hidden mb-3'>
-					<div className='h-full bg-white/70 transition-[width] duration-300' style={{ width: `${(Math.max(0, shown) / Math.max(1, list.length)) * 100}%` }} />
+					<div className='h-full bg-white/70 transition-[width] duration-300' style={{ width: `${(Math.min(list.length, Math.max(0, shown)) / Math.max(1, list.length)) * 100}%` }} />
 				</div>
 				<div className='flex items-center gap-2'>
 					<button onClick={restart} className='h-11 w-11 lg:h-14 lg:w-14 rounded-xl bg-white/10 text-white flex items-center justify-center' aria-label='Restart'>

@@ -20,7 +20,7 @@ export type Side = 0 | 1;
 export type DraftStyle = 'snake' | 'cut' | 'franchise' | 'auction' | 'block';
 export type Band = 'superstar' | 'star' | 'starter' | 'rotation' | 'deep';
 export type PoolSetting = PoolMode | 'erawars';
-export type Phase = 'setup' | 'coin' | 'lottery' | 'dynasty' | 'theme' | 'keepers' | 'favorites' | 'draft' | 'equalizer' | 'trade' | 'boosts' | 'reveal' | 'gameday' | 'postgame';
+export type Phase = 'setup' | 'coin' | 'lottery' | 'dynasty' | 'theme' | 'keepers' | 'favorites' | 'bans' | 'board' | 'draft' | 'equalizer' | 'trade' | 'boosts' | 'reveal' | 'gameday' | 'postgame';
 
 export interface Identity {
 	team: string;
@@ -86,12 +86,32 @@ export interface Settings {
 	/** set a point spread before tip-off; an underdog who covers earns a Tier Up */
 	vegas: boolean;
 	/** regular-season length in games (0 = no seasons), then a best-of Finals */
-	season: 0 | 6 | 10 | 16;
-	finals: 3 | 5 | 7;
+	season: 0 | 3 | 4 | 6 | 10 | 16;
+	finals: 1 | 3 | 5 | 7;
+	/** every regular-season game uses the next draft style and a theme spin; the Finals go back to yours */
+	seasonMix: boolean;
+	/** the Finals are drafted only from players either coach used in that regular season */
+	finalsPool: 'normal' | 'season';
+	/** Season variety: your own style and theme, restored for the Finals */
+	mixBase?: { style: DraftStyle; theme: Settings['theme'] } | null;
 	/** your own challenges, sabotages, twists and halftime twists */
 	custom: CustomWheels;
 	/** Dynasty: keep 3 players between seasons, a mid-season trade deadline, and a draft lottery */
 	dynasty: boolean;
+	/** before each draft, each coach secretly bans this many players (revealed together) */
+	bans: 0 | 1 | 2;
+	/** each coach is dealt one secret power-up card per draft (pick-style drafts) */
+	powerups: boolean;
+	/** before the draft, each coach secretly scouts the other (3 reads, scored after) */
+	bigBoard: boolean;
+	/** mix challenges about your own drafted players into the challenge wheel */
+	rosterChallenges: boolean;
+	/** agree on stakes before tip-off; the loser spins the punishment wheel */
+	stakes: boolean;
+	/** full-screen tale of the tape and coach walkouts before tip-off */
+	intro: boolean;
+	/** main screen: crowd noise, team-color lighting, big-screen superstar moments */
+	arena: boolean;
 	/** the league match tonight's next game counts for (cleared once it's logged) */
 	league?: LeagueTag | null;
 }
@@ -141,6 +161,15 @@ export const DEFAULT_SETTINGS: Settings = {
 	finals: 7,
 	custom: EMPTY_CUSTOM,
 	dynasty: false,
+	seasonMix: false,
+	finalsPool: 'normal',
+	bans: 1,
+	powerups: true,
+	bigBoard: false,
+	rosterChallenges: true,
+	stakes: true,
+	intro: true,
+	arena: true,
 };
 
 export const BAND_INFO: Record<Band, { label: string; range: [number, number]; color: string }> = {
@@ -198,6 +227,34 @@ const poolCache = new Map<string, VersusPlayer[]>();
 
 /** Everyone this coach may draft this time: their pool, narrowed by the theme */
 export function poolOf(s: VersusState, side: Side): VersusPlayer[] {
+	const base = themedPool(s, side);
+	const stars = seasonAllStars(s);
+	if (!stars) return base;
+	const narrowed = base.filter(p => stars.has(p.id));
+	// a short season may not have used enough players — then it's the normal pool
+	const need = (rosterTotal(tiersFor(s.settings, 0)) + rosterTotal(tiersFor(s.settings, 1))) * 1.6;
+	return narrowed.length >= need ? narrowed : base;
+}
+
+const starsCache = { key: '', set: null as Set<string> | null };
+
+/** Finals with Season All-Stars on: everyone either coach used this regular season */
+export function seasonAllStars(s: VersusState): Set<string> | null {
+	if (s.settings.finalsPool !== 'season' || !s.settings.season || s.settings.league) return null;
+	const h = history();
+	const tag = nextSeasonTag(h, s.settings);
+	if (tag?.stage !== 'finals') return null;
+	const key = `${tag.n}|${h.length}|${h[h.length - 1]?.ts ?? 0}`;
+	if (starsCache.key !== key) {
+		const used = new Set<string>();
+		for (const g of h) if (g.season?.n === tag.n && g.season.stage === 'regular') for (const r of g.rosters) for (const id of r) used.add(id);
+		starsCache.key = key;
+		starsCache.set = used;
+	}
+	return starsCache.set;
+}
+
+function themedPool(s: VersusState, side: Side): VersusPlayer[] {
 	const mode = poolFor(s.settings, side);
 	const theme = getTheme(s.theme?.id);
 	if (!theme?.filter) return getPool(mode);
@@ -396,6 +453,45 @@ export interface DraftState {
 	tiers?: [Record<Band, number>, Record<Band, number>];
 	/** challenge rewards in effect this draft, for the banner */
 	rewards?: [BoostId[], BoostId[]];
+	/** power-up cards: dealt at the start, played once, revealed to everyone when played */
+	powers?: PowerState;
+}
+
+export type PowerId = 'double' | 'jump' | 'scout' | 'lockdown' | 'veto';
+
+export interface PowerState {
+	/** each coach's card (secret until played) */
+	hand: [PowerId | null, PowerId | null];
+	/** the card each coach has played, if any */
+	used: [PowerId | null, PowerId | null];
+	/** most recent play, for the reveal on every screen */
+	last: { side: Side; id: PowerId; n: number; player?: string } | null;
+	/** this round: Double Pick in progress for this coach */
+	extra: Side | null;
+	/** this round: Tier Jump / Scout dealt a private pack, so nobody shares leftovers */
+	split: boolean;
+	/** this round: after this coach's pick, the best player left is banned */
+	lockdown: Side | null;
+}
+
+export const POWERS: Record<PowerId, { id: PowerId; label: string; icon: string; color: string; desc: string; when: string }> = {
+	double: { id: 'double', label: 'Double Pick', icon: 'layers', color: '#f97316', desc: 'Take two players from this pack. You give up your last round.', when: 'On your pick' },
+	jump: { id: 'jump', label: 'Tier Jump', icon: 'chevronsUp', color: '#a855f7', desc: 'Redeal your pack from one tier higher for this pick.', when: 'On your pick, below Superstar' },
+	scout: { id: 'scout', label: 'Scout', icon: 'search', color: '#22c55e', desc: 'Your pack gets 3 extra cards this pick. Your rival gets a pack of their own.', when: 'On your pick' },
+	lockdown: { id: 'lockdown', label: 'Lockdown', icon: 'lock', color: '#38bdf8', desc: 'After you pick, the best player left in the pack is banned for this draft.', when: 'When you pick first from a shared pack' },
+	veto: { id: 'veto', label: 'Veto', icon: 'ban', color: '#ef4444', desc: 'Cancel your rival’s last pick. He’s banned for this draft and they pick again in an extra round at the end.', when: 'Right after your rival picks' },
+};
+
+export const POWER_IDS = Object.keys(POWERS) as PowerId[];
+
+/** Scouting report: three secret reads on the OTHER coach's draft */
+export interface Reads {
+	/** primary position of their first pick */
+	pos: Position;
+	/** who finishes the draft with the higher team OVR */
+	higher: Side;
+	/** how many guards (PG/SG) they end with */
+	guards: '0-1' | '2' | '3+';
 }
 
 /** Challenge rewards waiting to shape a coach's next draft */
@@ -415,6 +511,8 @@ export interface LogEntry {
 	best?: number;
 	/** what the auction thought he was worth */
 	value?: number;
+	/** cancelled by a Veto card (he's off the roster) */
+	vetoed?: boolean;
 }
 
 export interface GameResult {
@@ -444,6 +542,14 @@ export interface GameResult {
 	league?: LeagueTag | null;
 	/** when the result was entered — the same on every phone in a live room */
 	playedAt?: number;
+	/** the draft, pick by pick ([side, player id]) — for the replay */
+	draft?: [Side, string][] | null;
+	/** scouting-report points each coach scored this draft */
+	reads?: [number, number] | null;
+	/** punishments that were on the loser's wheel */
+	stakes?: string[] | null;
+	/** power-ups played this draft */
+	powers?: [PowerId | null, PowerId | null] | null;
 }
 
 /** Point spread: `fav` is expected to win by `spread` */
@@ -484,6 +590,8 @@ export interface GameDay {
 	predictions?: [Prediction | null, Prediction | null];
 	/** each coach's Player of the Game vote (secret until the result is in) */
 	votes?: [string | null, string | null];
+	/** punishments on the loser's wheel tonight (agreed before tip-off); null = not set */
+	stakes?: string[] | null;
 }
 
 export interface Prediction {
@@ -546,7 +654,7 @@ export interface VersusState {
 	/** theme for the current / upcoming draft */
 	theme: ActiveTheme | null;
 	/** pre-draft steps already done for the upcoming draft */
-	pre: { theme: boolean; keepers: boolean; favorites: boolean };
+	pre: { theme: boolean; keepers: boolean; favorites: boolean; bans?: boolean; board?: boolean };
 	favoritePicks: [string | null, string | null];
 	favoriteTurn: Side;
 	/** players a coach can't draft for a while (Retire rule) */
@@ -554,6 +662,26 @@ export interface VersusState {
 	/** grades for the most recent draft */
 	grades: [Grade, Grade] | null;
 	dynasty?: DynastyState;
+	/** ban phase for the upcoming draft: each coach's secret bans, then the revealed list */
+	bans?: BanState;
+	/** scouting reports for the upcoming / current draft */
+	board?: BoardState;
+	/** the loser's punishment from the last game, once spun */
+	punishment?: { side: Side; id: string; game: number } | null;
+}
+
+export interface BanState {
+	picks: [string[] | null, string[] | null];
+	turn: Side;
+	/** banned for this draft (both coaches' bans, plus Lockdown / Veto victims) */
+	list: string[];
+	/** the bans are on the table (shown to everyone) */
+	revealed: boolean;
+}
+
+export interface BoardState {
+	picks: [Reads | null, Reads | null];
+	turn: Side;
 }
 
 export interface DynastyState {
@@ -575,7 +703,7 @@ export interface Retired {
 	left: number;
 }
 
-export const PRE_NONE = { theme: false, keepers: false, favorites: false };
+export const PRE_NONE = { theme: false, keepers: false, favorites: false, bans: false, board: false };
 
 export const EMPTY_GAMEDAY: GameDay = { quarter: null, modifier: null, challenges: [null, null], rewards: [null, null] };
 
@@ -670,7 +798,7 @@ export function players(ids: string[]): VersusPlayer[] {
 }
 
 function draftedSet(s: VersusState): Set<string> {
-	return new Set([...s.teams[0], ...s.teams[1]]);
+	return new Set([...s.teams[0], ...s.teams[1], ...(s.bans?.list ?? [])]);
 }
 
 // ─── team rating ────────────────────────────────────────────────
@@ -982,7 +1110,7 @@ export function bandFor(d: DraftState, side: Side): Band | undefined {
 export function isSharedRound(s: VersusState, d: DraftState = s.draft!): boolean {
 	const b0 = bandFor(d, 0);
 	const b1 = bandFor(d, 1);
-	return !d.solo && !!b0 && b0 === b1 && sameSlice(s);
+	return !d.solo && !d.powers?.split && !!b0 && b0 === b1 && sameSlice(s);
 }
 
 export function currentBand(s: VersusState): Band {
@@ -1011,6 +1139,8 @@ export function startRound(s: VersusState, round: number): VersusState {
 	let order = roundOrder(s, round, round === 0 ? null : prev);
 	const has0 = !!prev.blueprints[0][round];
 	const has1 = !!prev.blueprints[1][round];
+	// a round nobody has left (a Double Pick gave it up)
+	if (!has0 && !has1) return round + 1 < roundsTotal(prev) ? startRound(s, round + 1) : endDraft(s);
 	const solo = !(has0 && has1);
 	if (solo) order = has0 ? [0, 1] : [1, 0];
 	const base: DraftState = {
@@ -1026,6 +1156,7 @@ export function startRound(s: VersusState, round: number): VersusState {
 		secret: [null, null],
 		collisions: 0,
 		lastCollision: null,
+		powers: prev.powers ? { ...prev.powers, extra: null, split: false, lockdown: null } : prev.powers,
 	};
 	const next: VersusState = { ...s, phase: 'draft', draft: base };
 	const shared = isSharedRound(next, base);
@@ -1108,6 +1239,7 @@ export function startDraft(s: VersusState, keep: [string | null, string | null] 
 		favorites: favs,
 		tiers,
 		rewards: [mods[0].rewards, mods[1].rewards],
+		powers: s.settings.powerups && s.settings.style !== 'auction' && s.settings.style !== 'block' ? dealPowers() : undefined,
 	};
 	// rewards are spent once the draft starts
 	const base: VersusState = {
@@ -1207,7 +1339,27 @@ function bestOption(s: VersusState, side: Side, options: string[]): number | und
 export function pick(s: VersusState, id: string): VersusState {
 	const d = s.draft!;
 	const side = actingSide(d);
+	// Double Pick: the first of two — same coach, same pack, one fewer card
+	if (d.powers?.extra === side && !d.offered.length) {
+		const after = addToTeam(s, side, id, { best: bestOption(s, side, d.pack) });
+		const nd = after.draft!;
+		return { ...after, draft: { ...nd, pack: d.pack.filter(x => x !== id), blueprints: dropLastRound(nd.blueprints, side, d.round), powers: { ...nd.powers!, extra: null } } };
+	}
 	let next = addToTeam(s, side, id, { best: bestOption(s, side, d.offered.length ? d.offered : d.pack) });
+	// Lockdown: the best player left in the pack is banned for this draft
+	if (d.powers?.lockdown === side && d.turn === 0 && !d.solo && !d.offered.length) {
+		const left = players(d.pack.filter(x => x !== id)).sort((a, b) => b.overall - a.overall)[0];
+		if (left) {
+			next = { ...next, bans: banOne(next, left.id), draft: { ...next.draft!, pack: next.draft!.pack.filter(x => x !== left.id), powers: { ...next.draft!.powers!, lockdown: null, last: { ...next.draft!.powers!.last!, player: left.id } } } };
+			// d.pack is what the second coach sees below — keep it in step
+			return pick2(next, { ...d, pack: d.pack.filter(x => x !== left.id) }, id, s);
+		}
+	}
+	return pick2(next, d, id, s);
+}
+
+function pick2(next: VersusState, d: DraftState, id: string, s: VersusState): VersusState {
+	const side = actingSide(d);
 
 	if (d.offered.length) {
 		// Cut mode: the cutter gets whatever is left on the table.
@@ -1639,6 +1791,7 @@ export function setTheme(s: VersusState, id: ThemeId | null, param?: string): Ve
  */
 export function beginDraft(input: VersusState): VersusState {
 	let s: VersusState = { ...input, pre: input.pre ?? PRE_NONE, draft: null };
+	if (!s.pre.theme) s = { ...s, settings: seasonMixSettings(s.settings) };
 	if (!s.pre.theme) {
 		const mode = s.settings.theme ?? 'off';
 		if (mode === 'spin' && themeOptions(s).length) return { ...s, phase: 'theme' };
@@ -1656,12 +1809,195 @@ export function beginDraft(input: VersusState): VersusState {
 		if (order.length) return { ...s, phase: 'favorites', favoritePicks: [null, null], favoriteTurn: order[0] };
 		s = { ...s, favoritePicks: [null, null], pre: { ...s.pre, favorites: true } };
 	}
+	if (!s.pre.bans) {
+		if (s.settings.bans > 0 && boardPool(s).length > 30) {
+			const first = s.coinWinner ?? 0;
+			return { ...s, phase: 'bans', bans: { picks: [null, null], turn: first, list: [], revealed: false } };
+		}
+		s = { ...s, bans: undefined, pre: { ...s.pre, bans: true } };
+	}
+	if (!s.pre.board) {
+		if (s.settings.bigBoard) return { ...s, phase: 'board', board: { picks: [null, null], turn: s.coinWinner ?? 0 } };
+		s = { ...s, board: undefined, pre: { ...s.pre, board: true } };
+	}
 	return startDraft(s, s.keeperPicks, s.favoritePicks);
+}
+
+/** Draft styles a season rotates through (Auction Block needs one shared pool) */
+export const MIX_STYLES: DraftStyle[] = ['snake', 'franchise', 'cut', 'block'];
+
+/** This draft's style under Season variety (null = the coaches' own style) */
+export function mixStyleFor(settings: Settings, g: number): DraftStyle {
+	const styles = MIX_STYLES.filter(x => !(x === 'block' && settings.pool === 'erawars'));
+	return styles[(g - 1) % styles.length];
+}
+
+/**
+ * Season variety: regular-season games walk through the draft styles and
+ * spin a theme; the Finals (and seasons off) restore the coaches' own picks.
+ */
+export function seasonMixSettings(settings: Settings): Settings {
+	const base = settings.mixBase ?? { style: settings.style, theme: settings.theme };
+	const tag = settings.seasonMix && settings.season && !settings.league ? nextSeasonTag(history(), settings) : null;
+	if (tag?.stage === 'regular') return { ...settings, mixBase: base, style: mixStyleFor(settings, tag.g), theme: base.theme === 'off' ? 'spin' : base.theme };
+	if (!settings.mixBase) return settings;
+	return { ...settings, style: base.style, theme: base.theme, mixBase: null };
 }
 
 /** Fresh pre-draft state — call before beginDraft for every new draft */
 export function freshPreDraft(s: VersusState): VersusState {
-	return { ...s, pre: PRE_NONE, keeperPicks: [null, null], favoritePicks: [null, null], theme: null };
+	return { ...s, pre: PRE_NONE, keeperPicks: [null, null], favoritePicks: [null, null], theme: null, bans: undefined, board: undefined };
+}
+
+// ─── ban phase ──────────────────────────────────────────────────
+
+/** Players a coach may ban right now: anyone draftable who isn't already on a roster */
+export function banCandidates(s: VersusState): VersusPlayer[] {
+	const taken = new Set([...s.teams[0], ...s.teams[1], ...s.keeperPicks, ...s.favoritePicks].filter(Boolean) as string[]);
+	return boardPool(s).filter(p => !taken.has(p.id));
+}
+
+/** A coach locks in their bans. Once both have, they're revealed together. */
+export function submitBans(s: VersusState, side: Side, ids: string[]): VersusState {
+	const b = s.bans ?? { picks: [null, null], turn: side, list: [], revealed: false };
+	const picks: [string[] | null, string[] | null] = [...b.picks];
+	picks[side] = ids.slice(0, s.settings.bans);
+	if (picks[0] && picks[1]) return { ...s, bans: { ...b, picks, list: [...new Set([...picks[0], ...picks[1]])], revealed: true } };
+	return { ...s, bans: { ...b, picks, turn: other(side) } };
+}
+
+/** After the reveal: on with the pre-draft */
+export function afterBans(s: VersusState): VersusState {
+	return beginDraft({ ...s, pre: { ...s.pre, bans: true } });
+}
+
+function banOne(s: VersusState, id: string): BanState {
+	const b = s.bans ?? { picks: [[], []], turn: 0, list: [], revealed: true };
+	return { ...b, list: [...new Set([...b.list, id])] };
+}
+
+// ─── scouting report (secret big board) ─────────────────────────
+
+export function submitReads(s: VersusState, side: Side, reads: Reads): VersusState {
+	const b = s.board ?? { picks: [null, null], turn: side };
+	const picks: [Reads | null, Reads | null] = [...b.picks];
+	picks[side] = reads;
+	if (picks[0] && picks[1]) return beginDraft({ ...s, board: { ...b, picks }, pre: { ...s.pre, board: true } });
+	return { ...s, board: { picks, turn: other(side) } };
+}
+
+/** What actually happened, for each coach's reads about the OTHER coach */
+export function readTruth(s: VersusState, about: Side): Reads | null {
+	const d = s.draft;
+	const first = d?.log.find(e => e.side === about && !e.vetoed);
+	const p = first ? getVersusPlayer(first.id) : null;
+	if (!p) return null;
+	const a = teamOvr(s.teams[0]);
+	const b = teamOvr(s.teams[1]);
+	const guards = players(s.teams[about]).filter(x => x.position === 'PG' || x.position === 'SG').length;
+	return { pos: p.position, higher: a === b ? about : a > b ? 0 : 1, guards: guards <= 1 ? '0-1' : guards === 2 ? '2' : '3+' };
+}
+
+/** Points each coach scored reading the other (0–3), or null if the board wasn't used */
+export function scoreReads(s: VersusState): [number, number] | null {
+	const picks = s.board?.picks;
+	if (!picks?.[0] || !picks[1] || !s.draft) return null;
+	const score = (side: Side): number => {
+		const r = picks[side]!;
+		const t = readTruth(s, other(side));
+		if (!t) return 0;
+		return (r.pos === t.pos ? 1 : 0) + (r.higher === t.higher ? 1 : 0) + (r.guards === t.guards ? 1 : 0);
+	};
+	return [score(0), score(1)];
+}
+
+// ─── power-up cards ─────────────────────────────────────────────
+
+function dealPowers(): PowerState {
+	const deal = () => POWER_IDS[Math.floor(Math.random() * POWER_IDS.length)];
+	return { hand: [deal(), deal()], used: [null, null], last: null, extra: null, split: false, lockdown: null };
+}
+
+/** Give up this coach's last remaining round after the current one (Double Pick) */
+function dropLastRound(bps: [Band[], Band[]], side: Side, round: number): [Band[], Band[]] {
+	const next: [Band[], Band[]] = [[...bps[0]], [...bps[1]]];
+	const mine = next[side];
+	for (let j = mine.length - 1; j > round; j--) {
+		if (mine[j]) {
+			mine[j] = undefined as unknown as Band;
+			break;
+		}
+	}
+	while (mine.length && !mine[mine.length - 1]) mine.pop();
+	return next;
+}
+
+/** Why this coach can't play their card right now (null = they can) */
+export function powerBlocked(s: VersusState, side: Side): string | null {
+	const d = s.draft;
+	const pw = d?.powers;
+	const id = pw?.hand[side];
+	if (!d || !pw || !id || s.phase !== 'draft') return 'No card';
+	if (pw.used[side]) return 'Already played';
+	if (d.stage !== 'pick' || actingSide(d) !== side || pw.extra !== null) return 'Play it on your pick';
+	if (d.offered.length && id !== 'veto') return 'Not on a cut pick';
+	if (id === 'double') {
+		if (d.pack.filter(x => canTake(s, side, x)).length < 2) return 'Needs two players you can take';
+		if (!d.blueprints[side].some((b, j) => j > d.round && !!b)) return 'No later round to give up';
+	}
+	if (id === 'jump' && bandFor(d, side) === 'superstar') return 'Already the top tier';
+	if (id === 'lockdown' && !(d.turn === 0 && isSharedRound(s, d))) return 'Only when you pick first from a shared pack';
+	if (id === 'veto') {
+		const lp = d.lastPick;
+		if (!lp || lp.side === side || lp.blind || lp.vetoed || !s.teams[lp.side].includes(lp.id)) return 'Only right after your rival picks';
+		if (d.log[d.log.length - 1] !== lp) return 'Only right after your rival picks';
+	}
+	return null;
+}
+
+/** Play the acting coach's card. Everyone sees the reveal. */
+export function playPower(s: VersusState, side: Side): VersusState {
+	if (powerBlocked(s, side)) return s;
+	const d = s.draft!;
+	const pw = d.powers!;
+	const id = pw.hand[side]!;
+	const used: [PowerId | null, PowerId | null] = [...pw.used];
+	used[side] = id;
+	let powers: PowerState = { ...pw, used, last: { side, id, n: (pw.last?.n ?? 0) + 1 } };
+	let next: VersusState = { ...s, draft: { ...d, powers } };
+	const band = bandFor(d, side) ?? 'deep';
+	if (id === 'double') powers = { ...powers, extra: side };
+	if (id === 'lockdown') powers = { ...powers, lockdown: side };
+	if (id === 'jump' || id === 'scout') {
+		powers = { ...powers, split: true };
+		next = { ...next, draft: { ...next.draft!, powers } };
+		const up = BANDS[Math.max(0, BANDS.indexOf(band) - 1)];
+		const pack =
+			id === 'jump'
+				? // the higher tier's pack, never worse than the one it replaces
+					players([...new Set([...makePack(next, up, s.settings.packSize, [], null, side), ...d.pack])])
+						.filter(p => canTake(next, side, p.id))
+						.sort((x, y) => y.overall - x.overall)
+						.slice(0, s.settings.packSize)
+						.map(p => p.id)
+				: [...d.pack, ...makePack(next, band, 3, d.pack, d.franchise, side)].filter((x, i, a) => a.indexOf(x) === i);
+		return { ...next, draft: { ...next.draft!, pack, powers } };
+	}
+	if (id === 'veto') {
+		const lp = d.lastPick!;
+		const opp = lp.side;
+		const teams: [string[], string[]] = [[...s.teams[0]], [...s.teams[1]]];
+		teams[opp] = teams[opp].filter(x => x !== lp.id);
+		const vetoed: LogEntry = { ...lp, vetoed: true };
+		const log = d.log.map(e => (e === lp ? vetoed : e));
+		const blueprints: [Band[], Band[]] = [[...d.blueprints[0]], [...d.blueprints[1]]];
+		// the make-up pick comes in a round after this one
+		while (blueprints[opp].length <= d.round) blueprints[opp].push(undefined as unknown as Band);
+		blueprints[opp].push(d.blueprints[opp][lp.round] ?? band);
+		powers = { ...powers, last: { ...powers.last!, player: lp.id } };
+		return { ...next, teams, bans: banOne(next, lp.id), draft: { ...d, log, lastPick: vetoed, blueprints, powers } };
+	}
+	return { ...next, draft: { ...next.draft!, powers } };
 }
 
 // ─── trades ─────────────────────────────────────────────────────
@@ -1801,6 +2137,10 @@ export function recordGame(s: VersusState, result: Omit<GameResult, 'game' | 'te
 		oracle,
 		league: s.settings.league ?? null,
 		playedAt: Date.now(),
+		draft: s.draft ? s.draft.log.filter(e => !e.vetoed).map(e => [e.side, e.id] as [Side, string]) : null,
+		reads: scoreReads(s),
+		stakes: s.gameday.stakes ?? null,
+		powers: s.draft?.powers ? s.draft.powers.used : null,
 	};
 	// Retire rule: players who just won you a game sit out your next drafts
 	const retired = [...(s.retired ?? [])];
@@ -1816,7 +2156,14 @@ export function recordGame(s: VersusState, result: Omit<GameResult, 'game' | 'te
 		if (i >= 0) retired[i] = { ...retired[i], left: RETIRE_DRAFTS };
 		else retired.push({ id, side: w, left: RETIRE_DRAFTS });
 	}
-	return { ...s, series: [...s.series, game], earned, retired, phase: 'postgame', pendingSabotage: null };
+	return { ...s, series: [...s.series, game], earned, retired, phase: 'postgame', pendingSabotage: null, punishment: null };
+}
+
+/** The loser's punishment, once their wheel lands */
+export function setPunishment(s: VersusState, id: string): VersusState {
+	const last = s.series[s.series.length - 1];
+	if (!last) return s;
+	return { ...s, punishment: { side: other(last.winner), id, game: last.game } };
 }
 
 export function setSabotage(s: VersusState, id: string): VersusState {

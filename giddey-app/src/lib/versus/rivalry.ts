@@ -1,4 +1,4 @@
-import { GameResult, Grade, Halftime, Line, Prediction, SeasonTag, Settings, Side, teamName } from './engine';
+import { GameResult, Grade, Halftime, Line, PowerId, Prediction, SeasonTag, Settings, Side, teamName } from './engine';
 import { seatGames } from './history';
 import type { LeagueTag } from './league';
 import { getPool } from './pool';
@@ -37,6 +37,14 @@ export interface RivalryGame {
 	oracle?: Side | null;
 	/** league match this game counted for */
 	league?: LeagueTag | null;
+	/** the draft pick by pick ([side, id]) — for the replay */
+	draft?: [Side, string][] | null;
+	/** scouting-report points per coach */
+	reads?: [number, number] | null;
+	/** punishments that were on the loser's wheel */
+	stakes?: string[] | null;
+	/** power-up cards played */
+	powers?: [PowerId | null, PowerId | null] | null;
 }
 
 export function loadRivalry(): RivalryGame[] {
@@ -87,6 +95,10 @@ export function logGame(settings: Settings, g: GameResult): void {
 		predictions: g.predictions ?? null,
 		oracle: g.oracle ?? null,
 		league: g.league ?? null,
+		draft: g.draft ?? null,
+		reads: g.reads ?? null,
+		stakes: g.stakes ?? null,
+		powers: g.powers ?? null,
 	});
 	saveRivalry(games);
 }

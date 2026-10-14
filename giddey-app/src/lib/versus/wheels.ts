@@ -148,7 +148,14 @@ export function challengeSegments(rosterSize: number, difficulty?: Difficulty): 
 	}));
 }
 
+// challenges about your own roster ("r:…") are resolved by rosterChallenges.ts
+let rosterResolver: ((id: string) => Challenge | undefined) | null = null;
+export function setRosterResolver(fn: (id: string) => Challenge | undefined): void {
+	rosterResolver = fn;
+}
+
 export function getChallenge(id: string | null): Challenge | undefined {
+	if (id?.startsWith('r:')) return rosterResolver?.(id);
 	return CHALLENGES.find(c => c.id === id) ?? activeChallenges().find(c => c.id === id);
 }
 
@@ -236,11 +243,16 @@ export interface CustomWheels {
 	sabotages: CustomItem[];
 	twists: CustomItem[];
 	halftime: CustomItem[];
+	punishments?: CustomItem[];
+	/** ids of items (built-in or yours) switched off — a wheel always keeps at least 2 */
+	off?: string[];
 }
 
-export type CustomKind = 'challenges' | 'sabotages' | 'twists' | 'halftime';
+export type CustomKind = 'challenges' | 'sabotages' | 'twists' | 'halftime' | 'punishments';
 
-export const EMPTY_CUSTOM: CustomWheels = { mode: 'mix', challenges: [], sabotages: [], twists: [], halftime: [] };
+export const CUSTOM_KINDS: CustomKind[] = ['challenges', 'sabotages', 'twists', 'halftime', 'punishments'];
+
+export const EMPTY_CUSTOM: CustomWheels = { mode: 'mix', challenges: [], sabotages: [], twists: [], halftime: [], punishments: [], off: [] };
 
 const CUSTOM_COLORS = ['#f43f5e', '#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#d946ef', '#14b8a6', '#84cc16'];
 
@@ -259,14 +271,27 @@ const customTwists = (): Twist[] => custom.twists.map((x, i) => ({ id: x.id, lab
 const customSabotages = (): SabotageItem[] => custom.sabotages.map((x, i) => ({ id: x.id, label: x.label, desc: x.desc, color: color(i + 3), weight: 2 }));
 const customHalftime = (): HalftimeTwist[] => custom.halftime.map((x, i) => ({ id: x.id, label: x.label, desc: x.desc, color: color(i + 5), weight: 2 }));
 
-function pick<T>(builtIn: T[], mine: T[]): T[] {
-	if (!mine.length) return builtIn;
-	return custom.mode === 'only' && mine.length >= 2 ? mine : [...builtIn, ...mine];
+/** Switched-off items drop out — unless that would leave fewer than 2 on the wheel */
+function on<T extends { id: string }>(items: T[]): T[] {
+	const off = new Set(custom.off ?? []);
+	const left = items.filter(x => !off.has(x.id));
+	return left.length >= 2 ? left : items;
+}
+
+function pick<T extends { id: string }>(builtIn: T[], mine: T[]): T[] {
+	if (!mine.length) return on(builtIn);
+	return on(custom.mode === 'only' && mine.length >= 2 ? mine : [...builtIn, ...mine]);
 }
 
 export const activeTwists = () => pick(TWISTS, customTwists());
 export const activeSabotages = () => pick(SABOTAGES, customSabotages());
 export const activeHalftime = () => pick(HALFTIME, customHalftime());
+export const activePunishments = () => pick(PUNISHMENTS, (custom.punishments ?? []).map((x, i) => ({ id: x.id, label: x.label, desc: x.desc, color: color(i + 1), weight: 2 })));
+
+/** Is this item on its wheel right now? */
+export function isOn(id: string): boolean {
+	return !(custom.off ?? []).includes(id);
+}
 
 export function activeChallenges(difficulty?: Difficulty): Challenge[] {
 	const mine: Challenge[] = custom.challenges.map(x => ({ id: x.id, title: x.label, desc: x.desc, difficulty: x.difficulty ?? 'medium' }));
@@ -278,5 +303,39 @@ export function activeChallenges(difficulty?: Difficulty): Challenge[] {
 }
 
 export function customCount(c: CustomWheels | undefined): number {
-	return c ? c.challenges.length + c.sabotages.length + c.twists.length + c.halftime.length : 0;
+	return c ? c.challenges.length + c.sabotages.length + c.twists.length + c.halftime.length + (c.punishments?.length ?? 0) : 0;
+}
+
+/** Built-in items of each wheel, for the wheel manager */
+export function builtIns(kind: CustomKind): { id: string; label: string; desc: string; difficulty?: Difficulty }[] {
+	if (kind === 'challenges') return CHALLENGES.map(c => ({ id: c.id, label: c.title, desc: c.desc, difficulty: c.difficulty }));
+	if (kind === 'sabotages') return SABOTAGES;
+	if (kind === 'twists') return TWISTS;
+	if (kind === 'halftime') return HALFTIME;
+	return PUNISHMENTS;
+}
+
+// ─── stakes: the loser's punishment wheel ───────────────────────
+
+export interface Punishment {
+	id: string;
+	label: string;
+	desc: string;
+	color: string;
+	weight: number;
+}
+
+export const PUNISHMENTS: Punishment[] = [
+	{ id: 'food', label: 'Buys the food', desc: 'Loser pays for tonight’s food or drinks.', color: '#f97316', weight: 3 },
+	{ id: 'post', label: 'Trash-talk post', desc: 'Loser posts “I got cooked” with the score on their story.', color: '#ec4899', weight: 2 },
+	{ id: 'jersey', label: 'Jersey swap', desc: 'Loser wears the winner’s team colors (or a jersey) next game night.', color: '#38bdf8', weight: 2 },
+	{ id: 'pushups', label: '20 push-ups', desc: 'Right now. Winner counts out loud.', color: '#22c55e', weight: 3 },
+	{ id: 'dishes', label: 'Cleanup duty', desc: 'Loser cleans up tonight — cans, plates, controllers.', color: '#a855f7', weight: 2 },
+	{ id: 'settings', label: 'Winner’s rules', desc: 'Winner sets every option for the next game night.', color: '#eab308', weight: 2 },
+	{ id: 'compliment', label: 'Hype man', desc: 'Loser gives a 30-second speech about how good the winner is.', color: '#14b8a6', weight: 2 },
+	{ id: 'walk', label: 'Free pass', desc: 'Nothing this time. Count your blessings.', color: '#64748b', weight: 1 },
+];
+
+export function getPunishment(id: string | null | undefined): Punishment | undefined {
+	return PUNISHMENTS.find(p => p.id === id) ?? activePunishments().find(p => p.id === id);
 }

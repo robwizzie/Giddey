@@ -146,3 +146,23 @@ export function buzz(ms: number | number[] = 40): void {
 		/* ignore */
 	}
 }
+
+/** What just happened to you — each one feels different in your hand */
+export type HapticKind = 'turn' | 'outbid' | 'landed' | 'win' | 'power';
+
+const HAPTICS: Record<HapticKind, number[]> = {
+	// two quick taps: you're on the clock
+	turn: [60, 80, 60],
+	// long-short-long: someone beat your bid
+	outbid: [180, 60, 40, 60, 180],
+	// three taps: the wheel landed on you
+	landed: [40, 50, 40, 50, 120],
+	// a rumble: you won
+	win: [90, 40, 90, 40, 300],
+	// a sharp double hit: a power-up was played
+	power: [25, 30, 25, 30, 220],
+};
+
+export function haptic(kind: HapticKind): void {
+	buzz(HAPTICS[kind]);
+}

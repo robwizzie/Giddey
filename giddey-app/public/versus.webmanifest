@@ -1,0 +1,17 @@
+{
+  "name": "Giddey Versus — 2K Draft Night",
+  "short_name": "Versus",
+  "description": "Head-to-head NBA 2K27 draft night: draft squads, spin the rules, track the rivalry.",
+  "id": "/versus",
+  "start_url": "/versus",
+  "scope": "/versus",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0e17",
+  "theme_color": "#0a0e17",
+  "icons": [
+    { "src": "/versus-icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/versus-icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/versus-icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

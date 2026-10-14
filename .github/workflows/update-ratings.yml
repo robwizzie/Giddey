@@ -1,0 +1,61 @@
+name: Update 2K ratings
+
+# Two ways to run it:
+#  • Edit giddey-app/ratings-update.txt on main (GitHub's web editor works
+#    from a phone): one "Player Name, OVR" per line, then commit.
+#  • Actions → Update 2K ratings → Run workflow, with a link to a CSV.
+# Either way the job applies the ratings and opens a pull request that
+# lists every riser and faller. Merge it and the site redeploys.
+
+on:
+  push:
+    branches: [main]
+    paths: [giddey-app/ratings-update.txt]
+  workflow_dispatch:
+    inputs:
+      csv_url:
+        description: Link to a CSV / text file with "Player Name, OVR" lines
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: giddey-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply ratings
+        id: apply
+        env:
+          CSV_URL: ${{ inputs.csv_url }}
+        run: |
+          if [ -n "$CSV_URL" ]; then
+            node scripts/update-ratings.mjs --url "$CSV_URL" | tee ../summary.txt
+          else
+            node scripts/update-ratings.mjs ratings-update.txt | tee ../summary.txt
+            # leave an empty template behind for next time
+            printf '# One player per line: Name, OVR (optional 3rd column: new team)\n' > ratings-update.txt
+          fi
+          if git diff --quiet -- src/data; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Open a pull request
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="ratings/$(date +%Y-%m-%d-%H%M)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A src/data ratings-update.txt
+          git commit -m "2K rating update $(date +%Y-%m-%d)"
+          git push -u origin "$branch"
+          { echo '2K rating update — merge to publish.'; echo; echo '```'; cat ../summary.txt; echo '```'; } > ../body.md
+          gh pr create --title "2K rating update $(date +%Y-%m-%d)" --body-file ../body.md --base main --head "$branch"

@@ -1,0 +1,1 @@
+# One player per line: Name, OVR (optional 3rd column: new team)

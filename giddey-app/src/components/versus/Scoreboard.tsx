@@ -1,7 +1,9 @@
 'use client';
 
-import { fairness, seriesScore, teamOvr, VersusState } from '@/lib/versus/engine';
+import { fairness, seriesScore, teamIcon, teamOvr, VersusState } from '@/lib/versus/engine';
+import Icon from './Icon';
 import { SIDE_COLORS } from './Fx';
+import { CoachBadges } from './Badges';
 
 export function FairnessMeter({ a, b, compact }: { a: string[]; b: string[]; compact?: boolean }) {
 	const oa = teamOvr(a);
@@ -41,9 +43,9 @@ export default function Scoreboard({ state, sub }: { state: VersusState; sub?: R
 						<div key={i} className={`flex-1 min-w-0 flex items-center gap-2 ${i ? 'flex-row-reverse text-right' : ''}`}>
 							<div className='min-w-0'>
 								<div className='text-[10px] font-black uppercase tracking-widest truncate' style={{ color: SIDE_COLORS[i] }}>
-									{state.settings.identity?.[i]?.emoji ? `${state.settings.identity[i].emoji} ` : ''}
+									<Icon name={teamIcon(state.settings, i as 0 | 1)} className='mr-1' />
 									{names[i]}
-									{hasSeries && <span className='text-white/40'> · {i ? w1 : w0}W</span>}
+									{hasSeries && <span className='text-white/40'> · {i ? w1 : w0}W</span>} <CoachBadges side={i as 0 | 1} compact />
 								</div>
 								<div className='text-2xl font-black text-white leading-none tabular-nums'>{ovr[i] ? ovr[i].toFixed(1) : '—'}</div>
 							</div>

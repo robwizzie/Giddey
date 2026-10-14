@@ -38,7 +38,7 @@ async function headshot(p: VersusPlayer): Promise<HTMLImageElement | null> {
 	return null;
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
 	ctx.beginPath();
 	ctx.moveTo(x + r, y);
 	ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -48,7 +48,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 	ctx.closePath();
 }
 
-function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number, size: number, weight = 900): number {
+export function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number, size: number, weight = 900): number {
 	let s = size;
 	ctx.font = `${weight} ${s}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
 	while (ctx.measureText(text).width > maxW && s > 14) {
@@ -212,7 +212,28 @@ export async function renderShareCard(s: VersusState): Promise<Blob | null> {
 		if (a && b && a.overall !== b.overall) {
 			ctx.fillStyle = a.overall > b.overall ? colors[0] : colors[1];
 			ctx.font = '900 24px -apple-system, sans-serif';
-			ctx.fillText(`${a.overall > b.overall ? '◀' : '▶'} ${Math.abs(a.overall - b.overall)}`, W / 2, y + 98);
+			// a small drawn arrowhead points at the stronger player (no glyphs that could render as emoji)
+			const txt = String(Math.abs(a.overall - b.overall));
+			const tw = ctx.measureText(txt).width;
+			const left = a.overall > b.overall;
+			const x0 = W / 2 - (tw + 22) / 2;
+			const tx = left ? x0 : x0 + tw + 8;
+			const cy = y + 89;
+			ctx.beginPath();
+			if (left) {
+				ctx.moveTo(tx, cy);
+				ctx.lineTo(tx + 14, cy - 9);
+				ctx.lineTo(tx + 14, cy + 9);
+			} else {
+				ctx.moveTo(tx + 14, cy);
+				ctx.lineTo(tx, cy - 9);
+				ctx.lineTo(tx, cy + 9);
+			}
+			ctx.closePath();
+			ctx.fill();
+			ctx.textAlign = 'left';
+			ctx.fillText(txt, left ? x0 + 22 : x0, y + 98);
+			ctx.textAlign = 'center';
 		}
 	});
 
@@ -266,13 +287,16 @@ export async function renderShareCard(s: VersusState): Promise<Blob | null> {
 
 /** Share via the OS sheet when possible, otherwise download */
 export async function shareSquads(s: VersusState): Promise<'shared' | 'downloaded' | 'failed'> {
-	const blob = await renderShareCard(s);
+	return shareImage(await renderShareCard(s), `giddey-versus-game-${s.gameNo}.png`, `${teamName(s.settings, 0)} vs ${teamName(s.settings, 1)}`);
+}
+
+export async function shareImage(blob: Blob | null, name: string, text: string): Promise<'shared' | 'downloaded' | 'failed'> {
 	if (!blob) return 'failed';
-	const file = new File([blob], `giddey-versus-game-${s.gameNo}.png`, { type: 'image/png' });
+	const file = new File([blob], name, { type: 'image/png' });
 	const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
 	if (nav.canShare?.({ files: [file] })) {
 		try {
-			await nav.share({ files: [file], title: 'Giddey Versus', text: `${teamName(s.settings, 0)} vs ${teamName(s.settings, 1)}` });
+			await nav.share({ files: [file], title: 'Giddey Versus', text });
 			return 'shared';
 		} catch {
 			/* cancelled — fall through to download */

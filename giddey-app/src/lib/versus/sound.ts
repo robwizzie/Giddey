@@ -138,7 +138,7 @@ export function play(name: SoundName): void {
 }
 
 /** Short vibration on phones that support it */
-export function buzz(ms = 40): void {
+export function buzz(ms: number | number[] = 40): void {
 	if (muted) return;
 	try {
 		navigator.vibrate?.(ms);

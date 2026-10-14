@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LiveGate } from './Live';
 import {
 	answerTrade,
 	applyEqualizer,
@@ -13,6 +14,7 @@ import {
 	proposeTrade,
 	resolveBoost,
 	Side,
+	teamIcon,
 	teamName,
 	teamOvr,
 	VersusState,
@@ -21,9 +23,13 @@ import { shareSquads } from '@/lib/versus/shareCard';
 import { ChemBars } from './DraftFx';
 import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { BOOSTS } from '@/lib/versus/wheels';
+import { BAND_INFO } from '@/lib/versus/engine';
 import VersusCard, { RosterRow } from './VersusCard';
 import Scoreboard, { FairnessMeter } from './Scoreboard';
 import { Confetti, SectionTitle, SIDE_COLORS } from './Fx';
+import { GradeCards } from './GradeCards';
+import Icon, { IconTile } from './Icon';
+import { announce } from '@/lib/versus/announcer';
 
 type SetState = (s: VersusState) => void;
 
@@ -62,7 +68,7 @@ export function EqualizerScreen({ state, setState }: { state: VersusState; setSt
 		<div className='min-h-screen pb-28'>
 			<Scoreboard state={state} />
 			<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
-				<SectionTitle kicker='⚖️ Balance check' title={`${name} gets the Equalizer`} sub={`The teams finished ${gap} OVR apart. ${name} can swap out ${replaces.firstName} ${replaces.lastName} (${replaces.overall}) for one of these free agents.`} />
+				<SectionTitle kicker='Balance check' title={`${name} gets the Equalizer`} sub={`The teams finished ${gap} OVR apart. ${name} can swap out ${replaces.firstName} ${replaces.lastName} (${replaces.overall}) for one of these free agents.`} />
 				<OptionPicker options={eq.options} chosen={chosen} setChosen={setChosen} />
 				{preview !== null && (
 					<div className='text-center mt-4 text-sm text-white/60'>
@@ -70,7 +76,8 @@ export function EqualizerScreen({ state, setState }: { state: VersusState; setSt
 					</div>
 				)}
 			</div>
-			<BottomBar>
+			<LiveGate side={state.equalizer!.side} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(applyEqualizer(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					Keep my team
 				</button>
@@ -78,6 +85,7 @@ export function EqualizerScreen({ state, setState }: { state: VersusState; setSt
 					Sign him
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }
@@ -122,7 +130,7 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 		if (handoff) {
 			return (
 				<div className='min-h-screen flex flex-col items-center justify-center px-6 text-center animate-fade-in'>
-					<div className='text-5xl mb-4'>📱</div>
+					<IconTile name='phone' color={SIDE_COLORS[to]} size={72} className='mb-5 rounded-2xl' />
 					<div className='text-sm text-white/50 uppercase tracking-widest font-bold mb-2'>Hand the phone to</div>
 					<div className='text-4xl font-black mb-8' style={{ color: SIDE_COLORS[to] }}>
 						{names[to]}
@@ -137,13 +145,13 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 			<div className='min-h-screen pb-28'>
 				<Scoreboard state={state} />
 				<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
-					<SectionTitle kicker='📞 Incoming trade' title={`${names[p.from]} wants to deal`} sub={`${names[to]}, accept or decline.`} />
+					<SectionTitle kicker='Incoming trade' title={`${names[p.from]} wants to deal`} sub={`${names[to]}, accept or decline.`} />
 					<div className='flex items-center justify-center gap-3 sm:gap-6'>
 						<div className='text-center'>
 							<div className='text-[10px] font-black uppercase tracking-widest text-white/50 mb-2'>You get</div>
 							<VersusCard player={giveP} width={120} />
 						</div>
-						<div className='text-3xl text-white/40'>⇄</div>
+						<Icon name='swap' size={30} className='text-white/40 shrink-0' />
 						<div className='text-center'>
 							<div className='text-[10px] font-black uppercase tracking-widest text-white/50 mb-2'>You give</div>
 							<VersusCard player={getP} width={120} />
@@ -161,6 +169,7 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 						<FairnessMeter a={after[0]} b={after[1]} />
 					</div>
 				</div>
+				<LiveGate side={other(state.trade!.proposal!.from)} names={state.settings.names}>
 				<BottomBar>
 					<button onClick={() => setState(answerTrade(state, false))} className='flex-1 rounded-2xl py-3.5 font-black uppercase tracking-wider bg-red-500/80 text-white'>
 						Decline
@@ -169,6 +178,7 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 						Accept
 					</button>
 				</BottomBar>
+			</LiveGate>
 			</div>
 		);
 	}
@@ -180,7 +190,7 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 		<div className='min-h-screen pb-28'>
 			<Scoreboard state={state} />
 			<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
-				<SectionTitle kicker='🔁 Trade window' title={`${names[me]}'s offer`} sub={`Pick one of yours and one of ${names[opp]}'s. One offer each — ${names[opp]} can say no.`} />
+				<SectionTitle kicker='Trade window' title={`${names[me]}'s offer`} sub={`Pick one of yours and one of ${names[opp]}'s. One offer each — ${names[opp]} can say no.`} />
 				{last && (
 					<div className={`text-center text-xs font-bold mb-4 ${last.accepted ? 'text-green-400' : 'text-red-400'}`}>
 						{names[other(last.from)]} {last.accepted ? 'accepted' : 'declined'} {names[last.from]}&apos;s offer.
@@ -201,7 +211,8 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 					</div>
 				</div>
 			</div>
-			<BottomBar>
+			<LiveGate side={state.trade!.turn} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(passTrade(state))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					No trade
 				</button>
@@ -209,6 +220,7 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 					Send offer
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }
@@ -220,30 +232,36 @@ export function BoostScreen({ state, setState }: { state: VersusState; setState:
 	const [chosen, setChosen] = useState<string | null>(null);
 	useEffect(() => setChosen(null), [state.boostQueue.length]);
 	if (!head) return null;
-	const b = BOOSTS[head.boost];
+	const reward = head.from ? BOOSTS[head.from] : undefined;
 	const name = state.settings.names[head.side];
 	const weakest = players(state.teams[head.side]).sort((x, y) => x.overall - y.overall)[0];
 	const opts = state.boostOptions ?? [];
-	const steal = head.boost === 'steal';
+	const sign = head.boost === 'sign';
+	const tier = head.band ? BAND_INFO[head.band].label : '';
 	return (
 		<div className='min-h-screen pb-28'>
 			<Scoreboard state={state} />
 			<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
+				<div className='flex justify-center mb-2'>
+					<IconTile name={reward?.icon ?? 'chevronsUp'} color={SIDE_COLORS[head.side]} size={48} className='rounded-2xl' />
+				</div>
 				<SectionTitle
-					kicker={`${b.icon} Boost earned`}
-					title={`${name}: ${b.label}`}
-					sub={steal ? `Pick one of ${state.settings.names[other(head.side)]}'s bench players. They get ${weakest.firstName} ${weakest.lastName} (${weakest.overall}) back.` : `Replace ${weakest.firstName} ${weakest.lastName} (${weakest.overall}) with one of these.`}
+					kicker={`Challenge reward${reward ? ` · ${reward.label}` : ''}`}
+					title={sign ? `${name} signs a ${tier}` : `${name} upgrades`}
+					sub={sign ? `Running it back — pick one ${tier}-tier free agent to add to your roster.` : `Running it back — replace ${weakest.firstName} ${weakest.lastName} (${weakest.overall}) with one of these.`}
 				/>
 				{opts.length ? <OptionPicker options={opts} chosen={chosen} setChosen={setChosen} /> : <div className='text-center text-white/50'>Nothing to take — boost fizzles.</div>}
 			</div>
-			<BottomBar>
+			<LiveGate side={state.boostQueue[0]?.side ?? null} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(resolveBoost(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					Skip
 				</button>
 				<button disabled={!chosen} onClick={() => setState(resolveBoost(state, chosen))} className='flex-1 btn-green rounded-2xl py-3.5 font-black uppercase tracking-wider text-white disabled:opacity-35'>
-					{steal ? 'Steal him' : 'Upgrade'}
+					{sign ? 'Sign him' : 'Upgrade'}
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }
@@ -267,6 +285,13 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 	const f = fairness(state.teams[0], state.teams[1]);
 	const [copied, setCopied] = useState(false);
 	const [sharing, setSharing] = useState<string | null>(null);
+	const grades = state.grades;
+	useEffect(() => {
+		if (!grades) return;
+		const say = (l: string) => l.replace('+', ' plus').replace('-', ' minus');
+		announce(`The grades are in. ${names[0]} gets ${/^[AE]/.test(grades[0].letter) ? 'an' : 'a'} ${say(grades[0].letter)}. ${names[1]}, ${/^[AE]/.test(grades[1].letter) ? 'an' : 'a'} ${say(grades[1].letter)}.`);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	const share = async () => {
 		setSharing('Rendering…');
 		const r = await shareSquads(state);
@@ -295,8 +320,9 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 				<div className='flex items-stretch gap-3 mb-4'>
 					{[0, 1].map(i => (
 						<div key={i} className='flex-1 rounded-2xl p-4 text-center border' style={{ borderColor: `${SIDE_COLORS[i]}66`, background: `linear-gradient(160deg, ${SIDE_COLORS[i]}2a, transparent 70%)` }}>
-							<div className='text-xs font-black uppercase tracking-widest truncate' style={{ color: SIDE_COLORS[i] }}>
-								{teamName(state.settings, i as Side)}
+							<div className='flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-widest min-w-0' style={{ color: SIDE_COLORS[i] }}>
+								<Icon name={teamIcon(state.settings, i as Side)} />
+								<span className='truncate'>{teamName(state.settings, i as Side)}</span>
 							</div>
 							<div className='text-5xl font-black text-white tabular-nums leading-none mt-1'>{ovr[i].toFixed(1)}</div>
 							<div className='text-[10px] font-bold uppercase tracking-widest text-white/40 mt-1'>Team OVR</div>
@@ -311,6 +337,17 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 					<div className='text-center text-[11px] text-white/45 mt-1'>{f >= 90 ? 'Dead even. This one comes down to the sticks.' : f >= 75 ? 'Slight edge — the underdog has the challenge wheel.' : 'Lopsided. Spin hard, underdog.'}</div>
 				</div>
 
+				{grades && (
+					<div className='mb-6'>
+						<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/45 mb-2'>
+							<Icon name='clipboard' />
+							Draft grades
+						</div>
+						<GradeCards grades={grades} names={names} state={state} />
+						<div className='text-center text-[10px] text-white/35 mt-1.5'>Saved with the game — the rivalry page tracks whether the better grade actually wins.</div>
+					</div>
+				)}
+
 				{/* Position matchups */}
 				<div className='rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden mb-4'>
 					{lus[0].starters.map((s0, i) => {
@@ -324,8 +361,9 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 								<div className='w-10 text-center shrink-0'>
 									<div className='text-[11px] font-black text-white/70'>{s0.slot}</div>
 									{edge !== 0 && (
-										<div className='text-[10px] font-black' style={{ color: SIDE_COLORS[edge > 0 ? 0 : 1] }}>
-											{edge > 0 ? '◀' : '▶'} {Math.abs(edge)}
+										<div className='inline-flex items-center text-[10px] font-black' style={{ color: SIDE_COLORS[edge > 0 ? 0 : 1] }}>
+											<Icon name={edge > 0 ? 'chevronLeft' : 'chevronRight'} strokeWidth={3} />
+											{Math.abs(edge)}
 										</div>
 									)}
 								</div>
@@ -354,11 +392,17 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 					<span className='font-bold text-white/70'>Setting it up in 2K27:</span> Play Now → choose two teams → Edit Rosters / Custom Rosters, then sign or trade these players onto each side. Starters above are auto-fit to positions (<span className='text-amber-400 font-bold'>OOP</span> = out of position).
 				</div>
 				<div className='grid grid-cols-2 gap-2'>
-					<button onClick={share} disabled={!!sharing} className='rounded-xl py-2.5 text-sm font-black bg-gradient-to-r from-pink-500/30 to-violet-500/30 text-white border border-white/15'>
-						{sharing ?? '📸 Share squads'}
+					<button onClick={share} disabled={!!sharing} className='inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-sm font-black bg-gradient-to-r from-pink-500/30 to-violet-500/30 text-white border border-white/15'>
+						{sharing ?? (
+							<>
+								<Icon name='camera' />
+								Share squads
+							</>
+						)}
 					</button>
-					<button onClick={copy} className='rounded-xl py-2.5 text-sm font-bold bg-white/10 text-white/80 border border-white/10'>
-						{copied ? '✓ Copied' : '📋 Copy rosters'}
+					<button onClick={copy} className='inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-sm font-bold bg-white/10 text-white/80 border border-white/10'>
+						<Icon name={copied ? 'check' : 'copy'} />
+						{copied ? 'Copied' : 'Copy rosters'}
 					</button>
 				</div>
 			</div>
@@ -384,7 +428,7 @@ export function KeepersScreen({ state, setState }: { state: VersusState; setStat
 	return (
 		<div className='min-h-screen pb-28'>
 			<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
-				<SectionTitle kicker='🔒 Keepers' title={`${name}, keep one player`} sub='He comes with you into the redraft and uses up one of your rounds in his tier.' />
+				<SectionTitle kicker='Keepers' title={`${name}, keep one player`} sub='He comes with you into the redraft and uses up one of your rounds in his tier.' />
 				{otherPick && (
 					<div className='text-center text-xs text-white/50 mb-4'>
 						{state.settings.names[other(side)]} kept <span className='font-black text-white'>{getVersusPlayer(otherPick)?.lastName}</span>.
@@ -398,7 +442,8 @@ export function KeepersScreen({ state, setState }: { state: VersusState; setStat
 					))}
 				</div>
 			</div>
-			<BottomBar>
+			<LiveGate side={state.keeperTurn} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(chooseKeeper(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					No keeper
 				</button>
@@ -411,6 +456,7 @@ export function KeepersScreen({ state, setState }: { state: VersusState; setStat
 					{chosen ? `Keep ${getVersusPlayer(chosen)?.lastName}` : 'Pick a keeper'}
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }

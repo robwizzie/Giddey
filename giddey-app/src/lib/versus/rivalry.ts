@@ -1,4 +1,7 @@
-import { GameResult, Settings, Side, teamName } from './engine';
+import { GameResult, Grade, Halftime, Line, Prediction, SeasonTag, Settings, Side, teamName } from './engine';
+import { seatGames } from './history';
+import type { LeagueTag } from './league';
+import { getPool } from './pool';
 
 // ═══════════════════════════════════════════════════════════════
 //  RIVALRY LOG — every game ever played, kept apart from the series
@@ -20,6 +23,20 @@ export interface RivalryGame {
 	style: string;
 	pool: string;
 	sabotage: string | null;
+	/** Player of the Game (2 ids when the votes split) */
+	potg?: string[];
+	theme?: string | null;
+	twist?: string | null;
+	halftime?: Halftime | null;
+	line?: Line | null;
+	covered?: Side | null;
+	grades?: [Grade, Grade] | null;
+	season?: SeasonTag | null;
+	sabotageOn?: Side | null;
+	predictions?: [Prediction | null, Prediction | null] | null;
+	oracle?: Side | null;
+	/** league match this game counted for */
+	league?: LeagueTag | null;
 }
 
 export function loadRivalry(): RivalryGame[] {
@@ -32,7 +49,7 @@ export function loadRivalry(): RivalryGame[] {
 	}
 }
 
-function save(games: RivalryGame[]) {
+export function saveRivalry(games: RivalryGame[]) {
 	try {
 		localStorage.setItem(KEY, JSON.stringify(games));
 	} catch {
@@ -42,8 +59,11 @@ function save(games: RivalryGame[]) {
 
 export function logGame(settings: Settings, g: GameResult): void {
 	const games = loadRivalry();
+	const ts = g.playedAt ?? Date.now();
+	// a live room logs the same game on both phones — keep one
+	if (games.some(x => x.ts === ts && x.names.map(n => n.trim().toLowerCase()).sort().join() === settings.names.map(n => n.trim().toLowerCase()).sort().join())) return;
 	games.push({
-		ts: Date.now(),
+		ts,
 		names: [...settings.names],
 		teams: [teamName(settings, 0), teamName(settings, 1)],
 		winner: g.winner,
@@ -55,15 +75,51 @@ export function logGame(settings: Settings, g: GameResult): void {
 		style: settings.style,
 		pool: settings.pool,
 		sabotage: g.sabotage ?? null,
+		potg: g.potg ?? [],
+		theme: g.theme?.id ?? null,
+		twist: g.twist ?? null,
+		halftime: g.halftime ?? null,
+		line: g.line ?? null,
+		covered: g.covered ?? null,
+		grades: g.grades ?? null,
+		season: g.season ?? null,
+		sabotageOn: g.sabotageOn ?? null,
+		predictions: g.predictions ?? null,
+		oracle: g.oracle ?? null,
+		league: g.league ?? null,
 	});
-	save(games);
+	saveRivalry(games);
 }
 
-export function clearRivalry(): void {
-	save([]);
+export interface Matchup {
+	names: [string, string];
+	games: number;
+	wins: [number, number];
+	last: number;
 }
 
-const norm = (n: string) => n.trim().toLowerCase();
+/** Every pair of coaches with games on this device, most recent first */
+export function matchups(all: RivalryGame[] = loadRivalry()): Matchup[] {
+	const by = new Map<string, Matchup>();
+	for (const g of [...all].sort((a, b) => a.ts - b.ts)) {
+		const key = g.names.map(n => n.trim().toLowerCase()).sort().join('|');
+		const m = by.get(key) ?? { names: g.names, games: 0, wins: [0, 0] as [number, number], last: 0 };
+		// keep the seat order (and spelling) of the first game, count wins by name
+		const seat = g.names[g.winner].trim().toLowerCase() === m.names[0].trim().toLowerCase() ? 0 : 1;
+		m.wins[seat]++;
+		m.games++;
+		m.last = g.ts;
+		by.set(key, m);
+	}
+	return [...by.values()].sort((a, b) => b.last - a.last);
+}
+
+/** Erase one pair's games (either seat order); other rivalries on the device stay */
+export function clearMatchup(names: [string, string]): void {
+	const key = names.map(n => n.trim().toLowerCase()).sort().join('|');
+	saveRivalry(loadRivalry().filter(g => g.names.map(n => n.trim().toLowerCase()).sort().join('|') !== key));
+}
+
 
 export interface CoachStats {
 	name: string;
@@ -78,6 +134,10 @@ export interface CoachStats {
 	pointsFor: number;
 	scoredGames: number;
 	topPicks: { id: string; count: number }[];
+	/** best-rated players this coach has never played with */
+	neverUsed: string[];
+	/** distinct players this coach has used */
+	distinct: number;
 }
 
 export interface RivalryStats {
@@ -90,32 +150,19 @@ export interface RivalryStats {
 	favoriteGames: number;
 	upsets: { game: RivalryGame; winner: string; gap: number }[];
 	recent: (RivalryGame & { winnerName: string })[];
+	/** series lead after each game (+ = coach 1 ahead) */
+	timeline: { lead: number; winner: Side; ts: number }[];
+	/** record per draft style, most played first */
+	byStyle: { style: string; wins: [number, number] }[];
+	/** record per theme draft */
+	byTheme: { theme: string; wins: [number, number] }[];
+	/** Player of the Game leaderboard */
+	potg: { id: string; count: number; side: Side }[];
 }
 
 /** Head-to-head between the two current coach names (either seat) */
 export function rivalryStats(all: RivalryGame[], names: [string, string]): RivalryStats {
-	const [a, b] = names.map(norm);
-	// each game re-seated so coach index 0 is names[0]
-	const games = all
-		.filter(g => {
-			const n = g.names.map(norm);
-			return (n[0] === a && n[1] === b) || (n[0] === b && n[1] === a);
-		})
-		.map(g => {
-			if (norm(g.names[0]) === a) return g;
-			const flip = <T,>(x: [T, T]): [T, T] => [x[1], x[0]];
-			return {
-				...g,
-				names: flip(g.names),
-				teams: flip(g.teams),
-				winner: (g.winner === 0 ? 1 : 0) as Side,
-				score: flip(g.score),
-				teamOvr: flip(g.teamOvr),
-				challenges: flip(g.challenges),
-				rosters: flip(g.rosters),
-			};
-		})
-		.sort((x, y) => x.ts - y.ts);
+	const games = seatGames(all, names);
 
 	const coach = (side: Side): CoachStats => {
 		let streak = 0;
@@ -158,6 +205,12 @@ export function rivalryStats(all: RivalryGame[], names: [string, string]): Rival
 				.sort((x, y) => y[1] - x[1])
 				.slice(0, 5)
 				.map(([id, count]) => ({ id, count })),
+			neverUsed: getPool('mixed')
+				.filter(p => !counts.has(p.id))
+				.sort((x, y) => y.overall - x.overall)
+				.slice(0, 5)
+				.map(p => p.id),
+			distinct: counts.size,
 		};
 	};
 
@@ -172,8 +225,39 @@ export function rivalryStats(all: RivalryGame[], names: [string, string]): Rival
 		.sort((x, y) => y.gap - x.gap)
 		.slice(0, 3);
 
+	let lead = 0;
+	const timeline = games.map(g => {
+		lead += g.winner === 0 ? 1 : -1;
+		return { lead, winner: g.winner, ts: g.ts };
+	});
+	const tally = (key: (g: RivalryGame) => string | null | undefined) => {
+		const m = new Map<string, [number, number]>();
+		for (const g of games) {
+			const k = key(g);
+			if (!k) continue;
+			const w = m.get(k) ?? [0, 0];
+			w[g.winner]++;
+			m.set(k, w);
+		}
+		return [...m.entries()].sort((x, y) => y[1][0] + y[1][1] - (x[1][0] + x[1][1]));
+	};
+	const potgCount = new Map<string, { count: number; side: Side }>();
+	for (const g of games)
+		for (const id of g.potg ?? []) {
+			const side: Side = g.rosters[1]?.includes(id) ? 1 : 0;
+			const cur = potgCount.get(id);
+			potgCount.set(id, { count: (cur?.count ?? 0) + 1, side: cur?.side ?? side });
+		}
+
 	return {
 		games: games.length,
+		timeline,
+		byStyle: tally(g => g.style).map(([style, wins]) => ({ style, wins })),
+		byTheme: tally(g => g.theme).map(([theme, wins]) => ({ theme, wins })),
+		potg: [...potgCount.entries()]
+			.sort((x, y) => y[1].count - x[1].count)
+			.slice(0, 5)
+			.map(([id, v]) => ({ id, ...v })),
 		coaches: [coach(0), coach(1)],
 		biggestBlowout: blow ? { game: blow.g, margin: blow.margin, winner: names[blow.g.winner] } : null,
 		closestGame: close ? { game: close.g, margin: close.margin, winner: names[close.g.winner] } : null,

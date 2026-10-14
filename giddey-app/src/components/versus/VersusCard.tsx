@@ -1,6 +1,7 @@
 'use client';
 
 import { VersusPlayer, getTeamFor } from '@/lib/versus/pool';
+import Icon from './Icon';
 import { getPlayerHeadshotUrls, getTeamLogoUrl } from '@/lib/images';
 import Headshot from '@/components/Headshot';
 
@@ -26,12 +27,14 @@ interface Props {
 	selected?: boolean;
 	dimmed?: boolean;
 	faceDown?: boolean;
+	/** another coach's private card: show nothing but a back */
+	hidden?: boolean;
 	onClick?: () => void;
 	className?: string;
 	style?: React.CSSProperties;
 }
 
-export default function VersusCard({ player: p, width = 120, selected, dimmed, faceDown, onClick, className = '', style }: Props) {
+export default function VersusCard({ player: p, width = 120, selected, dimmed, faceDown, hidden, onClick, className = '', style }: Props) {
 	const team = getTeamFor(p);
 	const sec = SECTIONS[p.tier];
 	const h = Math.round(width * 1.4);
@@ -41,6 +44,16 @@ export default function VersusCard({ player: p, width = 120, selected, dimmed, f
 	const scaledName = lastName.length > 10 ? Math.round(nameFont * Math.max(0.68, 10 / lastName.length)) : nameFont;
 
 	const ring = selected ? '0 0 0 3px #fff, 0 0 30px rgba(255,255,255,0.45)' : undefined;
+
+	if (hidden) {
+		return (
+			<div className={`relative select-none rounded-xl border border-white/10 ${className}`} style={{ width, height: h, background: 'repeating-linear-gradient(135deg, #111827 0 10px, #0b1220 10px 20px)', ...style }}>
+				<div className='absolute inset-0 flex items-center justify-center text-white/30'>
+					<Icon name='lock' size={Math.round(width * 0.24)} />
+				</div>
+			</div>
+		);
+	}
 
 	if (faceDown) {
 		return (

@@ -1,14 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BAND_INFO, bandOf, Side, teamName, VersusState } from '@/lib/versus/engine';
+import { BAND_INFO, bandOf, Side, teamIcon, teamName, VersusState } from '@/lib/versus/engine';
 import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { getPlayerHeadshotUrls } from '@/lib/images';
 import { CATEGORY_INFO, Category, lineupChemistry } from '@/lib/versus/chemistry';
 import { buzz, play } from '@/lib/versus/sound';
+import { playerTags, TagChip } from './Tags';
+import { announce, pickLine } from '@/lib/versus/announcer';
+import { pickCallout } from '@/lib/versus/grades';
+import { getBoost } from '@/lib/versus/wheels';
 import Headshot from '@/components/Headshot';
 import VersusCard from './VersusCard';
 import { Confetti, SIDE_COLORS } from './Fx';
+import Icon, { IconTile } from './Icon';
 
 export function ordinal(n: number) {
 	const s = ['th', 'st', 'nd', 'rd'];
@@ -22,10 +27,26 @@ export function CommissionerIntro({ state, onDone }: { state: VersusState; onDon
 	const [step, setStep] = useState(0);
 	const first = state.draft?.order[0] ?? 0;
 	const year = new Date().getFullYear();
-	const lines = [
+	const vsTeam = (side: Side) => (
+		<span className='inline-flex items-center gap-2' style={{ color: SIDE_COLORS[side] }}>
+			<Icon name={teamIcon(state.settings, side)} />
+			{teamName(state.settings, side)}
+		</span>
+	);
+	const lines: { kicker: string; text: React.ReactNode; sound: 'crowd' | 'gavel' | 'whoosh' }[] = [
 		{ kicker: 'Ladies and gentlemen…', text: 'The commissioner approaches the podium', sound: 'crowd' as const },
 		{ kicker: `Game ${state.gameNo}`, text: `Welcome to the ${year} Giddey Versus Draft`, sound: 'gavel' as const },
-		{ kicker: 'Tonight', text: `${teamName(state.settings, 0)}  vs  ${teamName(state.settings, 1)}`, sound: 'whoosh' as const },
+		{
+			kicker: 'Tonight',
+			text: (
+				<span className='inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1'>
+					{vsTeam(0)}
+					<span className='text-white/40 text-2xl sm:text-3xl'>vs</span>
+					{vsTeam(1)}
+				</span>
+			),
+			sound: 'whoosh' as const,
+		},
 		{ kicker: 'With the first pick', text: `${state.settings.names[first]} is on the clock`, sound: 'whoosh' as const },
 	];
 	useEffect(() => {
@@ -62,13 +83,19 @@ export function CommissionerIntro({ state, onDone }: { state: VersusState; onDon
  * changes, freezes while `paused`, beeps the last 5 and calls `onExpire`.
  */
 export function useShotClock(key: string, seconds: number, paused: boolean, onExpire: () => void): number {
-	const [left, setLeft] = useState(seconds);
+	// Time left is stored with the turn it belongs to. A new turn (or the clock
+	// switching on, e.g. after the franchise wheel lands) always starts full —
+	// never from a stale 0 left over while the clock was off.
+	const [clock, setClock] = useState({ key, seconds, left: seconds });
+	const left = clock.key === key && clock.seconds === seconds ? clock.left : seconds;
 	const expire = useRef(onExpire);
 	expire.current = onExpire;
-	useEffect(() => setLeft(seconds), [key, seconds]);
+	const fired = useRef<string | null>(null);
 	useEffect(() => {
 		if (!seconds || paused) return;
 		if (left <= 0) {
+			if (fired.current === key) return;
+			fired.current = key;
 			play('buzzer');
 			buzz(300);
 			expire.current();
@@ -76,10 +103,10 @@ export function useShotClock(key: string, seconds: number, paused: boolean, onEx
 		}
 		const t = setTimeout(() => {
 			if (left <= 6 && left > 1) play('beep');
-			setLeft(l => l - 1);
+			setClock({ key, seconds, left: left - 1 });
 		}, 1000);
 		return () => clearTimeout(t);
-	}, [left, paused, seconds]);
+	}, [key, left, paused, seconds]);
 	return left;
 }
 
@@ -105,7 +132,10 @@ export function ShotClockRing({ left, total, color }: { left: number; total: num
 export function ViolationToast({ text }: { text: string }) {
 	return (
 		<div className='fixed top-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-black shadow-2xl vs-pop whitespace-nowrap'>
-			⏱️ {text}
+			<span className='inline-flex items-center gap-1.5'>
+				<Icon name='timer' />
+				{text}
+			</span>
 		</div>
 	);
 }
@@ -114,6 +144,19 @@ export function ViolationToast({ text }: { text: string }) {
 
 function isBoom(state: VersusState, side: Side, p: VersusPlayer): boolean {
 	return p.overall >= 95 || bandOf(state.settings, side, p.id) === 'superstar';
+}
+
+/** "STEAL" / "REACH" stamp on a pick */
+export function CalloutBadge({ kind, text }: { kind: 'steal' | 'reach'; text: string }) {
+	const steal = kind === 'steal';
+	return (
+		<div className='mt-3 vs-slam' style={{ animationDelay: '900ms' }}>
+			<span className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-black uppercase tracking-wider border-2 ${steal ? 'text-green-300 border-green-400 bg-green-500/15' : 'text-amber-300 border-amber-400 bg-amber-500/15'}`} style={{ transform: 'rotate(-3deg)' }}>
+				<Icon name={steal ? 'gem' : 'alert'} />
+				{text}
+			</span>
+		</div>
+	);
 }
 
 /** Full-screen "BOOM" for superstar picks */
@@ -179,12 +222,20 @@ export function PickReveal({ state, onDone }: { state: VersusState; onDone: () =
 	const p = getVersusPlayer(lp.id)!;
 	const pickNo = state.draft!.log.length;
 	const boom = isBoom(state, lp.side, p);
+	const call = pickCallout(state, lp);
+	// the announcer reads every pick once (each reveal is keyed by pick)
+	useEffect(() => {
+		const line = pickLine({ pickNo, coach: state.settings.names[lp.side], player: `${p.firstName} ${p.lastName}`, price: lp.price, superstar: boom, callout: call?.kind ?? null });
+		announce(line.text, { hype: line.hype });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	useEffect(() => {
 		if (boom) return;
 		play('reveal');
-		const t = setTimeout(onDone, 1900);
+		buzz(25);
+		const t = setTimeout(onDone, state.settings.announcer ? 2600 : 1900);
 		return () => clearTimeout(t);
-	}, [onDone, boom]);
+	}, [onDone, boom, state.settings.announcer]);
 	if (boom) return <BoomReveal state={state} side={lp.side} player={p} pickNo={pickNo} price={lp.price} onDone={onDone} />;
 	return (
 		<div className='fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm' onClick={onDone}>
@@ -202,6 +253,12 @@ export function PickReveal({ state, onDone }: { state: VersusState; onDone: () =
 				<div className='text-sm text-white/50'>
 					{p.overall} OVR · {p.position}/{p.secondaryPosition}
 				</div>
+				<div className='flex justify-center gap-1 mt-2'>
+					{playerTags(state, lp.side, p.id, 3).map(t => (
+						<TagChip key={t.text} tag={t} />
+					))}
+				</div>
+				{call && <CalloutBadge kind={call.kind} text={call.text} />}
 			</div>
 		</div>
 	);
@@ -215,12 +272,17 @@ export function BlindReveal({ state, picks, collision, onDone }: { state: Versus
 		const t = setTimeout(onDone, collision ? 2600 : 2400);
 		return () => clearTimeout(t);
 	}, [onDone, collision]);
+	useEffect(() => {
+		if (collision) announce(`Collision! You both went for ${getVersusPlayer(collision)?.lastName}. Nobody gets him.`);
+		else if (picks) announce(`Blind bids are in. ${state.settings.names[state.draft!.order[0]]} takes ${getVersusPlayer(picks[0])?.lastName}, and ${state.settings.names[state.draft!.order[1]]} takes ${getVersusPlayer(picks[1])?.lastName}.`);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	const { names } = state.settings;
 	if (collision) {
 		const p = getVersusPlayer(collision)!;
 		return (
 			<div className='fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm px-6 text-center vs-boom-shake' onClick={onDone}>
-				<div className='text-6xl mb-3'>💥</div>
+				<Icon name='bomb' size={64} className='mb-3 text-red-400 vs-slam' />
 				<div className='text-4xl font-black text-red-400 mb-2 vs-slam'>COLLISION!</div>
 				<div className='text-white/70 mb-5'>You both went for him. Nobody gets him — new pack.</div>
 				<div className='flex gap-3 items-center'>
@@ -257,7 +319,7 @@ export function BlindReveal({ state, picks, collision, onDone }: { state: Versus
 export function Handoff({ to, name, note, onReady }: { to: Side; name: string; note?: string; onReady: () => void }) {
 	return (
 		<div className='fixed inset-0 z-[55] bg-[#0a0e17] flex flex-col items-center justify-center px-6 text-center animate-fade-in'>
-			<div className='text-5xl mb-4'>🙈</div>
+			<IconTile name='eyeOff' color={SIDE_COLORS[to]} size={72} className='mb-5 rounded-2xl' />
 			<div className='text-sm text-white/50 uppercase tracking-widest font-bold mb-2'>Hand the phone to</div>
 			<div className='text-5xl font-black mb-3' style={{ color: SIDE_COLORS[to] }}>
 				{name}
@@ -292,7 +354,45 @@ export function ChemBars({ ids, rosterSize, color, compact }: { ids: string[]; r
 					</div>
 				);
 			})}
-			{chem.hint && ids.length >= 3 && <div className={`${compact ? 'text-[9px]' : 'text-[11px]'} text-amber-300/90 font-bold leading-tight pt-0.5`}>⚠️ {chem.hint}</div>}
+			{chem.hint && ids.length >= 3 && (
+				<div className={`${compact ? 'text-[9px]' : 'text-[11px]'} text-amber-300/90 font-bold leading-tight pt-0.5 flex items-start gap-1`}>
+					<Icon name='alert' className='shrink-0 mt-px' />
+					<span>{chem.hint}</span>
+				</div>
+			)}
+		</div>
+	);
+}
+
+// ─── challenge rewards in effect ────────────────────────────────
+
+export function RewardBanner({ state }: { state: VersusState }) {
+	const rewards = state.draft?.rewards;
+	if (!rewards || (!rewards[0].length && !rewards[1].length)) return null;
+	return (
+		<div className='mt-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.07] px-3 py-2 space-y-1'>
+			<div className='flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-300'>
+				<Icon name='gift' />
+				Challenge rewards this draft
+			</div>
+			{([0, 1] as Side[]).map(side =>
+				rewards[side].length ? (
+					<div key={side} className='text-[12px] text-white/80 flex flex-wrap items-center gap-x-2'>
+						<span className='font-black' style={{ color: SIDE_COLORS[side] }}>
+							{state.settings.names[side]}:
+						</span>
+						{rewards[side].map((r, i) => {
+							const b = getBoost(r);
+							return b ? (
+								<span key={i} className='inline-flex items-center gap-1'>
+									<Icon name={b.icon} className='text-amber-300' />
+									{b.label}
+								</span>
+							) : null;
+						})}
+					</div>
+				) : null
+			)}
 		</div>
 	);
 }

@@ -24,6 +24,7 @@ Accounts run on [Supabase](https://supabase.com) (free tier), which provides sig
    1. [`migrations/20261013000000_versus_accounts.sql`](migrations/20261013000000_versus_accounts.sql) (versus_profiles, rivalries, games)
    2. [`migrations/20261014000000_versus_leagues_careers.sql`](migrations/20261014000000_versus_leagues_careers.sql) (leagues, career pages)
    3. [`migrations/20261015000000_versus_rooms_push.sql`](migrations/20261015000000_versus_rooms_push.sql) (saved live rooms, turn-alert subscriptions)
+   4. [`migrations/20261016000000_versus_profiles_backfill.sql`](migrations/20261016000000_versus_profiles_backfill.sql) (Versus profiles for accounts that existed before — only matters if the project already had users)
 
    If you use the Supabase CLI, `supabase link` then `supabase db push` does the same thing. Live rooms use Realtime broadcast, which is on by default. Migration 3 adds saved rooms ("draft now, play later"); without it live rooms still work, they just aren't saved.
 

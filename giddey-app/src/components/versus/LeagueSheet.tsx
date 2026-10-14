@@ -280,7 +280,7 @@ function LeagueView({ l, onBack, onPlay }: { l: League; onBack: () => void; onPl
 		}
 		try {
 			await navigator.clipboard.writeText(url);
-			setMsg('✓ Invite link copied');
+			setMsg('Invite link copied');
 		} catch {
 			setMsg(`Code: ${l.cloud.inviteCode}`);
 		}

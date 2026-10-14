@@ -28,19 +28,19 @@ export function ImportPreview({ payload, settings, onDone, onCancel }: { payload
 					<div className='flex items-start gap-2'>
 						<Icon name='ball' className='mt-0.5 shrink-0 text-orange-300' />
 						<span>
-						<span className='font-black text-white'>{prev.added}</span> new game{prev.added === 1 ? '' : 's'} to add
-						{prev.total - prev.added > 0 && <span className='text-white/45'> · {prev.total - prev.added} already here</span>}
+							<span className='font-black text-white'>{prev.added}</span> new game{prev.added === 1 ? '' : 's'} to add
+							{prev.total - prev.added > 0 && <span className='text-white/45'> · {prev.total - prev.added} already here</span>}
 						</span>
 					</div>
 					{favCount > 0 && (
 						<div className='flex items-start gap-2'>
 							<Icon name='heart' className='mt-0.5 shrink-0 text-blue-400 fill-current' />
 							<span>
-							{favCount} franchise guy{favCount === 1 ? '' : 's'} for{' '}
-							{[0, 1]
-								.filter(i => prev.favorites[i].length)
-								.map(i => `${settings.names[i]} (${prev.favorites[i].map(id => getVersusPlayer(id)?.lastName).join(', ')})`)
-								.join(' and ')}
+								{favCount} franchise guy{favCount === 1 ? '' : 's'} for{' '}
+								{[0, 1]
+									.filter(i => prev.favorites[i].length)
+									.map(i => `${settings.names[i]} (${prev.favorites[i].map(id => getVersusPlayer(id)?.lastName).join(', ')})`)
+									.join(' and ')}
 							</span>
 						</div>
 					)}

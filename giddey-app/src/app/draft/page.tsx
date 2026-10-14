@@ -12,6 +12,35 @@ import PlayerCard from '@/components/PlayerCard';
 import MiniGridDiagram from '@/components/MiniGridDiagram';
 import DraftOptions from '@/components/DraftOptions';
 import ResultsScreen from '@/components/ResultsScreen';
+import Icon, { IconTile } from '@/components/versus/Icon';
+
+// --- Shared modal shell: backdrop click / Escape close, labelled dialog ---
+function Modal({ title, onClose, maxWidth = 'max-w-lg', children }: { title: string; onClose: () => void; maxWidth?: string; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`bg-[#111827] rounded-2xl border border-white/10 pl-5 pr-3 pb-5 ${maxWidth} w-full max-h-[85dvh] overflow-y-auto`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-2 sticky top-0 pt-3 pb-1 bg-[#111827] z-10">
+          <h2 className="text-sm font-black text-white uppercase tracking-wider">{title}</h2>
+          <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+            <Icon name="x" size={20} />
+          </button>
+        </div>
+        <div className="pr-2">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 // --- How To Play Modal ---
 const tierColors: Record<string, string> = {
@@ -22,12 +51,7 @@ const tierColors: Record<string, string> = {
 
 function HowToPlayModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-[#111827] rounded-2xl border border-white/10 p-5 max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">How To Play</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white text-lg">&times;</button>
-        </div>
+    <Modal title="How To Play" onClose={onClose}>
 
         {/* Welcome */}
         <div className="mb-6">
@@ -69,8 +93,8 @@ function HowToPlayModal({ onClose }: { onClose: () => void }) {
           </p>
           <div className="bg-black/40 rounded-xl p-3 border border-white/10 space-y-2 mb-3">
             {[
-              { color: 'bg-green-500', label: 'Green Line', desc: 'Same team OR division + year' },
-              { color: 'bg-yellow-500', label: 'Yellow Line', desc: 'Same division OR draft year' },
+              { color: 'bg-green-500', label: 'Green Line', desc: '+3 Chem — same team OR division + year' },
+              { color: 'bg-yellow-500', label: 'Yellow Line', desc: '+1 Chem — same division OR draft year' },
               { color: 'bg-red-500', label: 'Red Line', desc: 'No matching traits' },
             ].map(({ color, label, desc }) => (
               <div key={label} className="flex items-center gap-3">
@@ -155,8 +179,7 @@ function HowToPlayModal({ onClose }: { onClose: () => void }) {
             </table>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -174,12 +197,8 @@ function OddsModal({ onClose }: { onClose: () => void }) {
     'sapphire': '#60a5fa', 'emerald': '#4ade80', 'gold': '#facc15',
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-[#111827] rounded-2xl border border-white/10 p-5 max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Draft Odds</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white text-lg">&times;</button>
-        </div>
+    <Modal title="Draft Odds" onClose={onClose}>
+        <p className="text-[11px] text-white/50 mb-2">Chance of each card tier appearing, by round.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-[9px]">
             <thead>
@@ -206,43 +225,37 @@ function OddsModal({ onClose }: { onClose: () => void }) {
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
 // --- Achievements Modal ---
 function AchievementsModal({ onClose }: { onClose: () => void }) {
   const achievements = [
-    { name: 'Green Machine', desc: 'Get 10+ green chemistry lines', icon: '🟢' },
-    { name: 'All-Star Lineup', desc: 'Draft 3+ Dark Matter cards', icon: '⭐' },
-    { name: 'Division Rivals', desc: 'Have 4+ players from the same division', icon: '🏆' },
-    { name: 'Draft Class', desc: 'Have 3+ players from the same draft year', icon: '📋' },
-    { name: 'Full Chemistry', desc: 'Achieve 100+ chemistry score', icon: '🔥' },
-    { name: 'Perfect Dots', desc: 'All 9 players have green chemistry dots', icon: '💎' },
-    { name: 'Hometown Heroes', desc: 'Have 3+ players from the same team', icon: '🏠' },
-    { name: 'Rising Stars', desc: 'Draft 5+ Ruby or Amethyst cards and score 80+', icon: '🌟' },
+    { name: 'Green Machine', desc: 'Get 10+ green chemistry lines', icon: 'zap', color: '#4ade80' },
+    { name: 'All-Star Lineup', desc: 'Draft 3+ Dark Matter cards', icon: 'star', color: '#a78bfa' },
+    { name: 'Division Rivals', desc: 'Have 4+ players from the same division', icon: 'trophy', color: '#facc15' },
+    { name: 'Draft Class', desc: 'Have 3+ players from the same draft year', icon: 'clipboard', color: '#60a5fa' },
+    { name: 'Full Chemistry', desc: 'Achieve 100+ chemistry score', icon: 'flame', color: '#f97316' },
+    { name: 'Perfect Dots', desc: 'All 9 players have green chemistry dots', icon: 'gem', color: '#22d3ee' },
+    { name: 'Hometown Heroes', desc: 'Have 3+ players from the same team', icon: 'home', color: '#f472b6' },
+    { name: 'Rising Stars', desc: 'Draft 5+ Ruby or Amethyst cards and score 80+', icon: 'sparkles', color: '#f87171' },
   ];
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-[#111827] rounded-2xl border border-white/10 p-5 max-w-sm w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Achievements</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white text-lg">&times;</button>
-        </div>
-        <div className="space-y-3">
+    <Modal title="Achievements" onClose={onClose} maxWidth="max-w-sm">
+        <p className="text-[11px] text-white/50 mb-3">Lineup goals to chase while you draft.</p>
+        <div className="space-y-2">
           {achievements.map((a) => (
             <div key={a.name} className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
-              <span className="text-xl">{a.icon}</span>
-              <div>
-                <div className="text-xs font-bold text-white">{a.name}</div>
-                <div className="text-[10px] text-white/50">{a.desc}</div>
+              <IconTile name={a.icon} color={a.color} size={36} />
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-white">{a.name}</div>
+                <div className="text-[11px] text-white/55 leading-snug">{a.desc}</div>
               </div>
             </div>
           ))}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -511,11 +524,13 @@ export default function DraftPage() {
         <div className="flex items-center justify-between w-full max-w-lg">
           <button
             onClick={() => setShowAchievements(true)}
-            className="text-[10px] font-bold text-white/40 hover:text-white/70 uppercase tracking-wider bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md transition-colors"
+            aria-label="Achievements"
+            title="Achievements"
+            className="min-h-9 min-w-[64px] text-[11px] font-bold text-white/55 hover:text-white uppercase tracking-wider bg-white/5 hover:bg-white/10 border border-white/10 px-3 rounded-lg transition-colors"
           >
             Achvs.
           </button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" role="img" aria-label={`Round ${draftComplete ? 9 : round} of 9`}>
             {Array.from({ length: 9 }, (_, i) => (
               <div
                 key={i}
@@ -531,7 +546,9 @@ export default function DraftPage() {
           </div>
           <button
             onClick={() => setShowOdds(true)}
-            className="text-[10px] font-bold text-white/40 hover:text-white/70 uppercase tracking-wider bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md transition-colors"
+            aria-label="Draft odds"
+            title="Draft odds"
+            className="min-h-9 min-w-[64px] text-[11px] font-bold text-white/55 hover:text-white uppercase tracking-wider bg-white/5 hover:bg-white/10 border border-white/10 px-3 rounded-lg transition-colors"
           >
             Odds
           </button>
@@ -543,13 +560,13 @@ export default function DraftPage() {
             <span className="text-[11px] uppercase tracking-widest text-white/60 font-black">
               Round {round} of 9
             </span>
-            {!cardPlacedThisRound && <span className="text-[10px] text-white/30">— Select a player</span>}
+            {!cardPlacedThisRound && <span className="text-[11px] text-white/45">— Pick a player, then a spot</span>}
           </div>
         )}
         {draftComplete && (
           <div className="text-center">
             <p className="text-sm font-bold text-white/80">Draft Complete!</p>
-            <p className="text-[10px] text-white/40">Drag cards to swap and maximize chemistry.</p>
+            <p className="text-[11px] text-white/50">Tap or drag cards to swap spots and maximize chemistry.</p>
           </div>
         )}
 
@@ -572,13 +589,15 @@ export default function DraftPage() {
         <div className="flex items-center justify-between w-full max-w-lg">
           <button
             onClick={() => setShowHowToPlay(true)}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center text-white/60 hover:text-white text-sm font-black border border-white/15"
+            aria-label="How to play"
+            title="How to play"
+            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center text-white/70 hover:text-white border border-white/15"
           >
-            ?
+            <Icon name="help" size={20} />
           </button>
 
           {!draftComplete && cardPlacedThisRound && (
-            <button onClick={handleNextRound} className="btn-primary text-white text-sm font-bold px-5 py-2 rounded-xl uppercase tracking-wide">
+            <button onClick={handleNextRound} className="btn-primary text-white text-sm font-bold px-5 py-2.5 rounded-xl uppercase tracking-wide">
               {round >= 9 ? 'Finish Draft' : 'Next Round →'}
             </button>
           )}
@@ -587,7 +606,7 @@ export default function DraftPage() {
               Submit Lineup
             </button>
           )}
-          {!draftComplete && !cardPlacedThisRound && <div className="w-9" />}
+          {!draftComplete && !cardPlacedThisRound && <div className="w-10" />}
         </div>
       </div>
 

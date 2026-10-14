@@ -185,6 +185,7 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
               src={teamLogoUrl}
               alt=""
               referrerPolicy="no-referrer"
+              onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
               style={{
                 position: "absolute",
                 left: "4%",
@@ -202,7 +203,7 @@ export default function PlayerCard({ card, size = "option", cardSize, showDot = 
           {/* Player headshot — right side, bottom-anchored */}
           <Headshot
             urls={headshotUrls}
-            alt={`${card.firstName} ${card.lastName}`}
+            alt=""
             style={{
               position: "absolute",
               right: 0,

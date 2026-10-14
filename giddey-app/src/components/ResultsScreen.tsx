@@ -5,6 +5,7 @@ import { GridSlot, ScoreBreakdown } from '@/lib/types';
 import { findOptimalLineup } from '@/lib/scoring';
 import Grid from './Grid';
 import Link from 'next/link';
+import Icon from './versus/Icon';
 
 interface ResultsScreenProps {
   grid: GridSlot[];
@@ -31,10 +32,11 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
       <div className="flex gap-2 px-4 pt-3 pb-0 w-full max-w-xl mx-auto shrink-0">
         <button
           onClick={() => setActiveTab('myteam')}
+          aria-pressed={activeTab === 'myteam'}
           className="flex-1 py-2.5 rounded-xl font-black text-sm uppercase tracking-wide transition-all"
           style={{
             background: activeTab === 'myteam' ? '#22c55e' : 'rgba(255,255,255,0.08)',
-            color: activeTab === 'myteam' ? '#fff' : 'rgba(255,255,255,0.4)',
+            color: activeTab === 'myteam' ? '#fff' : 'rgba(255,255,255,0.55)',
           }}
         >
           My Team
@@ -42,26 +44,29 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
         {hasSolution && (
           <button
             onClick={() => setActiveTab('solution')}
-            className="flex-1 py-2.5 rounded-xl font-black text-sm uppercase tracking-wide transition-all"
+            aria-pressed={activeTab === 'solution'}
+            title="The best possible arrangement of the 9 players you drafted"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-black text-sm uppercase tracking-wide transition-all"
             style={{
               background: activeTab === 'solution' ? '#22c55e' : 'rgba(255,255,255,0.08)',
-              color: activeTab === 'solution' ? '#fff' : 'rgba(255,255,255,0.4)',
+              color: activeTab === 'solution' ? '#fff' : 'rgba(255,255,255,0.55)',
             }}
           >
-            Solution ⓘ
+            Solution
+            <Icon name="info" size={14} />
           </button>
         )}
       </div>
 
       {/* ── ACCURACY + MAX SCORE ── */}
-      <div className="flex items-center justify-between px-4 py-1 w-full max-w-xl mx-auto shrink-0">
-        <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
+      <div className="flex items-center justify-between px-4 py-1.5 w-full max-w-xl mx-auto shrink-0">
+        <span className="inline-flex items-center gap-1 text-xs font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
           Accuracy{' '}
-          <span style={{ color: '#facc15' }}>{accuracy}% ⭐</span>
+          <span className="inline-flex items-center gap-1" style={{ color: '#facc15' }}>{accuracy}% <Icon name="star" className="fill-current" /></span>
         </span>
-        <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <span className="inline-flex items-center gap-1 text-xs font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>
           Max Score{' '}
-          <span style={{ color: '#4ade80' }}>{optimal.bestScore.total} 🏆</span>
+          <span className="inline-flex items-center gap-1" style={{ color: '#4ade80' }}>{optimal.bestScore.total} <Icon name="trophy" /></span>
         </span>
       </div>
 
@@ -92,7 +97,7 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
           >
             <div className="font-black leading-none" style={{ fontSize: 28, color }}>{value}</div>
-            <div className="uppercase tracking-wider font-bold mt-0.5" style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{label}</div>
+            <div className="uppercase tracking-wider font-bold mt-0.5" style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{label}</div>
           </div>
         ))}
       </div>
@@ -110,15 +115,15 @@ export default function ResultsScreen({ grid, score, onPlayAgain }: ResultsScree
             { label: `Yellow Dots (${displayScore.dots.filter(d => d.level === 'yellow').length})`,  value: `+${displayScore.dots.filter(d => d.level === 'yellow').length * 6}`,  color: '#facc15' },
           ].map(({ label, value, color }) => (
             <div key={label} className="flex items-center justify-between">
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{label}</span>
-              <span style={{ fontSize: 11, fontWeight: 800, color }}>{value}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color }}>{value}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* ── BUTTONS ── */}
-      <div className="flex gap-2 px-4 pb-4 pt-1 w-full max-w-xl mx-auto shrink-0">
+      <div className="flex gap-2 px-4 pt-1 w-full max-w-xl mx-auto shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <Link
           href="/"
           className="flex-1 py-3 rounded-2xl text-center no-underline font-black text-sm uppercase tracking-wide transition-colors"

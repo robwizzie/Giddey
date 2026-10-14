@@ -5,7 +5,7 @@
 //  while muted.
 // ═══════════════════════════════════════════════════════════════
 
-export type SoundName = 'tick' | 'flip' | 'reveal' | 'boom' | 'buzzer' | 'beep' | 'whoosh' | 'gavel' | 'crowd' | 'collision' | 'coin';
+export type SoundName = 'tick' | 'flip' | 'reveal' | 'boom' | 'buzzer' | 'beep' | 'whoosh' | 'gavel' | 'crowd' | 'collision' | 'coin' | 'power';
 
 const MUTE_KEY = 'giddey-versus-muted';
 let ctx: AudioContext | null = null;
@@ -127,6 +127,13 @@ export function play(name: SoundName): void {
 				noise(c, { dur: 1.6, gain: 0.12, from: 900, to: 1400 });
 				noise(c, { start: 0.1, dur: 1.4, gain: 0.08, from: 2400, to: 1800 });
 				break;
+			case 'power':
+				// card snapped onto the table: sweep up, thump, bright double hit
+				noise(c, { dur: 0.3, gain: 0.16, from: 600, to: 6000 });
+				tone(c, { type: 'sine', freq: 140, to: 50, start: 0.22, dur: 0.5, gain: 0.45 });
+				tone(c, { type: 'triangle', freq: 988, start: 0.24, dur: 0.18, gain: 0.12 });
+				tone(c, { type: 'triangle', freq: 1319, start: 0.34, dur: 0.5, gain: 0.12 });
+				break;
 			case 'collision':
 				tone(c, { type: 'square', freq: 220, to: 110, dur: 0.35, gain: 0.2 });
 				tone(c, { type: 'square', freq: 233, to: 116, dur: 0.35, gain: 0.15 });
@@ -137,6 +144,135 @@ export function play(name: SoundName): void {
 	}
 }
 
+// ─── arena (main screen) ────────────────────────────────────────
+
+/** Is audio running? Browsers (TVs especially) keep it locked until a tap. */
+export function audioReady(): boolean {
+	return !!ctx && ctx.state === 'running';
+}
+
+/** Call from a user gesture to unlock audio. Resolves true once it's running. */
+export async function unlockAudio(): Promise<boolean> {
+	const c = audio();
+	if (!c) return false;
+	try {
+		await c.resume();
+		// a silent blip — some browsers only unlock once something plays
+		const src = c.createBufferSource();
+		src.buffer = c.createBuffer(1, 1, c.sampleRate);
+		src.connect(c.destination);
+		src.start();
+	} catch {
+		/* ignore */
+	}
+	return c.state === 'running';
+}
+
+const BED_LEVEL = 0.022;
+let bed: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+
+/** Murmur of a crowd: looped brown-ish noise through a voice-band filter */
+function makeBed(c: AudioContext) {
+	const len = c.sampleRate * 3;
+	const buf = c.createBuffer(2, len, c.sampleRate);
+	for (let ch = 0; ch < 2; ch++) {
+		const data = buf.getChannelData(ch);
+		let last = 0;
+		for (let i = 0; i < len; i++) {
+			last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.02;
+			// slow random "chatter" swells so the loop doesn't sound like hiss
+			data[i] = last * 3.2 * (0.75 + 0.25 * Math.sin((i / c.sampleRate) * 1.7 + ch * 2));
+		}
+	}
+	const src = c.createBufferSource();
+	src.buffer = buf;
+	src.loop = true;
+	const band = c.createBiquadFilter();
+	band.type = 'bandpass';
+	band.frequency.value = 650;
+	band.Q.value = 0.6;
+	const low = c.createBiquadFilter();
+	low.type = 'lowpass';
+	low.frequency.value = 2200;
+	const gain = c.createGain();
+	gain.gain.value = 0.0001;
+	src.connect(band).connect(low).connect(gain).connect(c.destination);
+	src.start();
+	gain.gain.exponentialRampToValueAtTime(muted ? 0.0001 : BED_LEVEL, c.currentTime + 1.5);
+	return { src, gain };
+}
+
+/** Arena crowd bed on/off (quiet background murmur, follows mute) */
+export function crowdBed(on: boolean): void {
+	try {
+		if (!on) {
+			if (bed && ctx) {
+				const b = bed;
+				b.gain.gain.cancelScheduledValues(ctx.currentTime);
+				b.gain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.3);
+				setTimeout(() => b.src.stop(), 1500);
+			}
+			bed = null;
+			return;
+		}
+		if (bed) return;
+		const c = audio();
+		if (!c) return;
+		bed = makeBed(c);
+	} catch {
+		/* audio is best-effort */
+	}
+}
+
+/** The crowd reacts: 0 = a murmur, 1 = the building comes down */
+export function crowdSwell(intensity: number): void {
+	if (muted) return;
+	const c = audio();
+	if (!c) return;
+	const k = Math.max(0, Math.min(1, intensity));
+	try {
+		const t0 = c.currentTime;
+		if (bed) {
+			const g = bed.gain.gain;
+			g.cancelScheduledValues(t0);
+			g.setValueAtTime(Math.max(0.0001, g.value), t0);
+			g.linearRampToValueAtTime(BED_LEVEL + 0.06 * k, t0 + 0.4);
+			g.setTargetAtTime(BED_LEVEL, t0 + 0.8 + 1.5 * k, 0.8);
+		}
+		// the cheer: band-limited noise with a soft attack and a long tail
+		const dur = 1.4 + 2 * k;
+		const len = Math.ceil(c.sampleRate * dur);
+		const buf = c.createBuffer(2, len, c.sampleRate);
+		for (let ch = 0; ch < 2; ch++) {
+			const data = buf.getChannelData(ch);
+			for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+		}
+		const src = c.createBufferSource();
+		src.buffer = buf;
+		const f = c.createBiquadFilter();
+		f.type = 'bandpass';
+		f.Q.value = 0.8;
+		f.frequency.setValueAtTime(700, t0);
+		f.frequency.exponentialRampToValueAtTime(1100 + 700 * k, t0 + 0.5);
+		f.frequency.exponentialRampToValueAtTime(800, t0 + dur);
+		const g = c.createGain();
+		const peak = 0.03 + 0.09 * k;
+		g.gain.setValueAtTime(0.0001, t0);
+		g.gain.exponentialRampToValueAtTime(peak, t0 + 0.35);
+		g.gain.setTargetAtTime(peak * 0.6, t0 + 0.5, 0.4);
+		g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+		src.connect(f).connect(g).connect(c.destination);
+		src.start(t0);
+	} catch {
+		/* audio is best-effort */
+	}
+}
+
+listeners.add(m => {
+	if (!bed || !ctx) return;
+	bed.gain.gain.setTargetAtTime(m ? 0.0001 : BED_LEVEL, ctx.currentTime, 0.2);
+});
+
 /** Short vibration on phones that support it */
 export function buzz(ms: number | number[] = 40): void {
 	if (muted) return;
@@ -145,4 +281,24 @@ export function buzz(ms: number | number[] = 40): void {
 	} catch {
 		/* ignore */
 	}
+}
+
+/** What just happened to you — each one feels different in your hand */
+export type HapticKind = 'turn' | 'outbid' | 'landed' | 'win' | 'power';
+
+const HAPTICS: Record<HapticKind, number[]> = {
+	// two quick taps: you're on the clock
+	turn: [60, 80, 60],
+	// long-short-long: someone beat your bid
+	outbid: [180, 60, 40, 60, 180],
+	// three taps: the wheel landed on you
+	landed: [40, 50, 40, 50, 120],
+	// a rumble: you won
+	win: [90, 40, 90, 40, 300],
+	// a sharp double hit: a power-up was played
+	power: [25, 30, 25, 30, 220],
+};
+
+export function haptic(kind: HapticKind): void {
+	buzz(HAPTICS[kind]);
 }

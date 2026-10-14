@@ -27,7 +27,7 @@ import {
 } from '@/lib/versus/engine';
 import { getVersusPlayer } from '@/lib/versus/pool';
 import { TEAMS_MAP } from '@/lib/teams';
-import { buzz, play } from '@/lib/versus/sound';
+import { buzz, haptic, play } from '@/lib/versus/sound';
 import VersusCard, { RosterRow } from './VersusCard';
 import { TaggedCard } from './Tags';
 import { getTheme, themeTitle } from '@/lib/versus/themes';
@@ -36,7 +36,8 @@ import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
 import Icon from './Icon';
 import { LiveGate, useCanAct } from './Live';
-import { canSeePrivate, liveInfo } from '@/lib/versus/live';
+import { canSeePrivate, liveInfo, mySide } from '@/lib/versus/live';
+import { BannedLine, DoublePickBanner, PowerChips, PowerPanel, usePowerFx } from './PowerUps';
 import { BlindReveal, ChemBars, CommissionerIntro, Handoff, PickReveal, RewardBanner, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
 
 function useCardWidth(count: number) {
@@ -190,6 +191,16 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 		setLandedTeam(null);
 	}, [d.round, d.turn, d.stage, d.collisions]);
 
+	// live room: buzz this phone when its coach goes on the clock
+	const prevActor = useRef(actor);
+	useEffect(() => {
+		if (prevActor.current !== actor && liveInfo() && mySide() === actor) haptic('turn');
+		prevActor.current = actor;
+	}, [actor]);
+
+	// power-up played (on any device) → card reveal here too
+	const powerFx = usePowerFx(state);
+
 	// new pack dealt
 	const packKey = d.pack.join('|');
 	useEffect(() => {
@@ -206,8 +217,8 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 	const handoffKey = isSecret ? `${d.round}-${d.turn}-${d.collisions}` : null;
 	const needHandoff = isSecret && handoffDone !== handoffKey && !liveInfo();
 
-	const overlay = showIntro || !!revealKey || !!blindShow || needHandoff;
-	const clockKey = `${d.round}-${d.turn}-${d.stage}-${d.log.length}-${d.collisions}`;
+	const overlay = showIntro || !!revealKey || !!blindShow || needHandoff || powerFx.active;
+	const clockKey = `${d.round}-${d.turn}-${d.stage}-${d.log.length}-${d.collisions}-${d.powers?.last?.n ?? 0}`;
 
 	const autoAct = () => {
 		if (!canAct) return;
@@ -291,10 +302,12 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 				/>
 			)}
 			{violation && <ViolationToast text={violation} />}
+			{powerFx.node}
 
 			<div className='max-w-3xl mx-auto px-4'>
 				<RoundTrack d={d} />
 				<RewardBanner state={state} />
+				<BannedLine state={state} />
 				<div className='flex items-center justify-between mt-2 gap-2'>
 					<div className='text-[11px] font-black uppercase tracking-widest text-white/40 truncate'>{roundLabel}</div>
 					<div className='text-[11px] font-black uppercase tracking-widest truncate' style={{ color: BAND_INFO[band].color }}>
@@ -331,6 +344,14 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 					</div>
 					{clockOn && <ShotClockRing left={left} total={shotClock} color={SIDE_COLORS[actor]} />}
 				</div>
+
+				<DoublePickBanner state={state} />
+				{d.powers && (
+					<div className='mt-3'>
+						<PowerChips state={state} />
+					</div>
+				)}
+				{!needHandoff && <PowerPanel state={state} setState={setState} canAct={canAct} />}
 
 				{/* Franchise wheel */}
 				{d.stage === 'spin' && (

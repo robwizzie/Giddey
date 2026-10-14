@@ -41,6 +41,9 @@ export function seatGames(all: RivalryGame[], names: [string, string]): RivalryG
 				halftime: g.halftime ? { ...g.halftime, leader: flipSide(g.halftime.leader) as Side } : g.halftime,
 				sabotageOn: flipSide(g.sabotageOn),
 				oracle: flipSide(g.oracle),
+				draft: g.draft ? g.draft.map(([side, id]) => [flipSide(side) as Side, id] as [Side, string]) : g.draft,
+				reads: g.reads ? flip(g.reads) : g.reads,
+				powers: g.powers ? flip(g.powers) : g.powers,
 				predictions: g.predictions ? ([g.predictions[1], g.predictions[0]].map(p => (p ? { ...p, winner: flipSide(p.winner) as Side } : null)) as RivalryGame['predictions']) : g.predictions,
 			};
 		})

@@ -35,6 +35,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_SUPABASE_GOOGLE: ${{ vars.SUPABASE_GOOGLE }}
+          # Optional push alerts for live rooms ("your pick" with the app closed).
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
       # Next's export puts files in _next/; tell Pages not to run Jekyll over them.
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3

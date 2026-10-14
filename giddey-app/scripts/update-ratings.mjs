@@ -15,6 +15,8 @@
 //    Shai Gilgeous-Alexander, 98
 //    Luka Doncic	96	LAL        ← optional 3rd column: new team (trades)
 //  Names match either data file (accents and punctuation are ignored).
+//  A player in both files (LeBron today and All-Time LeBron) updates the
+//  modern card; prefix the name with "All-Time " to change the legend.
 //  Lines starting with # and a "name,ovr" header are skipped.
 // ═══════════════════════════════════════════════════════════════
 
@@ -63,7 +65,9 @@ export function parse(text) {
 
 export function apply(rows, data, today = new Date().toISOString().slice(0, 10)) {
 	const index = new Map();
-	for (const era of ['modern', 'alltime']) for (const p of data[era]) index.set(norm(`${p.first_name}${p.last_name}`), { p, era });
+	// modern wins a plain name; "All-Time <name>" always means the legend
+	for (const era of ['alltime', 'modern']) for (const p of data[era]) index.set(norm(`${p.first_name}${p.last_name}`), { p, era });
+	for (const p of data.alltime) index.set(norm(`alltime${p.first_name}${p.last_name}`), { p, era: 'alltime' });
 	const changes = [];
 	const unknown = [];
 	for (const r of rows) {

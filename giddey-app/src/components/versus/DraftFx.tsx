@@ -5,7 +5,7 @@ import { BAND_INFO, bandOf, Side, teamIcon, teamName, VersusState } from '@/lib/
 import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { getPlayerHeadshotUrls } from '@/lib/images';
 import { CATEGORY_INFO, Category, lineupChemistry } from '@/lib/versus/chemistry';
-import { buzz, play } from '@/lib/versus/sound';
+import { buzz, crowdSwell, play } from '@/lib/versus/sound';
 import { playerTags, TagChip } from './Tags';
 import { announce, pickLine } from '@/lib/versus/announcer';
 import { pickCallout } from '@/lib/versus/grades';
@@ -142,7 +142,7 @@ export function ViolationToast({ text }: { text: string }) {
 
 // ─── pick reveals ───────────────────────────────────────────────
 
-function isBoom(state: VersusState, side: Side, p: VersusPlayer): boolean {
+export function isBoom(state: VersusState, side: Side, p: VersusPlayer): boolean {
 	return p.overall >= 95 || bandOf(state.settings, side, p.id) === 'superstar';
 }
 
@@ -216,8 +216,58 @@ function BoomReveal({ state, side, player: p, pickNo, price, onDone }: { state: 
 	);
 }
 
-/** "With the 3rd pick, Rob selects…" overlay — BOOMs for superstars */
-export function PickReveal({ state, onDone }: { state: VersusState; onDone: () => void }) {
+/** Arena mode on the main screen: jumbotron takeover for superstar picks */
+function Jumbotron({ state, side, player: p, pickNo, price, onDone }: { state: VersusState; side: Side; player: VersusPlayer; pickNo: number; price?: number; onDone: () => void }) {
+	useEffect(() => {
+		play('boom');
+		crowdSwell(1);
+		const t = setTimeout(onDone, 4600);
+		return () => clearTimeout(t);
+	}, [onDone]);
+	const color = SIDE_COLORS[side];
+	return (
+		<div className='fixed inset-0 z-[62] overflow-hidden cursor-pointer select-none bg-black' onClick={onDone}>
+			{/* stadium lights in the coach's color */}
+			<div className='absolute inset-0 pointer-events-none' style={{ background: `radial-gradient(ellipse 70% 55% at 50% 45%, ${color}55, transparent 70%), radial-gradient(ellipse 40% 80% at 0% 50%, ${color}44, transparent 70%), radial-gradient(ellipse 40% 80% at 100% 50%, ${color}44, transparent 70%)` }} />
+			<div className='absolute inset-0 pointer-events-none vs-strobe' style={{ background: color }} />
+			<div className='absolute inset-0 vs-flash bg-white pointer-events-none' />
+			{/* scrolling ribbon boards */}
+			{[0, 1].map(i => (
+				<div key={i} className={`absolute inset-x-0 ${i ? 'bottom-0' : 'top-0'} h-14 flex items-center justify-center overflow-hidden`} style={{ background: `linear-gradient(90deg, ${color}, #111 50%, ${color})` }}>
+					<div className='text-2xl font-black uppercase tracking-[0.6em] text-white/90 whitespace-nowrap'>
+						{Array.from({ length: 6 }, () => `${state.settings.names[side]} · Superstar · `).join('')}
+					</div>
+				</div>
+			))}
+			<Confetti count={160} colors={[color, '#facc15', '#ffffff']} />
+			<div className='relative h-full flex items-center justify-center gap-[5vw] px-[6vw] vs-boom-shake'>
+				<div className='vs-pick-flip shrink-0'>
+					<VersusCard player={p} width={Math.min(360, Math.round(typeof window === 'undefined' ? 300 : window.innerWidth * 0.2))} />
+				</div>
+				<div className='min-w-0 text-left'>
+					<div className='text-[1.6vw] font-black uppercase tracking-[0.4em] text-white/70 vs-rise' style={{ animationDelay: '300ms' }}>
+						{price !== undefined ? `Sold for $${price}` : `With the ${ordinal(pickNo)} pick`} · <span style={{ color }}>{state.settings.names[side]}</span>
+					</div>
+					<div className='text-[3vw] font-black uppercase leading-none text-white/90 mt-[1vw] vs-jumbo-name'>{p.firstName}</div>
+					<div className='text-[9vw] font-black uppercase leading-[0.85] text-white vs-jumbo-name' style={{ textShadow: `0 0 50px ${color}, 0 10px 0 rgba(0,0,0,0.5)`, WebkitTextStroke: `2px ${color}` }}>
+						{p.lastName}
+					</div>
+					<div className='mt-[1.5vw] flex items-center gap-4 vs-rise' style={{ animationDelay: '900ms' }}>
+						<span className='px-4 py-1.5 rounded-xl text-[2.4vw] font-black text-white leading-none' style={{ background: BAND_INFO.superstar.color }}>
+							{p.overall} OVR
+						</span>
+						<span className='text-[2vw] text-white/70 font-black'>
+							{p.position}/{p.secondaryPosition}
+						</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+/** "With the 3rd pick, Rob selects…" overlay — BOOMs for superstars (jumbotron in arena mode) */
+export function PickReveal({ state, onDone, arena }: { state: VersusState; onDone: () => void; arena?: boolean }) {
 	const lp = state.draft!.lastPick!;
 	const p = getVersusPlayer(lp.id)!;
 	const pickNo = state.draft!.log.length;
@@ -236,6 +286,7 @@ export function PickReveal({ state, onDone }: { state: VersusState; onDone: () =
 		const t = setTimeout(onDone, state.settings.announcer ? 2600 : 1900);
 		return () => clearTimeout(t);
 	}, [onDone, boom, state.settings.announcer]);
+	if (boom && arena) return <Jumbotron state={state} side={lp.side} player={p} pickNo={pickNo} price={lp.price} onDone={onDone} />;
 	if (boom) return <BoomReveal state={state} side={lp.side} player={p} pickNo={pickNo} price={lp.price} onDone={onDone} />;
 	return (
 		<div className='fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm' onClick={onDone}>

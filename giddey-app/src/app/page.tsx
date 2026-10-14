@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Header from '@/components/Header';
+import Icon from '@/components/versus/Icon';
 import { TIER_CONFIG, Tier } from '@/lib/types';
 
 const tiers: { tier: Tier; label: string; ovr: string }[] = [
@@ -42,8 +43,11 @@ export default function Home() {
 					href='/versus'
 					className='mb-8 no-underline rounded-xl px-6 py-3 text-center border border-white/15 bg-gradient-to-r from-orange-500/20 to-sky-500/20 hover:from-orange-500/30 hover:to-sky-500/30 transition-colors'
 				>
-					<div className='text-white font-black uppercase tracking-wider'>⚔️ Versus · 2K27 Draft Night</div>
-					<div className='text-[11px] text-white/55'>Draft balanced squads head-to-head, then spin for the rules</div>
+					<div className='inline-flex items-center justify-center gap-2 text-white font-black uppercase tracking-wider'>
+						<Icon name='swords' className='text-orange-300' />
+						Versus · 2K27 Draft Night
+					</div>
+					<div className='text-[11px] text-white/55 mt-0.5'>Draft balanced squads head-to-head, then spin for the rules</div>
 				</Link>
 
 				{/* Quick info cards */}
@@ -65,19 +69,19 @@ export default function Home() {
 				{/* Tier preview */}
 				<div className='w-full max-w-md'>
 					<h3 className='text-xs uppercase tracking-widest text-white/40 font-semibold text-center mb-3'>Card Tiers</h3>
-					<div className='flex justify-center gap-1.5'>
+					<div className='flex justify-center gap-1 sm:gap-1.5'>
 						{tiers.map(({ tier, label, ovr }) => {
 							const config = TIER_CONFIG[tier];
 							return (
 								<div key={tier} className='flex flex-col items-center gap-1'>
 									<div className={`w-8 h-8 rounded-md tier-${tier} flex items-center justify-center`} />
-									<span className='text-[7px] font-bold text-center leading-tight' style={{ maxWidth: 45, color: config.color }}>
+									<span className='text-[9px] font-bold text-center leading-tight' style={{ maxWidth: 45, color: config.color }}>
 										{label
 											.split(' ')
 											.map(w => w[0])
 											.join('')}
 									</span>
-									<span className='text-[7px] text-white/50 font-semibold text-center leading-tight'>{ovr}</span>
+									<span className='text-[8px] text-white/50 font-semibold text-center leading-tight whitespace-nowrap'>{ovr}</span>
 								</div>
 							);
 						})}
@@ -85,8 +89,8 @@ export default function Home() {
 				</div>
 
 				{/* Footer links */}
-				<div className='mt-8 flex gap-4'>
-					<Link href='/how-to-play' className='text-sm text-white/40 hover:text-white/70 transition-colors no-underline'>
+				<div className='mt-6 flex gap-4'>
+					<Link href='/how-to-play' className='inline-block px-4 py-2.5 text-sm font-semibold text-white/50 hover:text-white/80 transition-colors no-underline'>
 						How to Play →
 					</Link>
 				</div>

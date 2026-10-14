@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Position } from '@/lib/types';
 import { auctionBoard, auctionValues, BAND_INFO, BANDS, canBid, canTake, ineligibleReason, fitsNeed, lotsRemaining, maxBid, missingPositions, nominate, other, passBid, raise, Side, slotsLeft, VersusState } from '@/lib/versus/engine';
 import { getTeamFor, getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
-import { buzz, play } from '@/lib/versus/sound';
+import { buzz, haptic, play } from '@/lib/versus/sound';
+import { liveInfo, mySide } from '@/lib/versus/live';
+import { BannedLine } from './PowerUps';
 import { playerTags, TagChip, TaggedCard } from './Tags';
 import VersusCard from './VersusCard';
 import Scoreboard from './Scoreboard';
@@ -93,6 +95,21 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 		}
 		seenLot.current = block.lotNo;
 	}, [block?.lotNo, block?.lastResult, block]);
+	// live room: on my phone, buzz when the other coach raises over my high bid,
+	// or when it's my turn to nominate
+	const prevLot = useRef<{ id: string | null; high: Side | null; actor: Side }>({ id: lot?.id ?? null, high: lot?.high ?? null, actor });
+	useEffect(() => {
+		const me = mySide();
+		const prev = prevLot.current;
+		if (liveInfo() && me !== null) {
+			if (lot && prev.id === lot.id && prev.high === me && lot.high === other(me)) {
+				haptic('outbid');
+				play('beep');
+			} else if (!lot && prev.actor !== actor && actor === me) haptic('turn');
+			else if (lot && prev.id !== lot.id && actor === me && lot.high !== me) haptic('turn');
+		}
+		prevLot.current = { id: lot?.id ?? null, high: lot?.high ?? null, actor };
+	}, [lot?.id, lot?.high, lot?.bid, actor, lot]);
 	const values = auctionValues(state, actor);
 	const needs = missingPositions(state.teams[actor]);
 	const [query, setQuery] = useState('');
@@ -173,6 +190,7 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 
 			<div className='max-w-3xl mx-auto px-4'>
 				<RewardBanner state={state} />
+				<BannedLine state={state} />
 				{/* budgets */}
 				<div className='grid grid-cols-2 gap-2 mt-3'>
 					{([0, 1] as Side[]).map(side => (

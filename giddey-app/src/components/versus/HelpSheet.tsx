@@ -30,15 +30,22 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 		},
 		{ icon: 'lock', title: 'Keepers', desc: 'On a mid-series redraft, each coach keeps one player.', on: s.keepers },
 		{ icon: 'heart', title: 'Favorites round', desc: 'Each coach grabs one of their pinned franchise guys before the draft.', on: s.favoritesRound },
+		{ icon: 'ban', title: 'Bans', desc: `Each coach secretly bans ${s.bans || 1} player${s.bans === 2 ? 's' : ''}. The bans flip over together and nobody can draft them tonight.`, on: s.bans > 0 },
+		{ icon: 'brain', title: 'Scouting report', desc: 'Three secret reads on your rival: their first pick’s position, who ends with the better team, how many guards they take. Scored after the draft.', on: s.bigBoard },
 		{ icon: auction ? 'gavel' : 'layers', title: STYLE_NAMES[s.style] ?? 'Draft', desc: 'Build your roster tier by tier. Card tags show who is fresh and who you overuse. Great value picks get stamped STEAL, bad ones REACH.', on: true },
+		{ icon: 'sparkles', title: 'Power-up cards', desc: 'Each coach is dealt one secret card: Double Pick, Tier Jump, Scout, Lockdown or Veto. Play it on your pick — it’s revealed on every screen.', on: s.powerups && !auction },
 		{ icon: 'mic', title: 'Announcer', desc: 'Your phone reads every pick aloud and loses it for superstars. The speaker button mutes it.', on: s.announcer },
 		{ icon: 'scale', title: 'Balance', desc: 'Equalizer swap if the teams finish far apart, then the trade window.', on: s.equalizer || s.trades },
 		{ icon: 'clipboard', title: 'Draft grades', desc: 'Each team gets a letter grade and an analyst take. They’re saved, so the rivalry page shows whether the better grade wins.', on: true },
 		{ icon: 'trendUp', title: 'Vegas line', desc: 'A point spread from the ratings and your recent games. An underdog who covers earns Tier Up for the next draft.', on: s.vegas },
 		{ icon: 'ball', title: 'Game day', desc: 'Spin quarter length and the scoring twist, then each coach picks a challenge and a risk level.', on: true },
+		{ icon: 'skull', title: 'Stakes', desc: 'Agree what the loser has to do (buy the food, a trash-talk post…). After the game the loser spins the punishment wheel.', on: s.stakes },
+		{ icon: 'tv', title: 'Broadcast intro', desc: 'Tale of the tape — head-to-head, streaks, the belt, best players, the line — then a walkout for each coach.', on: s.intro },
 		{ icon: 'eye', title: 'Predictions', desc: 'Before tip-off, each coach secretly picks the winner and margin. The closer guess earns +1 Rotation player.', on: true },
 		{ icon: 'clock', title: 'Halftime wheel', desc: 'Tap who leads at the half; the team that’s behind spins a second-half twist.', on: s.halftime },
 		{ icon: 'star', title: 'Result + Player of the Game', desc: 'Enter the winner and score, then each coach votes Player of the Game.', on: true },
+		{ icon: 'award', title: 'The belt', desc: 'Every game is a title defense: the holder keeps the belt by winning, and whoever beats them takes it. The belt shows next to the holder’s name everywhere.', on: true },
+		{ icon: 'shirt', title: 'Hall of Fame', desc: 'Win a title with a player, or 4 Player of the Game awards, and his jersey goes up in your rafters (⋯ menu → Hall of Fame).', on: true },
 		{
 			icon: 'medal',
 			title: 'Retirements',
@@ -50,7 +57,9 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 		{
 			icon: 'trophy',
 			title: 'Season & Finals',
-			desc: s.season ? `${s.season}-game regular season, then a best-of-${s.finals} Finals. The champion's banner and Finals MVP go up in Rivalry.` : 'Off — games still count toward the all-time record.',
+			desc: s.season
+				? `${s.season}-game regular season, then ${s.finals === 1 ? 'a one-game Final' : `a best-of-${s.finals} Finals`}. The champion's banner and Finals MVP go up in Rivalry.${s.seasonMix ? ' Season variety: each regular-season game rotates the draft style and spins a theme.' : ''}${s.finalsPool === 'season' ? ' Season All-Stars: the Finals are drafted from players used that regular season.' : ''}`
+				: 'Off — games still count toward the all-time record and the belt.',
 			on: s.season > 0,
 		},
 	];

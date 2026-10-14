@@ -80,6 +80,16 @@
     "verified": true
   },
   {
+    "first_name": "LeBron",
+    "last_name": "James",
+    "position": "SF / PF",
+    "ovr": 99,
+    "team": "CLE",
+    "era": "10s",
+    "draft_year": 2003,
+    "verified": false
+  },
+  {
     "first_name": "Scottie",
     "last_name": "Pippen",
     "position": "SF / PF",
@@ -128,6 +138,46 @@
     "era": "00s",
     "draft_year": 1995,
     "verified": true
+  },
+  {
+    "first_name": "Stephen",
+    "last_name": "Curry",
+    "position": "PG",
+    "ovr": 98,
+    "team": "GSW",
+    "era": "10s",
+    "draft_year": 2009,
+    "verified": false
+  },
+  {
+    "first_name": "Kevin",
+    "last_name": "Durant",
+    "position": "SF / PF",
+    "ovr": 98,
+    "team": "OKC",
+    "era": "10s",
+    "draft_year": 2007,
+    "verified": false
+  },
+  {
+    "first_name": "Giannis",
+    "last_name": "Antetokounmpo",
+    "position": "PF / C",
+    "ovr": 98,
+    "team": "MIL",
+    "era": "20s",
+    "draft_year": 2013,
+    "verified": false
+  },
+  {
+    "first_name": "Nikola",
+    "last_name": "Jokic",
+    "position": "C",
+    "ovr": 98,
+    "team": "DEN",
+    "era": "20s",
+    "draft_year": 2014,
+    "verified": false
   },
   {
     "first_name": "Jerry",
@@ -230,6 +280,26 @@
     "verified": true
   },
   {
+    "first_name": "James",
+    "last_name": "Harden",
+    "position": "SG / PG",
+    "ovr": 97,
+    "team": "HOU",
+    "era": "10s",
+    "draft_year": 2009,
+    "verified": false
+  },
+  {
+    "first_name": "Joel",
+    "last_name": "Embiid",
+    "position": "C",
+    "ovr": 97,
+    "team": "PHI",
+    "era": "20s",
+    "draft_year": 2014,
+    "verified": false
+  },
+  {
     "first_name": "Bob",
     "last_name": "Cousy",
     "position": "PG",
@@ -298,6 +368,16 @@
     "era": "90s",
     "draft_year": 1983,
     "verified": true
+  },
+  {
+    "first_name": "Kawhi",
+    "last_name": "Leonard",
+    "position": "SF / PF",
+    "ovr": 96,
+    "team": "TOR",
+    "era": "10s",
+    "draft_year": 2011,
+    "verified": false
   },
   {
     "first_name": "Derrick",
@@ -490,6 +570,16 @@
     "verified": true
   },
   {
+    "first_name": "Anthony",
+    "last_name": "Davis",
+    "position": "PF / C",
+    "ovr": 95,
+    "team": "NOP",
+    "era": "10s",
+    "draft_year": 2012,
+    "verified": false
+  },
+  {
     "first_name": "Paul",
     "last_name": "Pierce",
     "position": "SF / SG",
@@ -640,6 +730,16 @@
     "verified": true
   },
   {
+    "first_name": "Damian",
+    "last_name": "Lillard",
+    "position": "PG",
+    "ovr": 94,
+    "team": "POR",
+    "era": "10s",
+    "draft_year": 2012,
+    "verified": false
+  },
+  {
     "first_name": "Artis",
     "last_name": "Gilmore",
     "position": "C",
@@ -760,6 +860,26 @@
     "verified": true
   },
   {
+    "first_name": "Jimmy",
+    "last_name": "Butler",
+    "position": "SF / SG",
+    "ovr": 93,
+    "team": "MIA",
+    "era": "20s",
+    "draft_year": 2011,
+    "verified": false
+  },
+  {
+    "first_name": "Paul",
+    "last_name": "George",
+    "position": "SF / SG",
+    "ovr": 93,
+    "team": "IND",
+    "era": "10s",
+    "draft_year": 2010,
+    "verified": false
+  },
+  {
     "first_name": "Nate",
     "last_name": "Thurmond",
     "position": "C / PF",
@@ -860,6 +980,26 @@
     "verified": true
   },
   {
+    "first_name": "Kyrie",
+    "last_name": "Irving",
+    "position": "PG / SG",
+    "ovr": 92,
+    "team": "CLE",
+    "era": "10s",
+    "draft_year": 2011,
+    "verified": false
+  },
+  {
+    "first_name": "Klay",
+    "last_name": "Thompson",
+    "position": "SG / SF",
+    "ovr": 92,
+    "team": "GSW",
+    "era": "10s",
+    "draft_year": 2011,
+    "verified": false
+  },
+  {
     "first_name": "Ray",
     "last_name": "Allen",
     "position": "SG",
@@ -928,6 +1068,16 @@
     "era": "00s",
     "draft_year": 1996,
     "verified": true
+  },
+  {
+    "first_name": "Bradley",
+    "last_name": "Beal",
+    "position": "SG",
+    "ovr": 91,
+    "team": "WAS",
+    "era": "10s",
+    "draft_year": 2012,
+    "verified": false
   },
   {
     "first_name": "Manu",
@@ -1008,6 +1158,26 @@
     "era": "00s",
     "draft_year": 1999,
     "verified": true
+  },
+  {
+    "first_name": "DeMar",
+    "last_name": "DeRozan",
+    "position": "SG / SF",
+    "ovr": 90,
+    "team": "TOR",
+    "era": "10s",
+    "draft_year": 2009,
+    "verified": false
+  },
+  {
+    "first_name": "Kyle",
+    "last_name": "Lowry",
+    "position": "PG",
+    "ovr": 90,
+    "team": "TOR",
+    "era": "10s",
+    "draft_year": 2006,
+    "verified": false
   },
   {
     "first_name": "Bob",
@@ -1200,6 +1370,36 @@
     "verified": true
   },
   {
+    "first_name": "Draymond",
+    "last_name": "Green",
+    "position": "PF / C",
+    "ovr": 89,
+    "team": "GSW",
+    "era": "10s",
+    "draft_year": 2012,
+    "verified": false
+  },
+  {
+    "first_name": "Rudy",
+    "last_name": "Gobert",
+    "position": "C",
+    "ovr": 89,
+    "team": "UTA",
+    "era": "10s",
+    "draft_year": 2013,
+    "verified": false
+  },
+  {
+    "first_name": "Kevin",
+    "last_name": "Love",
+    "position": "PF / C",
+    "ovr": 89,
+    "team": "MIN",
+    "era": "10s",
+    "draft_year": 2008,
+    "verified": false
+  },
+  {
     "first_name": "Hal",
     "last_name": "Greer",
     "position": "PG / SG",
@@ -1300,6 +1500,16 @@
     "verified": true
   },
   {
+    "first_name": "Mike",
+    "last_name": "Conley",
+    "position": "PG",
+    "ovr": 88,
+    "team": "MEM",
+    "era": "10s",
+    "draft_year": 2007,
+    "verified": false
+  },
+  {
     "first_name": "Chuck",
     "last_name": "Person",
     "position": "SF",
@@ -1318,6 +1528,16 @@
     "era": "70s",
     "draft_year": 1972,
     "verified": true
+  },
+  {
+    "first_name": "Al",
+    "last_name": "Horford",
+    "position": "C / PF",
+    "ovr": 87,
+    "team": "ATL",
+    "era": "10s",
+    "draft_year": 2007,
+    "verified": false
   },
   {
     "first_name": "Shareef",

@@ -8,15 +8,15 @@ import { Tier, DRAFT_ODDS } from '@/lib/types';
 import { EXAMPLE_CARDS, TIER_DISPLAY } from '@/lib/example-cards';
 
 const tiers: { tier: Tier; label: string; ovrRange: string }[] = [
-  { tier: 'dark-matter', label: 'Dark Matter', ovrRange: '100' },
-  { tier: 'galaxy-opal', label: 'Galaxy Opal', ovrRange: '97-99' },
+  { tier: 'dark-matter', label: 'Dark Matter', ovrRange: '99-100' },
+  { tier: 'galaxy-opal', label: 'Galaxy Opal', ovrRange: '97-98' },
   { tier: 'pink-diamond', label: 'Pink Diamond', ovrRange: '95-96' },
   { tier: 'diamond', label: 'Diamond', ovrRange: '92-94' },
   { tier: 'amethyst', label: 'Amethyst', ovrRange: '90-91' },
   { tier: 'ruby', label: 'Ruby', ovrRange: '87-89' },
   { tier: 'sapphire', label: 'Sapphire', ovrRange: '84-86' },
   { tier: 'emerald', label: 'Emerald', ovrRange: '80-83' },
-  { tier: 'gold', label: 'Gold', ovrRange: '76-79' },
+  { tier: 'gold', label: 'Gold', ovrRange: '75-79' },
 ];
 
 const tierColors: Record<string, string> = Object.fromEntries(
@@ -30,16 +30,14 @@ export default function HowToPlayPage() {
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
         <div className="flex border-b border-white/10 mb-6">
-          <div className="flex-1 text-center pb-2 border-b-2 border-orange-500">
-            <span className="text-sm font-bold text-white">How To Play</span>
-          </div>
+          <h1 className="flex-1 text-center pb-2 border-b-2 border-orange-500 text-sm font-bold text-white">How To Play</h1>
         </div>
 
         {/* Welcome */}
         <div className="mb-8">
           <h2 className="text-xl font-black text-orange-500 uppercase tracking-wider mb-3">Welcome to Giddey</h2>
           <p className="text-sm text-white/70 leading-relaxed">
-            Giddey is a daily basketball draft puzzle where your goal is to draft the highest graded team possible. Your draft grade is based on two scores: <strong className="text-white">Talent</strong> and <strong className="text-white">Chem</strong>.
+            Giddey is a basketball draft puzzle where your goal is to draft the highest graded team possible. Your draft grade is based on two scores: <strong className="text-white">Talent</strong> and <strong className="text-white">Chem</strong>.
           </p>
 
           <div className="bg-black/40 rounded-xl p-4 mt-4 border border-white/10">
@@ -67,7 +65,7 @@ export default function HowToPlayPage() {
         <div className="mb-8">
           <h2 className="text-xl font-black text-orange-500 uppercase tracking-wider mb-3">Talent</h2>
           <p className="text-sm text-white/70 leading-relaxed mb-4">
-            Each player has an <strong className="text-white">Overall Rating (OVR)</strong> shown on their card. Higher OVR players contribute more to your talent score. Talent per player = <strong className="text-white">OVR - 75</strong> (so a 100 OVR adds 25, a 90 OVR adds 15, a 76 OVR adds 1).
+            Each player&apos;s <strong className="text-white">Overall Rating (OVR)</strong> sets their card tier, and every tier is worth fixed talent points &mdash; from <strong className="text-white">+15</strong> for Dark Matter down to <strong className="text-white">+1</strong> for Gold.
           </p>
 
           <div className="bg-black/40 rounded-xl p-4 border border-white/10 overflow-x-auto">
@@ -94,27 +92,27 @@ export default function HowToPlayPage() {
 
           <div className="bg-black/40 rounded-xl p-4 border border-white/10 space-y-3">
             <div className="flex items-start gap-3">
-              <div className="flex items-center gap-2 min-w-[120px]">
+              <div className="flex items-center gap-2 w-[104px] shrink-0">
                 <div className="w-5 h-1.5 rounded bg-green-500" />
                 <span className="text-xs font-bold text-green-400">Green Line</span>
               </div>
-              <p className="text-xs text-white/60">Same team <strong className="text-white/80">OR</strong> same division + draft year</p>
+              <p className="text-xs text-white/60"><strong className="text-green-400">+3 Chem</strong> &mdash; same team <strong className="text-white/80">OR</strong> same division + draft year</p>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="flex items-center gap-2 min-w-[120px]">
+              <div className="flex items-center gap-2 w-[104px] shrink-0">
                 <div className="w-5 h-1.5 rounded bg-yellow-500" />
                 <span className="text-xs font-bold text-yellow-400">Yellow Line</span>
               </div>
-              <p className="text-xs text-white/60">Same division <strong className="text-white/80">OR</strong> same draft year</p>
+              <p className="text-xs text-white/60"><strong className="text-yellow-400">+1 Chem</strong> &mdash; same division <strong className="text-white/80">OR</strong> same draft year</p>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="flex items-center gap-2 min-w-[120px]">
+              <div className="flex items-center gap-2 w-[104px] shrink-0">
                 <div className="w-5 h-1.5 rounded bg-red-500" />
                 <span className="text-xs font-bold text-red-400">Red Line</span>
               </div>
-              <p className="text-xs text-white/60">No matching traits</p>
+              <p className="text-xs text-white/60">No chem &mdash; no matching traits</p>
             </div>
           </div>
 
@@ -124,7 +122,7 @@ export default function HowToPlayPage() {
 
           <div className="bg-black/40 rounded-xl p-4 border border-white/10 space-y-3">
             <div className="flex items-start gap-3">
-              <div className="flex items-center gap-2 min-w-[120px]">
+              <div className="flex items-center gap-2 w-[104px] shrink-0">
                 <div className="w-3.5 h-3.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,1),0_0_20px_rgba(34,197,94,0.5)]" />
                 <span className="text-xs font-bold text-green-400">Green Dot</span>
               </div>
@@ -132,7 +130,7 @@ export default function HowToPlayPage() {
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="flex items-center gap-2 min-w-[120px]">
+              <div className="flex items-center gap-2 w-[104px] shrink-0">
                 <div className="w-3.5 h-3.5 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,1),0_0_20px_rgba(234,179,8,0.5)]" />
                 <span className="text-xs font-bold text-yellow-400">Yellow Dot</span>
               </div>
@@ -140,7 +138,7 @@ export default function HowToPlayPage() {
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="flex items-center gap-2 min-w-[120px]">
+              <div className="flex items-center gap-2 w-[104px] shrink-0">
                 <div className="w-3.5 h-3.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" />
                 <span className="text-xs font-bold text-red-400">Red Dot</span>
               </div>
@@ -149,7 +147,7 @@ export default function HowToPlayPage() {
           </div>
 
           <p className="text-xs text-white/50 mt-3">
-            Max chemistry = 125 (13 connections × 2 + 9 dots × 11)
+            Max chemistry = 144 (15 green lines × 3 + 9 green dots × 11)
           </p>
         </div>
 
@@ -157,7 +155,7 @@ export default function HowToPlayPage() {
         <div className="mb-8">
           <h2 className="text-xl font-black text-orange-500 uppercase tracking-wider mb-3">The Grid</h2>
           <p className="text-sm text-white/70 leading-relaxed mb-4">
-            Your lineup is arranged in a formation with 13 connections between 9 positions. The <strong className="text-white">Center (C)</strong> connects to 4 adjacent players — making it the most important piece of the puzzle.
+            Your lineup is arranged in a formation with 15 connections between 9 positions. The <strong className="text-white">Center (C)</strong> connects to 4 adjacent players — making it the most important piece of the puzzle.
           </p>
 
           <MiniGridDiagram />
@@ -202,7 +200,7 @@ export default function HowToPlayPage() {
             <div className="grid grid-cols-10 gap-0 p-2 border-b border-white/10">
               <div className="text-[9px] font-bold text-white/60 text-center">Rnd</div>
               {tiers.map(({ tier, label }) => (
-                <div key={tier} className="text-[8px] font-bold text-center" style={{ color: tierColors[tier] }}>
+                <div key={tier} className="text-[9px] font-bold text-center" style={{ color: tierColors[tier] }}>
                   {label.split(' ').map(w => w.substring(0, 2)).join('')}
                 </div>
               ))}

@@ -236,7 +236,7 @@ export default function AccountSheet({ settings, onClose, onPlay, joinCode }: { 
 								<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-white/45'>
 									<Icon name='cloud' size={13} /> Your rivalries
 								</div>
-								<button onClick={() => void syncNow()} aria-label='Sync now' className='inline-flex items-center gap-1 py-1 text-[11px] text-white/45'>
+								<button onClick={() => void syncNow()} title='Sync now' className='inline-flex items-center gap-1 py-1 text-[11px] text-white/45'>
 									{cloud.syncing ? 'Syncing…' : `Synced ${ago(cloud.lastSync)}`}
 									<Icon name='refresh' size={12} className={cloud.syncing ? 'animate-spin' : ''} />
 								</button>

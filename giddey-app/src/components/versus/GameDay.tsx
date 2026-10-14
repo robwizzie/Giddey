@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { bestLineup, deadlineOpen, normalizeSettings, other, players, Prediction, tradeDeadline, recordGame, RETIRE_DRAFTS, seriesScore, setSabotage, Settings, Side, teamIcon, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
 import { TierBuilder } from './SetupScreen';
 import { useCanAct, WaitingBar } from './Live';
-import { canSeePrivate, hostLock, mySide } from '@/lib/versus/live';
+import { canSeePrivate, hostLock, isScreen, liveInfo, mySide } from '@/lib/versus/live';
 import Icon, { IconTile } from './Icon';
 import { getTeamFor, getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { hotHand } from '@/lib/versus/usage';
@@ -30,9 +30,12 @@ import {
 	halftimeText,
 } from '@/lib/versus/wheels';
 import { history } from '@/lib/versus/history';
+import { rosterChallengeSegments } from '@/lib/versus/rosterChallenges';
 import { coveredBy, vegasLine } from '@/lib/versus/vegas';
 import { nextSeasonTag, seasonLabel } from '@/lib/versus/seasons';
-import { CoverCard, EloCard, LeagueResultCard, NewBadges, PredictionReveal, SeasonCard } from './PostGameExtras';
+import { BeltMoment, CoverCard, EloCard, LeagueResultCard, NewBadges, PredictionReveal, SeasonCard } from './PostGameExtras';
+import { PunishmentSpin, StakesPicker, StakesStrip } from './Stakes';
+import BroadcastIntro from './BroadcastIntro';
 import { CoachBadges } from './Badges';
 import { announce } from '@/lib/versus/announcer';
 import { renderRecap } from '@/lib/versus/recapCard';
@@ -592,9 +595,51 @@ function HalftimeCard({ state, setState }: { state: VersusState; setState: SetSt
 	);
 }
 
+// short wheel labels for roster challenges (the wheel cuts labels at 14 chars)
+const ROSTER_SHORT: Record<string, string> = { star20: '20 pts', star30: '30 pts', two15: '15 pts', low3: '1 three', low8: '8 pts', c8: '8 reb', pg6: '6 ast', dd: 'dbl-dbl', dunk: '2 dunks', bench10: '10 pts' };
+const MAX_ROSTER_SEGS = 3;
+const MAX_SEGS = 10;
+
+function rosterLabel(id: string, title: string): string {
+	const [, tid, pid] = id.split(':');
+	const p = getVersusPlayer(pid ?? '');
+	const short = ROSTER_SHORT[tid];
+	if (!p || !short) return title;
+	const room = 14 - short.length - 1;
+	const name = p.lastName.split(' ').slice(-1)[0];
+	return `${name.length > room ? `${name.slice(0, room - 1)}.` : name} ${short}`;
+}
+
+/** Challenge wheel: the regular challenges, with up to 3 about the spinner's own roster spread around it */
+function challengeWheel(state: VersusState, spinner: Side, risk: Difficulty) {
+	const taken = state.gameday.challenges[other(spinner)];
+	const base = challengeSegments(state.settings.rosterSize, risk).filter(sg => sg.id !== taken);
+	const roster = state.settings.rosterChallenges
+		? rosterChallengeSegments(state.teams[spinner], risk)
+				.filter(sg => sg.id !== taken)
+				.sort(() => Math.random() - 0.5)
+				.slice(0, MAX_ROSTER_SEGS)
+				.map(sg => ({ ...sg, label: rosterLabel(sg.id, sg.label) }))
+		: [];
+	if (!roster.length) return base.map((sg, i) => ({ ...sg, color: SEG_COLORS[i % SEG_COLORS.length], weight: 1 }));
+	const kept = base.sort(() => Math.random() - 0.5).slice(0, Math.max(3, MAX_SEGS - roster.length));
+	// interleave so the roster ones don't bunch up
+	const out: typeof kept = [];
+	const every = Math.max(1, Math.floor(kept.length / roster.length));
+	let r = 0;
+	kept.forEach((sg, i) => {
+		out.push(sg);
+		if (r < roster.length && (i + 1) % every === 0) out.push(roster[r++]);
+	});
+	while (r < roster.length) out.push(roster[r++]);
+	return out.map((sg, i) => ({ ...sg, color: SEG_COLORS[i % SEG_COLORS.length], weight: 1 }));
+}
+
+const INTRO_SEEN = 'giddey-versus-intro-seen';
+
 export function GameDayScreen({ state, setState }: { state: VersusState; setState: SetState }) {
 	const gd = state.gameday;
-	const { names, rosterSize } = state.settings;
+	const { names } = state.settings;
 	const size = useWheelSize();
 	const [showForm, setShowForm] = useState(false);
 	const [pending, setPending] = useState<string | null>(null);
@@ -615,17 +660,45 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 	const canSpin = useCanAct(spinner, names);
 	const canHost = useCanAct(null, names, true);
 	const liveSide = mySide();
-	const segs = risk
-		? challengeSegments(rosterSize, risk)
-				.filter(sg => sg.id !== gd.challenges[other(spinner)])
-				.map((sg, i) => ({ ...sg, color: SEG_COLORS[i % SEG_COLORS.length], weight: 1 }))
-		: [];
+	// built once per spin so the wheel doesn't reshuffle under the pointer
+	const segs = useMemo(
+		() => (risk ? challengeWheel(state, spinner, risk) : []),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[risk, spinner, gd.challenges[other(spinner)], state.teams[spinner].join()],
+	);
+
+	// broadcast intro: plays on its own on a single phone and on the main screen,
+	// once per game; coach phones in a live room get a button instead
+	const [intro, setIntro] = useState(false);
+	const introKey = `${names.join('|')}#${history().length}#${state.gameNo}`;
+	const introButton = state.settings.intro && !!liveInfo() && !isScreen();
+	useEffect(() => {
+		if (!state.settings.intro || gd.quarter !== null) return;
+		if (liveInfo() && !isScreen()) return;
+		try {
+			if (localStorage.getItem(INTRO_SEEN) === introKey) return;
+			localStorage.setItem(INTRO_SEEN, introKey);
+		} catch {
+			/* storage blocked — still show it */
+		}
+		setIntro(true);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [introKey]);
+	const needStakes = state.settings.stakes && (gd.stakes ?? null) === null;
 
 	return (
 		<div className='min-h-screen pb-16'>
 			<div className='max-w-3xl mx-auto px-4 pt-6'>
-				<SectionTitle kicker={seasonLabel(nextSeasonTag(history(), state.settings)) || `Game ${state.gameNo} · Game day`} title={step === 2 ? 'Ball is tipped' : step === 0 ? 'Spin for the rules' : 'Challenge spins'} />
+				<SectionTitle kicker={seasonLabel(nextSeasonTag(history(), state.settings)) || `Game ${state.gameNo} · Game day`} title={step === 2 ? (needStakes ? 'Tonight’s stakes' : 'Ball is tipped') : step === 0 ? 'Spin for the rules' : 'Challenge spins'} />
 				<StepDots step={step} />
+				{introButton && (
+					<div className='flex justify-center -mt-3 mb-4'>
+						<button onClick={() => setIntro(true)} className='min-h-[36px] inline-flex items-center gap-1.5 rounded-full px-4 text-xs font-black uppercase tracking-wider text-white/75 bg-white/[0.06] border border-white/15'>
+							<Icon name='tv' />
+							Watch the intro
+						</button>
+					</div>
+				)}
 
 				{step === 0 && (
 					<div className='animate-fade-in'>
@@ -724,7 +797,9 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 					</div>
 				)}
 
-				{step === 2 && (
+				{step === 2 && needStakes && <StakesPicker state={state} setState={setState} />}
+
+				{step === 2 && !needStakes && (
 					<div className='space-y-3 animate-fade-in'>
 						{/* Game card */}
 						<div className='rounded-2xl overflow-hidden border border-white/10'>
@@ -759,6 +834,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 						</div>
 
 						<LineCard state={state} />
+						<StakesStrip state={state} />
 
 						{/* Sabotage in play */}
 						{state.sabotage && <SabotageCard state={state} />}
@@ -793,6 +869,8 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 
 				<GameRosters state={state} />
 			</div>
+
+			{intro && <BroadcastIntro state={state} onDone={() => setIntro(false)} />}
 
 			{pending && (
 				<div className='fixed inset-0 z-50 flex items-center justify-center pointer-events-none'>
@@ -920,6 +998,7 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 
 				<LeagueResultCard last={last} onOpen={onLeagues} />
 				<SeasonCard state={state} last={last} />
+				<BeltMoment state={state} last={last} />
 				<NewBadges state={state} />
 				<EloCard state={state} />
 				<CoverCard state={state} last={last} />
@@ -1029,6 +1108,12 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 						);
 					})}
 				</div>
+
+				{(last.stakes?.length ?? 0) > 0 && (
+					<div className='mb-4'>
+						<PunishmentSpin state={state} setState={setState} />
+					</div>
+				)}
 
 				<div className='mb-6'>
 					<SabotageSpin state={state} setState={setState} />

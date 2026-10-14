@@ -74,17 +74,16 @@ function convert(raw: RawVersusPlayer, era: Era): VersusPlayer {
 	};
 }
 
+/** One card per player — a legend on several All-Time teams keeps his best rating */
 function build(data: RawVersusPlayer[], era: Era): VersusPlayer[] {
-	const seen = new Set<string>();
-	const out: VersusPlayer[] = [];
+	const best = new Map<string, VersusPlayer>();
 	for (const raw of data) {
 		if (!raw || typeof raw.ovr !== 'number') continue;
 		const p = convert(raw, era);
-		if (seen.has(p.id)) continue;
-		seen.add(p.id);
-		out.push(p);
+		const had = best.get(p.id);
+		if (!had || p.overall > had.overall) best.set(p.id, p);
 	}
-	return out.sort((a, b) => b.overall - a.overall);
+	return [...best.values()].sort((a, b) => b.overall - a.overall);
 }
 
 export const MODERN_PLAYERS = build(modernData as RawVersusPlayer[], 'modern');
@@ -96,8 +95,22 @@ export function getVersusPlayer(id: string): VersusPlayer | undefined {
 	return BY_ID.get(id);
 }
 
-/** Pool sorted by OVR descending. */
-const MIXED_PLAYERS = [...MODERN_PLAYERS, ...ALLTIME_PLAYERS].sort((a, b) => b.overall - a.overall);
+/** Same person in both eras ("at_lebron_james" / "lebron_james") */
+export const personKey = (id: string) => id.replace(/^at_/, '');
+
+/**
+ * Both eras together, one card per person at his highest rating — today's
+ * 91 LeBron steps aside for the 99 All-Time LeBron. Sorted by OVR descending.
+ */
+const MIXED_PLAYERS = (() => {
+	const best = new Map<string, VersusPlayer>();
+	for (const p of [...ALLTIME_PLAYERS, ...MODERN_PLAYERS]) {
+		const k = personKey(p.id);
+		const had = best.get(k);
+		if (!had || p.overall > had.overall) best.set(k, p);
+	}
+	return [...best.values()].sort((a, b) => b.overall - a.overall);
+})();
 
 export function getPool(mode: PoolMode): VersusPlayer[] {
 	if (mode === 'modern') return MODERN_PLAYERS;

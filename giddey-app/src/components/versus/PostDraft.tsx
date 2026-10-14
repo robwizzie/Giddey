@@ -11,6 +11,7 @@ import {
 	other,
 	passTrade,
 	players,
+	POWERS,
 	proposeTrade,
 	resolveBoost,
 	Side,
@@ -30,6 +31,7 @@ import { Confetti, SectionTitle, SIDE_COLORS } from './Fx';
 import { GradeCards } from './GradeCards';
 import Icon, { IconTile } from './Icon';
 import { announce } from '@/lib/versus/announcer';
+import { ScoutingResult } from './ScoutingReport';
 
 type SetState = (s: VersusState) => void;
 
@@ -278,6 +280,72 @@ function rosterText(state: VersusState, side: Side): string {
 	].join('\n');
 }
 
+/** Bans, power-ups and scouting reports from this draft */
+function PreDraftRecap({ state }: { state: VersusState }) {
+	const { names } = state.settings;
+	const bans = state.bans?.list ?? [];
+	const banPicks = state.bans?.picks ?? [null, null];
+	const used = state.draft?.powers?.used;
+	const board = state.board?.picks;
+	const showBoard = !!board?.[0] && !!board[1];
+	if (!bans.length && !used?.some(Boolean) && !showBoard) return null;
+	return (
+		<div className='mb-6 space-y-4'>
+			{bans.length > 0 && (
+				<div className='flex flex-wrap items-center justify-center gap-1.5'>
+					<span className='inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-white/45 mr-1'>
+						<Icon name='ban' />
+						Banned
+					</span>
+					{bans.map(id => {
+						const p = getVersusPlayer(id);
+						if (!p) return null;
+						const by = ([0, 1] as Side[]).filter(i => banPicks[i]?.includes(id));
+						const color = by.length === 1 ? SIDE_COLORS[by[0]] : null;
+						return (
+							<span
+								key={id}
+								title={by.length ? `Banned by ${by.map(i => names[i]).join(' and ')}` : 'Knocked out by a power-up'}
+								className='inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-white border'
+								style={color ? { borderColor: `${color}66`, background: `${color}1a` } : { borderColor: 'rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)' }}
+							>
+								{!by.length && <Icon name='lock' className='text-white/50' />}
+								{p.lastName}
+								<span className='text-white/45 tabular-nums'>{p.overall}</span>
+							</span>
+						);
+					})}
+				</div>
+			)}
+			{used?.some(Boolean) && (
+				<div className='rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 space-y-1'>
+					{([0, 1] as Side[]).map(i => {
+						const id = used[i];
+						const pw = id ? POWERS[id] : null;
+						return (
+							<div key={i} className='flex items-center gap-1.5 text-[12px] font-bold text-white/70 min-w-0'>
+								<span className='font-black truncate' style={{ color: SIDE_COLORS[i] }}>
+									{names[i]}
+								</span>
+								{pw ? (
+									<>
+										played
+										<Icon name={pw.icon} style={{ color: pw.color }} className='shrink-0' />
+										<span className='text-white'>{pw.label}</span>
+									</>
+								) : (
+									<span className='text-white/40'>kept their card</span>
+								)}
+							</div>
+						);
+					})}
+				</div>
+			)}
+			{showBoard && <ScoutingResult state={state} />}
+		</div>
+	);
+}
+
 export function RevealScreen({ state, onNext }: { state: VersusState; onNext: () => void }) {
 	const { names } = state.settings;
 	const lus = [bestLineup(state.teams[0]), bestLineup(state.teams[1])];
@@ -347,6 +415,8 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 						<div className='text-center text-[10px] text-white/35 mt-1.5'>Saved with the game — the rivalry page tracks whether the better grade actually wins.</div>
 					</div>
 				)}
+
+				<PreDraftRecap state={state} />
 
 				{/* Position matchups */}
 				<div className='rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden mb-4'>

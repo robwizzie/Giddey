@@ -1,13 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { bestLineup, Side } from '@/lib/versus/engine';
+import { bestLineup, POWERS, Side } from '@/lib/versus/engine';
 import { getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import type { RivalryGame } from '@/lib/versus/rivalry';
 import { seasonLabel } from '@/lib/versus/seasons';
 import { getTheme } from '@/lib/versus/themes';
-import { getHalftime, getSabotage, getTwist, halftimeText } from '@/lib/versus/wheels';
+import { getHalftime, getPunishment, getSabotage, getTwist, halftimeText } from '@/lib/versus/wheels';
+import DraftReplay from './DraftReplay';
 import { SIDE_COLORS } from './Fx';
 import { GradeCards } from './GradeCards';
 import Icon from './Icon';
@@ -92,6 +94,8 @@ export default function GameDetail({ g, names, onClose }: { g: RivalryGame; name
 	const sab = g.sabotage && g.sabotage !== 'mercy' ? getSabotage(g.sabotage) : undefined;
 	const theme = getTheme(g.theme);
 	const scored = g.score[0] !== null && g.score[1] !== null;
+	const [replay, setReplay] = useState(false);
+	const stakes = (g.stakes ?? []).map(id => getPunishment(id)?.label).filter(Boolean) as string[];
 	// portal: the rivalry sheet animates with a transform, which would trap a fixed overlay inside it
 	return createPortal(
 		<div className='fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center' onClick={onClose}>
@@ -140,10 +144,47 @@ export default function GameDetail({ g, names, onClose }: { g: RivalryGame; name
 							{g.sabotageOn !== null && g.sabotageOn !== undefined ? ` on ${names[g.sabotageOn]}` : ''}
 						</Fact>
 					)}
+					{g.reads && (
+						<Fact icon='brain' label='Scouting report'>
+							{([0, 1] as Side[]).map(side => `${names[side]} ${g.reads![side]}/3`).join(' · ')}
+						</Fact>
+					)}
+					{g.powers && (g.powers[0] || g.powers[1]) && (
+						<Fact icon='sparkle' label='Power-ups'>
+							{([0, 1] as Side[]).map(side => {
+								const pw = g.powers![side] ? POWERS[g.powers![side]!] : undefined;
+								return (
+									<span key={side} className='block truncate'>
+										{names[side]}{' '}
+										{pw ? (
+											<>
+												<Icon name={pw.icon} className='mx-0.5' style={{ color: pw.color }} />
+												{pw.label}
+											</>
+										) : (
+											<span className='text-white/40'>none</span>
+										)}
+									</span>
+								);
+							})}
+						</Fact>
+					)}
+					{stakes.length > 0 && (
+						<Fact icon='skull' label='Stakes'>
+							{stakes.join(' · ')}
+						</Fact>
+					)}
 					<Fact icon='target' label='Challenges'>
 						{([0, 1] as Side[]).map(side => `${names[side]} ${g.challenges[side] === true ? '✓' : g.challenges[side] === false ? '✗' : '—'}`).join(' · ')}
 					</Fact>
 				</div>
+
+				{!!g.draft?.length && (
+					<button onClick={() => setReplay(true)} className='w-full mb-4 h-11 rounded-xl bg-white/[0.06] border border-white/10 hover:bg-white/10 text-white text-sm font-black inline-flex items-center justify-center gap-2'>
+						<Icon name='play' size={16} />
+						Watch the draft
+					</button>
+				)}
 
 				{g.grades && (
 					<div className='mb-4'>
@@ -178,6 +219,11 @@ export default function GameDetail({ g, names, onClose }: { g: RivalryGame; name
 					})}
 				</div>
 			</div>
+			{replay && g.draft && (
+				<div onClick={e => e.stopPropagation()}>
+					<DraftReplay names={names} picks={g.draft} colors={[SIDE_COLORS[0], SIDE_COLORS[1]]} title={`${fmtDate(g.ts)}${g.season ? ` · ${seasonLabel(g.season)}` : ''}`} onClose={() => setReplay(false)} />
+				</div>
+			)}
 		</div>,
 		document.body,
 	);

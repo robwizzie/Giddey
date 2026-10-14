@@ -9,6 +9,8 @@ import type { RivalryGame } from '@/lib/versus/rivalry';
 import { seatGames } from '@/lib/versus/history';
 import { seasons, SeasonSummary, winsNeeded } from '@/lib/versus/seasons';
 import { achievementsFor } from '@/lib/versus/achievements';
+import { belt, hallOfFame } from '@/lib/versus/legacy';
+import HallOfFame from './HallOfFame';
 import GameDetail, { GameRow, STYLE_META } from './GameDetail';
 import { deleteCloudGames, linkedRivalry } from '@/lib/versus/cloud';
 import { getSabotage } from '@/lib/versus/wheels';
@@ -123,6 +125,53 @@ function PlayerLine({ id, right }: { id: string; right: string }) {
 	);
 }
 
+/** The championship belt: holder, defenses, reigns — plus the way into the Hall of Fame */
+function BeltCard({ games, names, onHall }: { games: RivalryGame[]; names: [string, string]; onHall: () => void }) {
+	const b = useMemo(() => belt(games), [games]);
+	const retired = useMemo(() => {
+		const h = hallOfFame(games);
+		return h[0].length + h[1].length;
+	}, [games]);
+	return (
+		<div className='rounded-2xl border border-yellow-400/30 bg-yellow-400/[0.05] p-4 mb-4'>
+			{b && (
+				<>
+					<div className='flex items-center gap-3'>
+						<div className='w-12 h-12 rounded-2xl flex items-center justify-center shrink-0' style={{ background: 'linear-gradient(135deg, #facc15, #b45309)', color: '#1c1206', boxShadow: '0 0 18px rgba(250,204,21,0.35)' }}>
+							<Icon name='award' size={26} strokeWidth={2.5} />
+						</div>
+						<div className='min-w-0 flex-1'>
+							<div className='text-[10px] font-black uppercase tracking-widest text-yellow-300/80'>Belt holder</div>
+							<div className='text-xl font-black leading-tight truncate' style={{ color: SIDE_COLORS[b.holder] }}>
+								{names[b.holder]}
+							</div>
+							<div className='text-[11px] text-white/60'>{b.defenses ? `${b.defenses} straight defense${b.defenses === 1 ? '' : 's'}` : b.changed && b.games > 1 ? 'Just took the belt' : 'No defenses yet'} · next game is a title defense</div>
+						</div>
+					</div>
+					<div className='grid grid-cols-2 gap-2 mt-3'>
+						{([0, 1] as Side[]).map(side => (
+							<div key={side} className={`rounded-xl bg-white/[0.04] px-2.5 py-2 ${side ? 'text-right' : ''}`}>
+								<div className='text-[10px] font-black uppercase tracking-widest truncate' style={{ color: SIDE_COLORS[side] }}>
+									{names[side]}
+								</div>
+								<div className='text-[11px] text-white/70'>
+									<span className='font-black text-white'>{b.reigns[side]}</span> reign{b.reigns[side] === 1 ? '' : 's'} · longest <span className='font-black text-white'>{b.best[side]}</span>
+								</div>
+							</div>
+						))}
+					</div>
+				</>
+			)}
+			<button onClick={onHall} className={`w-full h-11 rounded-xl bg-white/[0.06] border border-white/10 hover:bg-white/10 text-white text-sm font-black inline-flex items-center justify-center gap-2 ${b ? 'mt-3' : ''}`}>
+				<Icon name='shirt' size={16} className='text-yellow-300' />
+				Hall of Fame
+				<span className='text-white/45 font-bold'>· {retired ? `${retired} retired` : 'empty'}</span>
+				<Icon name='chevronRight' className='text-white/30' />
+			</button>
+		</div>
+	);
+}
+
 type Tab = 'overview' | 'games' | 'players' | 'records' | 'badges';
 
 /** Title count + the season in progress */
@@ -175,6 +224,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 	const isCurrent = names.map(n => n.trim().toLowerCase()).sort().join('|') === settings.names.map(n => n.trim().toLowerCase()).sort().join('|');
 	const [tab, setTab] = useState<Tab>('overview');
 	const [open, setOpen] = useState<RivalryGame | null>(null);
+	const [hall, setHall] = useState(false);
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const games = useMemo(() => seatGames(loadRivalry(), names), [names, version]);
 	const seasonList = useMemo(() => seasons(games), [games]);
@@ -276,6 +326,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 						{tab === 'overview' && (
 							<>
 								<SeasonPanel list={seasonList} names={names} />
+								<BeltCard games={games} names={names} onHall={() => setHall(true)} />
 								<LeadChart stats={stats} names={names} />
 						{/* Side by side */}
 						<div className='rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-1 mb-4'>
@@ -458,6 +509,20 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 										</div>
 									);
 								})()}
+								{(() => {
+									const b = belt(games);
+									if (!b) return null;
+									return (
+										<div className='rounded-2xl border border-yellow-400/30 bg-yellow-400/[0.04] px-4 py-1 mb-4'>
+											<div className='flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-yellow-300/80 pt-3'>
+												<Icon name='award' />
+												Belt · {b.games} title game{b.games === 1 ? '' : 's'}
+											</div>
+											<Stat label='Belt reigns' values={b.reigns} />
+											<Stat label='Longest reign (defenses)' values={b.best} />
+										</div>
+									);
+								})()}
 								<RecordRows title='Record by draft style' icon='layers' rows={stats.byStyle.map(r => ({ label: STYLE_META[r.style]?.label ?? r.style, icon: STYLE_META[r.style]?.icon, wins: r.wins }))} />
 								<RecordRows title='Record by theme' icon='wheel' rows={stats.byTheme.map(r => ({ label: getTheme(r.theme)?.label ?? r.theme, icon: getTheme(r.theme)?.icon, wins: r.wins }))} />
 						{/* Records */}
@@ -553,6 +618,7 @@ export default function RivalrySheet({ settings, retired = [], onClose, onSync }
 						)}
 
 						{open && <GameDetail g={open} names={names} onClose={() => setOpen(null)} />}
+						{hall && <HallOfFame names={names} games={games} onClose={() => setHall(false)} />}
 
 						<button
 							onClick={() => {

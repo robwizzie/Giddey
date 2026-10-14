@@ -38,6 +38,8 @@ const JOIN_KEY = 'giddey-versus-join';
 import { isMuted, onMuteChange, setMuted, play } from '@/lib/versus/sound';
 import SetupScreen, { SettingsForm, settingsValid } from '@/components/versus/SetupScreen';
 import DraftScreen from '@/components/versus/DraftScreen';
+import BanPhase from '@/components/versus/BanPhase';
+import ScoutingPhase from '@/components/versus/ScoutingReport';
 import AuctionScreen from '@/components/versus/AuctionScreen';
 import { BoostScreen, EqualizerScreen, KeepersScreen, RevealScreen, TradeScreen } from '@/components/versus/PostDraft';
 import { GameDayScreen, PostGameScreen } from '@/components/versus/GameDay';
@@ -447,7 +449,7 @@ export default function VersusPage() {
 								</div>
 								<div className='text-lg font-black text-white text-center'>{sharedWheels.from} shared their wheels</div>
 								<div className='text-sm text-white/65 text-center mb-4'>
-									{[`${w.challenges?.length ?? 0} challenges`, `${w.sabotages?.length ?? 0} sabotages`, `${w.twists?.length ?? 0} twists`, `${w.halftime?.length ?? 0} halftime rules`].join(' · ')}
+									{[`${w.challenges?.length ?? 0} challenges`, `${w.sabotages?.length ?? 0} sabotages`, `${w.twists?.length ?? 0} twists`, `${w.halftime?.length ?? 0} halftime rules`, `${w.punishments?.length ?? 0} punishments`].join(' · ')}
 								</div>
 								<div className='flex gap-2'>
 									<button onClick={() => setSharedWheels(null)} className='rounded-2xl px-4 py-3 font-bold text-sm bg-white/10 text-white/70'>
@@ -587,6 +589,10 @@ export default function VersusPage() {
 			return wrap(<FavoritesScreen state={state} setState={setState} />);
 		case 'keepers':
 			return wrap(<KeepersScreen state={state} setState={setState} />);
+		case 'bans':
+			return wrap(<BanPhase state={state} setState={setState} />);
+		case 'board':
+			return wrap(<ScoutingPhase state={state} setState={setState} />);
 		case 'draft':
 			if (live?.role === 'screen') return wrap(<TvBoard state={state} />);
 			return wrap(state.draft?.auction ? <AuctionScreen state={state} setState={setState} /> : <DraftScreen state={state} setState={setState} />);

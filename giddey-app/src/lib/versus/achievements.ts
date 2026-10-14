@@ -1,6 +1,7 @@
 import type { RivalryGame } from './rivalry';
 import { getVersusPlayer } from './pool';
 import { seasons, winsNeeded } from './seasons';
+import { belt, hallOfFame, HOF_POTG } from './legacy';
 
 // ═══════════════════════════════════════════════════════════════
 //  ACHIEVEMENTS — badges earned from the head-to-head log. Nothing is
@@ -92,6 +93,22 @@ export const ACHIEVEMENTS: Achievement[] = [
 					return fin.length >= 2 && fin[0].winner !== s && fin[1].winner !== s && winsNeeded(x.finals) >= 2;
 				}),
 			),
+	},
+	{
+		id: 'beltDefense',
+		icon: 'swords',
+		title: 'Title Defense',
+		desc: 'Defend the belt 5 times in a row.',
+		progress: (g, s) => [Math.min(5, belt(g)?.best[s] ?? 0), 5],
+	},
+	{ id: 'mindReader', icon: 'brain', title: 'Mind Reader', desc: 'Go 3 for 3 on a scouting report.', progress: (g, s) => has(g.some(x => x.reads?.[s] === 3)) },
+	{ id: 'cardShark', icon: 'sparkle', title: 'Card Shark', desc: 'Win 5 games where you played a power-up.', progress: (g, s) => [Math.min(5, wins(g, s).filter(x => !!x.powers?.[s]).length), 5] },
+	{
+		id: 'hof',
+		icon: 'shirt',
+		title: 'Hall of Famer',
+		desc: `Retire a jersey: win a title with a player, or he wins Player of the Game ${HOF_POTG} times.`,
+		progress: (g, s) => has(hallOfFame(g)[s].length > 0),
 	},
 ];
 

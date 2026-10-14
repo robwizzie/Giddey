@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GameResult, other, Side, VersusState } from '@/lib/versus/engine';
 import { history } from '@/lib/versus/history';
 import { seasons, winsNeeded } from '@/lib/versus/seasons';
@@ -12,6 +12,8 @@ import { loadRivalry } from '@/lib/versus/rivalry';
 import { champion, leagueGames, loadLeagues, standings } from '@/lib/versus/league';
 import { Confetti, SIDE_COLORS } from './Fx';
 import Icon, { IconTile } from './Icon';
+import { belt } from '@/lib/versus/legacy';
+import { BeltCutscene, BeltDefense } from './Belt';
 
 /** Spread result for the game that just ended */
 export function CoverCard({ state, last }: { state: VersusState; last: GameResult }) {
@@ -268,5 +270,67 @@ export function NewBadges({ state }: { state: VersusState }) {
 				)}
 			</div>
 		</div>
+	);
+}
+
+const BELT_SEEN = 'giddey-versus-belt-seen';
+
+/**
+ * The championship belt after this game: a full-screen cutscene when it
+ * changed hands (once per game, per device), otherwise a title-defense card.
+ * The page logs the game to the rivalry history right after recordGame, so
+ * history() already holds it — we find it by its timestamp.
+ */
+export function BeltMoment({ state, last }: { state: VersusState; last: GameResult }) {
+	const { names } = state.settings;
+	const info = useMemo(() => {
+		if (last.league) return null;
+		const h = history();
+		const i = last.playedAt !== undefined ? h.findIndex(g => g.ts === last.playedAt) : h.length - 1;
+		if (i < 0) return null;
+		const b = belt(h.slice(0, i + 1));
+		if (!b) return null;
+		return { b, key: String(h[i].ts) };
+	}, [last]);
+	const [show, setShow] = useState(false);
+	useEffect(() => {
+		if (!info?.b.changed) return;
+		let seen = false;
+		try {
+			seen = sessionStorage.getItem(BELT_SEEN) === info.key;
+			sessionStorage.setItem(BELT_SEEN, info.key);
+		} catch {
+			/* storage blocked — show it anyway */
+		}
+		if (!seen) {
+			// after the "Ballgame!" moment lands
+			const t = setTimeout(() => setShow(true), 1400);
+			return () => clearTimeout(t);
+		}
+	}, [info]);
+	if (!info) return null;
+	const { b } = info;
+	if (!b.changed) return <BeltDefense names={names} holder={b.holder} defenses={b.defenses} />;
+	const from: Side | null = b.games > 1 ? other(b.holder) : null;
+	return (
+		<>
+			{show && <BeltCutscene names={names} from={from} to={b.holder} onDone={() => setShow(false)} />}
+			<div className='rounded-2xl border-2 border-yellow-400/60 p-4 mb-4 text-center vs-rise' style={{ background: `linear-gradient(170deg, rgba(250,204,21,0.16), ${SIDE_COLORS[b.holder]}18 70%)` }}>
+				<div className='flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-yellow-300/90'>
+					<Icon name='award' />
+					{from !== null ? 'New belt champion' : 'First belt champion'}
+				</div>
+				<div className='text-2xl font-black mt-0.5' style={{ color: SIDE_COLORS[b.holder] }}>
+					{names[b.holder]}
+				</div>
+				<div className='text-[12px] text-white/55'>
+					{from !== null ? `Took it from ${names[from]}. ` : ''}
+					Reign #{b.reigns[b.holder]}
+				</div>
+				<button onClick={() => setShow(true)} className='mt-2 min-h-[36px] text-xs font-bold text-yellow-200/70 underline'>
+					Replay the moment
+				</button>
+			</div>
+		</>
 	);
 }

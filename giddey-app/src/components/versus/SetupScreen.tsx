@@ -19,6 +19,10 @@ import {
 	TIER_PRESETS,
 	MAX_FAVORITES,
 	RETIRE_DRAFTS,
+	initialState,
+	mixStyleFor,
+	themeFits,
+	divisionThemeFits,
 } from '@/lib/versus/engine';
 import { ALLTIME_PLAYERS, getPool, getVersusPlayer, MODERN_PLAYERS } from '@/lib/versus/pool';
 import { THEMES } from '@/lib/versus/themes';
@@ -286,21 +290,47 @@ function Section({ n, icon, title, desc, children, locked }: { n: number; icon: 
 	);
 }
 
+/** Why each theme can't run with these settings (missing = it can) */
+function themeBlockers(s: Settings): Record<string, string> {
+	const st = initialState(s);
+	const out: Record<string, string> = {};
+	for (const t of THEMES) {
+		if (t.split && (s.style === 'auction' || s.style === 'block')) out[t.id] = 'not with auction drafts (both coaches share one board)';
+		else if (t.split && s.pool === 'erawars') out[t.id] = 'not with Era Wars (the pools are already split)';
+		else if (t.onePerFranchise && s.style === 'franchise') out[t.id] = 'not with the Franchise Wheel (every pack is one team)';
+		else if (!(t.id === 'division' ? divisionThemeFits(st) : themeFits(st, t, t.id === 'eastWest' ? 'Eastern' : undefined))) {
+			const legends = t.id === 'throwback' || t.id === 'eighties90s';
+			out[t.id] = legends && s.pool === 'modern' ? 'needs legends — set the pool to All-Time or Both' : t.id === 'youngGuns' && s.pool === 'alltime' ? 'needs current players — set the pool to Modern or Both' : 'not enough players for your roster size';
+		}
+	}
+	return out;
+}
+
+const STYLE_SHORT: Record<string, string> = { snake: 'Pack Snake', franchise: 'Franchise Wheel', cut: 'I Cut, You Choose', block: 'Auction Block', auction: 'Auction' };
+const mixStyleLabel = (s: Settings, g: number) => STYLE_SHORT[mixStyleFor(s, g)];
+
 /** One-tap setups that set many options at once (names, colors and favorites are kept) */
 const QUICK_SETUPS: { id: string; icon: string; title: string; desc: string; patch: Partial<Settings> }[] = [
 	{
 		id: 'classic',
 		icon: 'ball',
 		title: 'Classic',
-		desc: 'Balanced snake draft, no extras',
-		patch: { style: 'snake', pool: 'mixed', theme: 'off', freshness: 'light', freshFaces: 0, favoritesRound: false, retire: 'off', blindBid: false, blind: false, keepers: false, equalizer: true, underdogFirst: true, handicap: false },
+		desc: 'Straight snake draft, no tricks',
+		patch: { style: 'snake', pool: 'mixed', theme: 'off', freshness: 'light', freshFaces: 0, favoritesRound: false, retire: 'off', blindBid: false, blind: false, keepers: false, equalizer: true, underdogFirst: true, handicap: false, bans: 0, powerups: false, bigBoard: false },
+	},
+	{
+		id: 'mind',
+		icon: 'brain',
+		title: 'Mind Games',
+		desc: 'Bans, power-ups, scouting, a blind bid',
+		patch: { style: 'snake', pool: 'mixed', theme: 'off', bans: 2, powerups: true, bigBoard: true, blindBid: true, blind: false, handicap: false },
 	},
 	{
 		id: 'variety',
 		icon: 'rainbow',
 		title: 'Variety Night',
-		desc: 'New faces every draft',
-		patch: { style: 'snake', pool: 'mixed', theme: 'spin', freshness: 'strong', freshFaces: 2, favoritesRound: true, retire: 'potg', equalizer: true, underdogFirst: true, handicap: false },
+		desc: 'Theme spins, new faces every draft',
+		patch: { style: 'snake', pool: 'mixed', theme: 'spin', freshness: 'strong', freshFaces: 2, favoritesRound: true, retire: 'potg', equalizer: true, underdogFirst: true, handicap: false, bans: 1, powerups: true },
 	},
 	{
 		id: 'money',
@@ -313,8 +343,8 @@ const QUICK_SETUPS: { id: string; icon: string; title: string; desc: string; pat
 		id: 'chaos',
 		icon: 'bomb',
 		title: 'Chaos',
-		desc: 'Franchise wheel, blind bids, mystery packs',
-		patch: { style: 'franchise', pool: 'mixed', theme: 'spin', blindBid: true, blind: true, shuffleRounds: true, freshness: 'strong', handicap: false },
+		desc: 'Franchise wheel, mystery packs, cards',
+		patch: { style: 'franchise', pool: 'mixed', theme: 'spin', blindBid: true, blind: true, shuffleRounds: true, freshness: 'strong', handicap: false, powerups: true, bans: 1 },
 	},
 ];
 
@@ -405,6 +435,8 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 		erawars: 'Split pools',
 	};
 	const auction = s.style === 'auction' || s.style === 'block';
+	const themeWhy = themeBlockers(s);
+	const blockedThemes = THEMES.filter(t => themeWhy[t.id]);
 	const activeQuick = QUICK_SETUPS.find(q => Object.entries(q.patch).every(([k, v]) => (s as unknown as Record<string, unknown>)[k] === v));
 	return (
 		<>
@@ -417,7 +449,7 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 			{/* Quick setups */}
 			<div className={`mb-7 ${lockDraft ? 'opacity-40 pointer-events-none' : ''}`}>
 				<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-2 flex items-center gap-1.5'><Icon name='zap' className='text-orange-300' /> Quick setup — or customize everything below</div>
-				<div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
+				<div className='grid grid-cols-2 sm:grid-cols-5 gap-2'>
 					{QUICK_SETUPS.map(q => (
 						<button
 							key={q.id}
@@ -494,23 +526,29 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 				<div className='mt-3'>
 					<Label>Theme drafts</Label>
 					<div className='flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 [scrollbar-width:none]'>
-						{[{ id: 'off', icon: 'ban', label: 'Off' }, { id: 'spin', icon: 'wheel', label: 'Spin each draft' }, ...THEMES.map(t => ({ id: t.id, icon: t.icon, label: t.label }))].map(o => (
-							<button
-								key={o.id}
-								onClick={() => set('theme', o.id as Settings['theme'])}
-								className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black border ${s.theme === o.id ? 'bg-white text-black border-white' : 'bg-white/5 text-white/70 border-white/10'}`}
-							>
-								<Icon name={o.icon} className='mr-1' />
-								{o.label}
-							</button>
-						))}
+						{[{ id: 'off', icon: 'ban', label: 'Off' }, { id: 'spin', icon: 'wheel', label: 'Spin each draft' }, ...THEMES.map(t => ({ id: t.id, icon: t.icon, label: t.label }))].map(o => {
+							const why = themeWhy[o.id];
+							return (
+								<button
+									key={o.id}
+									onClick={() => set('theme', o.id as Settings['theme'])}
+									title={why ?? undefined}
+									className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black border ${s.theme === o.id ? 'bg-white text-black border-white' : why ? 'bg-white/[0.02] text-white/30 border-white/5 line-through decoration-white/20' : 'bg-white/5 text-white/70 border-white/10'}`}
+								>
+									<Icon name={o.icon} className='mr-1' />
+									{o.label}
+								</button>
+							);
+						})}
 					</div>
-					<div className='text-[11px] text-white/45 mt-1.5'>
+					<div className='text-[11px] text-white/45 mt-1.5 leading-snug'>
 						{s.theme === 'off'
-							? 'Every draft uses the whole pool.'
+							? 'Every draft uses your whole player pool.'
 							: s.theme === 'spin'
-								? 'Before each draft you spin a theme wheel — 90s legends only, one division, East vs West, nobody over 95… Only themes with enough players for your roster size land.'
-								: `Every draft: ${THEMES.find(t => t.id === s.theme)?.desc}`}
+								? `Before each draft you spin a theme — it narrows the pool you picked above for that one draft. Only themes that work with your pool, draft style and roster size land${blockedThemes.length ? ` (${blockedThemes.length} can't right now — they're greyed out)` : ''}.`
+								: themeWhy[s.theme]
+									? `${THEMES.find(t => t.id === s.theme)?.label} can't run with these settings: ${themeWhy[s.theme]}. Drafts will use the whole pool.`
+									: `Every draft: ${THEMES.find(t => t.id === s.theme)?.desc}`}
 					</div>
 				</div>
 			</Section>
@@ -537,6 +575,7 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 						);
 					})}
 				</div>
+				{s.seasonMix && s.season > 0 && <div className='text-[11px] text-sky-200/80 mb-2'>Season variety is on: regular-season games rotate through Pack Snake, Franchise Wheel, I Cut You Choose and Auction Block. This style is used for the Finals.</div>}
 				{auction && (
 					<div className='rounded-xl bg-white/[0.04] border border-white/10 p-3 animate-fade-in space-y-3'>
 						<Seg label={s.handicap ? `${s.names[0] || 'Coach 1'}'s budget` : 'Budget per coach'} value={s.budget} onChange={v => set('budget', v)} options={[100, 150, 200, 300].map(v => ({ v, l: `$${v}` }))} />
@@ -553,6 +592,7 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 					<Seg label='Rerolls' value={s.rerolls} onChange={v => set('rerolls', v)} options={[{ v: 0, l: '0' }, { v: 1, l: '1' }, { v: 2, l: '2' }]} />
 					<Seg label='Shot clock (s)' value={s.shotClock} onChange={v => set('shotClock', v)} options={[{ v: 0, l: 'Off' }, { v: 20, l: '20' }, { v: 30, l: '30' }, { v: 45, l: '45' }]} />
 				</div>
+				<div className='text-[10px] text-white/35 mt-1.5'>Rerolls: redeal your pack once per draft. Shot clock: seconds per pick before a random card is taken for you.</div>
 			</Section>
 
 			<Section n={4} icon='clipboard' title='Roster build' desc='How many players of each tier each coach drafts — this is how stacked the teams are.' locked={lockDraft}>
@@ -572,12 +612,41 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 				) : (
 					<TierBuilder s={s} setS={setS} />
 				)}
-				<div className='text-[10px] text-white/35 -mt-2'>
+				<div className='space-y-2'>
+					<Toggle on={s.shuffleRounds} onChange={v => set('shuffleRounds', v)} title='Shuffle round order' desc='Tier rounds come in random order instead of superstars first.' />
+				</div>
+				<div className='text-[10px] text-white/35 mt-2'>
 					One round per player. Both coaches draft from the same tier each round{s.shuffleRounds ? ', in shuffled order' : ', stars first'}.
 				</div>
 			</Section>
 
-			<Section n={5} icon='rainbow' title='Player variety' desc='Keep the same guys from showing up every night — and track who you lean on.' locked={lockDraft}>
+			<Section n={5} icon='brain' title='Mind games' desc='Secret moves before and during the draft. Each one stays hidden from your rival until it’s revealed.' locked={lockDraft}>
+				<div className='space-y-3'>
+					<div>
+						<Seg label='Bans per coach' value={s.bans} onChange={v => set('bans', v)} options={[{ v: 0, l: 'Off' }, { v: 1, l: '1' }, { v: 2, l: '2' }]} />
+						<div className='text-[11px] text-white/45 mt-1'>Before the draft, each coach secretly bans players. The bans flip over together, and nobody can draft a banned player that night.</div>
+					</div>
+					<Toggle
+						on={s.powerups && !auction}
+						onChange={v => set('powerups', v)}
+						title='Power-up cards'
+						desc={auction ? 'Not in auction drafts — switch to a pick-style draft to use cards.' : 'Each coach is dealt one secret card per draft — Double Pick, Tier Jump, Scout, Lockdown or Veto. Play it on your pick; everyone sees it revealed.'}
+					/>
+					<Toggle on={s.bigBoard} onChange={v => set('bigBoard', v)} title='Scouting report' desc='Before the draft, each coach secretly makes 3 reads on the other: their first pick’s position, who ends with the better team, how many guards they take. Scored after the draft.' />
+					<Toggle on={s.blindBid} onChange={v => set('blindBid', v)} title='Blind bid round' desc='One random round where you both pick in secret from the same pack. Pick the same guy and nobody gets him.' />
+					<Toggle on={s.blind} onChange={v => set('blind', v)} title='Mystery packs' desc='Cards are face-down — you only see tier and position until you draft.' />
+				</div>
+			</Section>
+
+			<Section n={6} icon='scale' title='Balance' desc='Keep the teams close so it comes down to the sticks.' locked={lockDraft}>
+				<div className='space-y-2'>
+					<Toggle on={s.underdogFirst} onChange={v => set('underdogFirst', v)} title='Underdog picks first' desc='Whoever has the lower team OVR gets first dibs each round.' />
+					<Toggle on={s.equalizer} onChange={v => set('equalizer', v)} title='Equalizer' desc='If the teams finish 1.5+ OVR apart, the underdog swaps their weakest player for a better free agent.' />
+					<Toggle on={s.trades} onChange={v => set('trades', v)} title='Trade window' desc='After the draft, each coach gets one 1-for-1 trade offer.' />
+				</div>
+			</Section>
+
+			<Section n={7} icon='rainbow' title='Player variety' desc='Keep the same guys from showing up every night — and track who you lean on.' locked={lockDraft}>
 				<div className='space-y-3'>
 					<div>
 						<Seg label='Freshness boost' value={s.freshness} onChange={v => set('freshness', v)} options={[{ v: 'off', l: 'Off' }, { v: 'light', l: 'Light' }, { v: 'strong', l: 'Strong' }]} />
@@ -594,58 +663,105 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 						</div>
 					</div>
 					<Toggle on={s.favoritesRound} onChange={v => set('favoritesRound', v)} title='Favorites round' desc='Before every draft, each coach grabs one of their pinned franchise guys (if he’s still available). Pin them in section 1.' />
-				</div>
-			</Section>
-
-			<Section n={6} icon='scale' title='Balance' desc='Keep the teams close so it comes down to the sticks.' locked={lockDraft}>
-				<div className='space-y-2'>
-					<Toggle on={s.underdogFirst} onChange={v => set('underdogFirst', v)} title='Underdog picks first' desc='Whoever has the lower team OVR gets first dibs each round.' />
-					<Toggle on={s.equalizer} onChange={v => set('equalizer', v)} title='Equalizer' desc='If the teams finish 1.5+ OVR apart, the underdog swaps their weakest player for a better free agent.' />
-					<Toggle on={s.trades} onChange={v => set('trades', v)} title='Trade window' desc='After the draft, each coach gets one 1-for-1 trade offer.' />
-				</div>
-			</Section>
-
-			<Section n={7} icon='bomb' title='Chaos' desc='Extra twists for draft night. All optional.' locked={lockDraft}>
-				<div className='space-y-2'>
-					<Toggle on={s.blindBid} onChange={v => set('blindBid', v)} title='Blind bid round' desc='One random round where you both pick in secret from the same pack. Pick the same guy and nobody gets him.' />
 					<Toggle on={s.keepers} onChange={v => set('keepers', v)} title='Keepers' desc='When you redraft mid-series, each coach keeps one player from their last team.' />
-					<Toggle on={s.blind} onChange={v => set('blind', v)} title='Mystery packs' desc='Cards are face-down — you only see tier and position until you draft.' />
-					<Toggle on={s.shuffleRounds} onChange={v => set('shuffleRounds', v)} title='Shuffle round order' desc='Tier rounds come in random order instead of superstars first.' />
 				</div>
 			</Section>
 
-			<Section n={8} icon='mic' title='Game night' desc='The broadcast around the draft and the game. Change these anytime.'>
+			<Section n={8} icon='mic' title='Game night' desc='The show around the draft and the game. Change these anytime.'>
 				<div className='space-y-2'>
-					<Toggle on={s.announcer} onChange={v => set('announcer', v)} title='Announcer' desc={`Your phone reads every pick aloud — “With the 4th pick, ${s.names[1] || 'Coach 2'} selects…” — and goes wild for superstars. Uses the phone’s built-in voice; the speaker button mutes it.`} />
+					<Toggle on={s.intro} onChange={v => set('intro', v)} title='Broadcast intro' desc='Before tip-off: a TV-style tale of the tape — head-to-head, streaks, the belt, best players, the line — and a walkout for each coach.' />
+					<Toggle on={s.announcer} onChange={v => set('announcer', v)} title='Announcer' desc={`Reads every pick aloud — “With the 4th pick, ${s.names[1] || 'Coach 2'} selects…” — and goes wild for superstars. Uses the device’s built-in voice; the speaker button mutes it.`} />
+					<Toggle on={s.arena} onChange={v => set('arena', v)} title='Arena mode on the main screen' desc='When a TV or laptop joins as the main screen: crowd noise that swells on big picks, lighting in the team on the clock’s color, and a big-screen moment for every superstar.' />
 					<Toggle on={s.vegas} onChange={v => set('vegas', v)} title='Vegas line' desc='A point spread before tip-off from the team ratings and your recent games. Enter the score to settle it — an underdog who covers earns a Tier Up for the next draft.' />
+					<Toggle on={s.rosterChallenges} onChange={v => set('rosterChallenges', v)} title='Roster challenges' desc='Mix challenges about your own drafted players into the challenge wheel — “Your best player scores 20”, “Your center grabs 8 boards”.' />
 					<Toggle on={s.halftime} onChange={v => set('halftime', v)} title='Halftime wheel' desc='At halftime, tap who’s leading and the trailing team spins a second-half twist — bonus points, the leader benches their best player, and more.' />
+					<Toggle on={s.stakes} onChange={v => set('stakes', v)} title='Stakes' desc='Before tip-off, agree what the loser has to do — buy the food, a trash-talk post, push-ups… After the game the loser spins the punishment wheel.' />
 				</div>
 			</Section>
 
-			<Section n={9} icon='trophy' title='Season' desc='Play a regular season, then a best-of Finals for the title. Standings live in Rivalry.'>
+			<Section n={9} icon='trophy' title='Season' desc='Play a regular season, then a Finals for the title. Standings live in Rivalry.'>
 				<div className='space-y-3'>
-					<Seg label='Regular season' value={s.season} onChange={v => set('season', v)} options={[{ v: 0, l: 'Off' }, { v: 6, l: '6 games' }, { v: 10, l: '10 games' }, { v: 16, l: '16 games' }]} />
-					{s.season > 0 && <Seg label='Finals' value={s.finals} onChange={v => set('finals', v)} options={[{ v: 3, l: 'Best of 3' }, { v: 5, l: 'Best of 5' }, { v: 7, l: 'Best of 7' }]} />}
-					{s.season > 0 && (
-						<Toggle
-							on={s.dynasty}
-							onChange={v => set('dynasty', v)}
-							title='Dynasty'
-							desc={`Squads carry through the season (run it back between games). Each new season opens with a draft lottery — the worse record gets 3 of 4 ping-pong balls — then you each keep up to 3 players. A one-time trade deadline opens at mid-season.`}
-						/>
-					)}
+					<Seg label='Regular season (games)' value={s.season} onChange={v => set('season', v)} options={[{ v: 0, l: 'Off' }, { v: 3, l: '3' }, { v: 4, l: '4' }, { v: 6, l: '6' }, { v: 10, l: '10' }, { v: 16, l: '16' }]} />
+					{s.season > 0 && <Seg label='Finals' value={s.finals} onChange={v => set('finals', v)} options={[{ v: 1, l: '1 game' }, { v: 3, l: 'Best of 3' }, { v: 5, l: 'Best of 5' }, { v: 7, l: 'Best of 7' }]} />}
 					<div className='text-[11px] text-white/45'>
 						{s.season > 0
-							? `Every game counts toward the season. After ${s.season} games, the better record gets home court (picks first in every Finals draft), then it's first to ${Math.floor(s.finals / 2) + 1} wins. A new length starts with the next season.`
-							: 'Games still count toward the all-time rivalry record — just no standings or titles.'}
+							? `${s.season} games, then the better record gets home court (picks first in every Finals draft) and it's ${s.finals === 1 ? 'one winner-take-all game' : `first to ${Math.floor(s.finals / 2) + 1} wins`}. A full season is about ${s.season + Math.ceil(s.finals / 2) + (s.finals > 1 ? 1 : 0)} games. A new length starts with the next season.`
+							: 'Games still count toward the all-time rivalry record and the belt — just no standings or titles.'}
 					</div>
+					{s.season > 0 && (
+						<>
+							<Toggle
+								on={s.seasonMix}
+								onChange={v => set('seasonMix', v)}
+								title='Season variety'
+								desc={`Every regular-season game plays differently: the draft style rotates (Game 1 ${mixStyleLabel(s, 1)}, Game 2 ${mixStyleLabel(s, 2)}, Game 3 ${mixStyleLabel(s, 3)}…) and a theme is spun. The Finals use your own style.`}
+							/>
+							<Toggle
+								on={s.finalsPool === 'season'}
+								onChange={v => set('finalsPool', v ? 'season' : 'normal')}
+								title='Season All-Stars Finals'
+								desc='The Finals are drafted only from players either of you used during that regular season — build a super team out of the season’s best. Falls back to the full pool if the season didn’t use enough players.'
+							/>
+							<Toggle
+								on={s.dynasty}
+								onChange={v => set('dynasty', v)}
+								title='Dynasty'
+								desc='Squads carry through the season (run it back between games). Each new season opens with a draft lottery — the worse record gets 3 of 4 ping-pong balls — then you each keep up to 3 players. A one-time trade deadline opens at mid-season.'
+							/>
+						</>
+					)}
 				</div>
 			</Section>
 
-			<Section n={10} icon='wheel' title='Your wheels' desc='Write your own challenges, sabotages, twists and halftime rules, and share them with your rival.'>
+			<Section n={10} icon='wheel' title='Wheels' desc='Every game-night wheel: switch built-in items on or off, add your own, and share them with your rival.'>
 				<CustomWheelsEditor s={s} setS={setS} />
 			</Section>
 		</>
+	);
+}
+
+/** Every step tonight will go through, in order — so nothing is a surprise */
+export function nightSteps(s: Settings): { icon: string; title: string; sub: string }[] {
+	const style = s.seasonMix && s.season ? `${STYLE_SHORT[mixStyleFor(s, 1)]} (rotates each game)` : STYLE_SHORT[s.style];
+	const rounds = Math.max(rosterTotal(s.tiers), s.handicap ? rosterTotal(s.tiers2) : 0);
+	const pick = s.style !== 'auction' && s.style !== 'block';
+	const steps: ({ icon: string; title: string; sub: string } | false)[] = [
+		{ icon: 'coins', title: 'Coin toss', sub: 'The winner picks first' },
+		(s.theme === 'spin' || (s.seasonMix && s.season > 0)) && { icon: 'wheel', title: 'Theme spin', sub: 'Narrows the player pool for this draft' },
+		s.favoritesRound && { icon: 'heart', title: 'Favorites round', sub: 'Each coach grabs one pinned franchise guy' },
+		s.bans > 0 && { icon: 'ban', title: `Bans · ${s.bans} each`, sub: 'Secret, revealed together' },
+		s.bigBoard && { icon: 'brain', title: 'Scouting report', sub: '3 secret reads on your rival' },
+		{ icon: 'layers', title: `Draft · ${style}`, sub: `${rounds} players each${s.powerups && pick ? ' · one power-up card each' : ''}${s.blindBid && pick ? ' · a blind bid round' : ''}` },
+		s.trades && { icon: 'swap', title: 'Trade window', sub: 'One 1-for-1 offer each' },
+		{ icon: 'dice', title: 'Game-day spins', sub: `Quarter length + a twist, then a challenge each${s.vegas ? ' · Vegas line' : ''}` },
+		s.stakes && { icon: 'skull', title: 'Stakes', sub: 'Agree what the loser has to do' },
+		s.intro && { icon: 'tv', title: 'Broadcast intro', sub: 'Tale of the tape + walkouts' },
+		{ icon: 'gamepad', title: 'Play in NBA 2K', sub: `${s.halftime ? 'Halftime wheel at the break · ' : ''}Enter the score after` },
+		{ icon: 'trophy', title: 'Result', sub: `Player of the Game vote${s.stakes ? ' · loser spins the punishment wheel' : ''} · the belt is on the line` },
+	];
+	return steps.filter((x): x is { icon: string; title: string; sub: string } => !!x);
+}
+
+function NightPlan({ s }: { s: Settings }) {
+	const steps = nightSteps(s);
+	return (
+		<section className='mb-7'>
+			<div className='text-[11px] font-black uppercase tracking-widest text-white/45 mb-2 flex items-center gap-1.5'>
+				<Icon name='list' className='text-orange-300' /> Tonight’s run of show
+			</div>
+			<ol className='rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/5'>
+				{steps.map((x, i) => (
+					<li key={x.title} className='flex items-center gap-3 px-3 py-2'>
+						<span className='w-5 text-[10px] font-black text-white/30 tabular-nums text-right'>{i + 1}</span>
+						<Icon name={x.icon} size={16} className='text-orange-300' />
+						<div className='min-w-0'>
+							<div className='text-[13px] font-black text-white leading-tight'>{x.title}</div>
+							<div className='text-[11px] text-white/45 leading-snug'>{x.sub}</div>
+						</div>
+					</li>
+				))}
+			</ol>
+		</section>
 	);
 }
 
@@ -724,9 +840,9 @@ export default function SetupScreen({ initial, onStart, onRivalry, onHelp, onLea
 				<div className='rounded-2xl border border-orange-400/30 bg-orange-500/[0.08] p-4 mb-6 animate-fade-in'>
 					<div className='text-base font-black text-white mb-1'>Welcome to Versus</div>
 					<ol className='text-[13px] text-white/70 space-y-1 list-decimal pl-5'>
-						<li>Two people, one phone: type both names in section 1.</li>
-						<li>Pick a quick setup (Classic is a great first night) or customize anything.</li>
-						<li>Hit the coin toss, draft, then play the game in NBA 2K and come back for the result.</li>
+						<li>Type both coach names in section 1. One phone is all you need — or each grab your own from the ⋯ menu (Play on separate devices).</li>
+						<li>Pick a quick setup (Classic is a great first night) or change anything below. The defaults are a good start.</li>
+						<li>Hit the coin toss, draft, then play the game in NBA 2K and come back to enter the score.</li>
 					</ol>
 					<div className='text-[11px] text-white/45 mt-2'>
 						No account needed — every game saves on this phone under your names.{cloudEnabled ? ' Want it backed up and shared with your opponent? Sign in from the ⋯ menu → Account (optional).' : ''}
@@ -735,6 +851,7 @@ export default function SetupScreen({ initial, onStart, onRivalry, onHelp, onLea
 			)}
 
 			<SettingsForm s={s} setS={setS} />
+			<NightPlan s={s} />
 
 			{/* CTA */}
 			<div className='fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/95 to-transparent z-30'>

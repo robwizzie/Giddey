@@ -630,3 +630,71 @@ html, body {
 		animation: none;
 	}
 }
+
+/* Versus: arena mode + power-up cards */
+@keyframes vsArenaBreathe {
+	0%,
+	100% {
+		opacity: 0.8;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+.vs-arena-breathe {
+	animation: vsArenaBreathe 4.5s ease-in-out infinite;
+}
+
+@keyframes vsStrobe {
+	0%,
+	100% {
+		opacity: 0;
+	}
+	50% {
+		opacity: 0.55;
+	}
+}
+.vs-strobe {
+	animation: vsStrobe 0.22s steps(2, jump-none) 7 both;
+}
+
+@keyframes vsJumboName {
+	0% {
+		opacity: 0;
+		transform: scale(1.8);
+		letter-spacing: 0.3em;
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+		letter-spacing: -0.02em;
+	}
+}
+.vs-jumbo-name {
+	animation: vsJumboName 0.7s cubic-bezier(0.2, 0.9, 0.3, 1) 0.35s both;
+}
+
+@keyframes vsPowerGlow {
+	0%,
+	100% {
+		box-shadow: 0 0 0 1px var(--pc), 0 0 14px -2px var(--pc);
+	}
+	50% {
+		box-shadow: 0 0 0 1px var(--pc), 0 0 26px 2px var(--pc);
+	}
+}
+.vs-power-glow {
+	animation: vsPowerGlow 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vs-arena-breathe,
+	.vs-strobe,
+	.vs-jumbo-name,
+	.vs-power-glow {
+		animation: none !important;
+	}
+	.vs-strobe {
+		display: none;
+	}
+}

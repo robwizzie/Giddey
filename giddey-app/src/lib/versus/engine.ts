@@ -1,6 +1,6 @@
 import { Position } from '@/lib/types';
 import { getPool, getVersusPlayer, PoolMode, VersusPlayer } from './pool';
-import { BOOSTS, BoostId, CustomWheels, EMPTY_CUSTOM } from './wheels';
+import { BOOSTS, BoostId, builtIns, CUSTOM_KINDS, CustomWheels, EMPTY_CUSTOM } from './wheels';
 import type { LeagueTag } from './league';
 import { ActiveTheme, getTheme, rollThemeParam, Theme, ThemeId, THEMES, DIVISIONS } from './themes';
 import { freshnessWeight, isFreshFor } from './usage';
@@ -157,8 +157,8 @@ export const DEFAULT_SETTINGS: Settings = {
 	announcer: true,
 	halftime: true,
 	vegas: true,
-	season: 10,
-	finals: 7,
+	season: 6,
+	finals: 3,
 	custom: EMPTY_CUSTOM,
 	dynasty: false,
 	seasonMix: false,
@@ -327,7 +327,13 @@ export function normalizeSettings(raw: Partial<Settings> & { rosterSize?: number
 		return { team: old?.team ?? '', color: old?.color ?? DEFAULT_SETTINGS.identity[i].color, icon };
 	}) as [Identity, Identity];
 	const favorites: [string[], string[]] = [[...(raw.favorites?.[0] ?? [])], [...(raw.favorites?.[1] ?? [])]];
-	const custom: CustomWheels = { ...EMPTY_CUSTOM, ...(raw.custom ?? {}) };
+	let custom: CustomWheels = { ...EMPTY_CUSTOM, ...(raw.custom ?? {}) };
+	// "Only mine" from older builds → those wheels' built-ins switched off
+	if (custom.mode === 'only') {
+		const off = new Set(custom.off ?? []);
+		for (const k of CUSTOM_KINDS) if ((custom[k] ?? []).length >= 2) builtIns(k).forEach(x => off.add(x.id));
+		custom = { ...custom, mode: 'mix', off: [...off] };
+	}
 	const s: Settings = { ...DEFAULT_SETTINGS, ...raw, tiers, tiers2, identity, favorites, custom, rosterSize: 0 };
 	// one shared auction board can't split eras
 	if ((s.style === 'auction' || s.style === 'block') && s.pool === 'erawars') s.pool = 'mixed';
@@ -1756,6 +1762,12 @@ export function themeFits(s: VersusState, theme: Theme, param?: string): boolean
 	const sizes: [number, number] = [upcomingSize(s, 0), upcomingSize(s, 1)];
 	if (sameSlice(t)) return poolOf(t, 0).length >= (sizes[0] + sizes[1]) * 1.6;
 	return ([0, 1] as Side[]).every(side => poolOf(t, side).length >= sizes[side] * 2);
+}
+
+/** Division Night can run if any one division has enough players */
+export function divisionThemeFits(s: VersusState): boolean {
+	const theme = getTheme('division');
+	return !!theme && DIVISIONS.some(d => themeFits(s, theme, d));
 }
 
 /** Themes that can land on the wheel right now */

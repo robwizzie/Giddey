@@ -25,6 +25,7 @@ Accounts run on [Supabase](https://supabase.com) (free tier), which provides sig
    2. [`migrations/20261014000000_versus_leagues_careers.sql`](migrations/20261014000000_versus_leagues_careers.sql) (leagues, career pages)
    3. [`migrations/20261015000000_versus_rooms_push.sql`](migrations/20261015000000_versus_rooms_push.sql) (saved live rooms, turn-alert subscriptions)
    4. [`migrations/20261016000000_versus_profiles_backfill.sql`](migrations/20261016000000_versus_profiles_backfill.sql) (Versus profiles for accounts that existed before — only matters if the project already had users)
+   5. [`migrations/20261017000000_versus_user_state.sql`](migrations/20261017000000_versus_user_state.sql) (your account follows you: the night in progress, settings and every game, on all your devices)
 
    If you use the Supabase CLI, `supabase link` then `supabase db push` does the same thing. Live rooms use Realtime broadcast, which is on by default. Migration 3 adds saved rooms ("draft now, play later"); without it live rooms still work, they just aren't saved.
 
@@ -73,6 +74,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 | `league_members` | which account plays as which league name | its members |
 | `league_games` | each league game, as JSON | its members |
 | `careers` | a published career snapshot and its share slug | **everyone** — publishing is the opt-in |
+| `versus_user_state` | your night in progress, settings and game log, for picking up on another device | only you |
 
 - **Creating a rivalry** gives you seat 0. The other name waits as a guest until someone joins with the invite code (`join_rivalry` RPC).
 - **The phone's local log is still what the app reads from.** Sync pulls a rivalry's cloud games into it and pushes up any local games between those two names. Games played before signing up upload the first time you link that pair.

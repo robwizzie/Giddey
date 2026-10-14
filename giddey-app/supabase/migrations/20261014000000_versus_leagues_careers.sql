@@ -13,7 +13,7 @@
 
 create table public.leagues (
 	id uuid primary key default gen_random_uuid(),
-	created_by uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+	created_by uuid not null default auth.uid() references public.versus_profiles (id) on delete cascade,
 	name text not null check (char_length(btrim(name)) between 1 and 32),
 	names text[] not null check (cardinality(names) between 3 and 12),
 	format jsonb not null,
@@ -24,7 +24,7 @@ create table public.leagues (
 
 create table public.league_members (
 	league_id uuid not null references public.leagues (id) on delete cascade,
-	user_id uuid not null references public.profiles (id) on delete cascade,
+	user_id uuid not null references public.versus_profiles (id) on delete cascade,
 	name text not null,
 	joined_at timestamptz not null default now(),
 	primary key (league_id, user_id),
@@ -38,7 +38,7 @@ create table public.league_games (
 	game_key text not null check (char_length(game_key) <= 80),
 	played_at timestamptz not null,
 	data jsonb not null check (pg_column_size(data) < 16384),
-	created_by uuid default auth.uid() references public.profiles (id) on delete set null,
+	created_by uuid default auth.uid() references public.versus_profiles (id) on delete set null,
 	created_at timestamptz not null default now(),
 	primary key (league_id, game_key)
 );
@@ -46,7 +46,7 @@ create table public.league_games (
 create index league_games_played on public.league_games (league_id, played_at);
 
 create table public.careers (
-	user_id uuid primary key default auth.uid() references public.profiles (id) on delete cascade,
+	user_id uuid primary key default auth.uid() references public.versus_profiles (id) on delete cascade,
 	-- the share link: /versus/career#<slug>
 	slug text not null unique default lower(substr(encode(gen_random_bytes(6), 'hex'), 1, 10)),
 	data jsonb not null check (pg_column_size(data) < 32768),
@@ -67,7 +67,7 @@ declare
 	mine text;
 	pick text;
 begin
-	select name into mine from profiles where id = new.created_by;
+	select name into mine from versus_profiles where id = new.created_by;
 	select n into pick from unnest(new.names) n where lower(btrim(n)) = lower(btrim(mine)) limit 1;
 	insert into league_members (league_id, user_id, name) values (new.id, new.created_by, coalesce(pick, new.names[1]));
 	return new;

@@ -151,7 +151,7 @@ export async function signOut(): Promise<void> {
 async function loadProfile(sb: SupabaseClient): Promise<Profile | null> {
 	const uid = state.session?.user.id;
 	if (!uid) return null;
-	const { data, error } = await sb.from('profiles').select('id, name, favorites').eq('id', uid).maybeSingle();
+	const { data, error } = await sb.from('versus_profiles').select('id, name, favorites').eq('id', uid).maybeSingle();
 	if (error) throw error;
 	return data as Profile | null;
 }
@@ -161,7 +161,7 @@ async function loadRivalries(sb: SupabaseClient): Promise<CloudRivalry[]> {
 	if (!uid) return [];
 	const { data, error } = await sb
 		.from('rivalries')
-			.select('id, name_a, name_b, invite_code, created_by, reset_at, rivalry_members(seat, user_id, profiles(name)), games(count)')
+			.select('id, name_a, name_b, invite_code, created_by, reset_at, rivalry_members(seat, user_id, versus_profiles(name)), games(count)')
 		.order('created_at', { ascending: false });
 	if (error) throw error;
 	type Row = {
@@ -171,12 +171,12 @@ async function loadRivalries(sb: SupabaseClient): Promise<CloudRivalry[]> {
 		invite_code: string;
 		created_by: string;
 		reset_at: string | null;
-		rivalry_members: { seat: 0 | 1; user_id: string; profiles: { name: string } | null }[];
+		rivalry_members: { seat: 0 | 1; user_id: string; versus_profiles: { name: string } | null }[];
 		games: { count: number }[];
 	};
 	return ((data ?? []) as unknown as Row[]).map(r => {
 		const members: CloudRivalry['members'] = [null, null];
-		for (const m of r.rivalry_members) members[m.seat] = { id: m.user_id, name: m.profiles?.name ?? '' };
+		for (const m of r.rivalry_members) members[m.seat] = { id: m.user_id, name: m.versus_profiles?.name ?? '' };
 		return {
 			id: r.id,
 			names: [r.name_a, r.name_b],
@@ -207,7 +207,7 @@ export async function updateProfile(patch: Partial<Pick<Profile, 'name' | 'favor
 	const sb = await client();
 	const uid = state.session?.user.id;
 	if (!uid) return;
-	const { data, error } = await sb.from('profiles').update(patch).eq('id', uid).select('id, name, favorites').single();
+	const { data, error } = await sb.from('versus_profiles').update(patch).eq('id', uid).select('id, name, favorites').single();
 	if (error) throw new Error(message(error));
 	set({ profile: data as Profile });
 }
@@ -393,7 +393,7 @@ export function syncNow(): Promise<void> {
 				for (const r of state.rivalries) favorites[r.names[r.mySeat]] = state.profile.favorites;
 				const others = state.rivalries.flatMap(r => r.members.filter((m): m is NonNullable<typeof m> => !!m && m.id !== uid).map(m => ({ id: m.id, name: r.names[r.members.indexOf(m)] })));
 				if (others.length) {
-					const { data } = await sb.from('profiles').select('id, favorites').in('id', [...new Set(others.map(o => o.id))]);
+					const { data } = await sb.from('versus_profiles').select('id, favorites').in('id', [...new Set(others.map(o => o.id))]);
 					for (const p of (data ?? []) as { id: string; favorites: string[] }[]) for (const o of others.filter(x => x.id === p.id)) favorites[o.name] = p.favorites;
 				}
 			}

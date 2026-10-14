@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════
 --  Giddey Versus — optional accounts
 --
---  profiles          one per signed-in user (display name, franchise guys)
+--  versus_profiles   one per signed-in user (display name, franchise guys)
 --  rivalries         a head-to-head between two named seats; the creator
 --                    holds seat 0, the opponent joins seat 1 with the invite
 --                    code (until then seat 1 is just a name — a "guest")
@@ -16,7 +16,7 @@ create extension if not exists pgcrypto;
 
 -- ─── tables ─────────────────────────────────────────────────────
 
-create table public.profiles (
+create table public.versus_profiles (
 	id uuid primary key references auth.users (id) on delete cascade,
 	name text not null check (char_length(btrim(name)) between 1 and 12),
 	favorites text[] not null default '{}' check (cardinality(favorites) <= 5),
@@ -26,7 +26,7 @@ create table public.profiles (
 
 create table public.rivalries (
 	id uuid primary key default gen_random_uuid(),
-	created_by uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+	created_by uuid not null default auth.uid() references public.versus_profiles (id) on delete cascade,
 	-- the names games are logged under: seat 0 (creator) and seat 1 (opponent)
 	name_a text not null check (char_length(btrim(name_a)) between 1 and 12),
 	name_b text not null check (char_length(btrim(name_b)) between 1 and 12),
@@ -39,7 +39,7 @@ create table public.rivalries (
 
 create table public.rivalry_members (
 	rivalry_id uuid not null references public.rivalries (id) on delete cascade,
-	user_id uuid not null references public.profiles (id) on delete cascade,
+	user_id uuid not null references public.versus_profiles (id) on delete cascade,
 	seat smallint not null check (seat in (0, 1)),
 	joined_at timestamptz not null default now(),
 	primary key (rivalry_id, user_id),
@@ -54,7 +54,7 @@ create table public.games (
 	game_key text not null check (char_length(game_key) <= 80),
 	played_at timestamptz not null,
 	data jsonb not null check (pg_column_size(data) < 16384),
-	created_by uuid default auth.uid() references public.profiles (id) on delete set null,
+	created_by uuid default auth.uid() references public.versus_profiles (id) on delete set null,
 	created_at timestamptz not null default now(),
 	primary key (rivalry_id, game_key)
 );
@@ -78,10 +78,10 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- a new sign-up gets a profile named from the sign-in metadata or email
-create function public.handle_new_user() returns trigger
+create function public.versus_handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-	insert into profiles (id, name)
+	insert into versus_profiles (id, name)
 	values (
 		new.id,
 		left(coalesce(nullif(btrim(new.raw_user_meta_data ->> 'name'), ''), nullif(split_part(new.email, '@', 1), ''), 'Coach'), 12)
@@ -91,8 +91,8 @@ begin
 end;
 $$;
 
-create trigger on_auth_user_created after insert on auth.users
-for each row execute function public.handle_new_user();
+create trigger versus_on_auth_user_created after insert on auth.users
+for each row execute function public.versus_handle_new_user();
 
 -- whoever creates a rivalry takes seat 0
 create function public.add_rivalry_creator() returns trigger
@@ -113,7 +113,7 @@ begin
 end;
 $$;
 
-create trigger profiles_touch before update on public.profiles
+create trigger versus_profiles_touch before update on public.versus_profiles
 for each row execute function public.touch_updated_at();
 
 -- join the open seat with an invite code; returns the rivalry id
@@ -148,16 +148,16 @@ grant execute on function public.join_rivalry(text) to authenticated;
 
 -- ─── row level security ─────────────────────────────────────────
 
-alter table public.profiles enable row level security;
+alter table public.versus_profiles enable row level security;
 alter table public.rivalries enable row level security;
 alter table public.rivalry_members enable row level security;
 alter table public.games enable row level security;
 
-create policy "see yourself and your opponents" on public.profiles
+create policy "see yourself and your opponents" on public.versus_profiles
 	for select to authenticated using (id = auth.uid() or public.shares_rivalry(id));
-create policy "create your own profile" on public.profiles
+create policy "create your own profile" on public.versus_profiles
 	for insert to authenticated with check (id = auth.uid());
-create policy "edit your own profile" on public.profiles
+create policy "edit your own profile" on public.versus_profiles
 	for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
 create policy "members see the rivalry" on public.rivalries
@@ -184,5 +184,5 @@ create policy "members can reset the record" on public.games
 -- invite codes and creators are never editable
 revoke update on public.rivalries from authenticated;
 grant update (name_a, name_b, reset_at) on public.rivalries to authenticated;
-revoke update on public.profiles from authenticated;
-grant update (name, favorites) on public.profiles to authenticated;
+revoke update on public.versus_profiles from authenticated;
+grant update (name, favorites) on public.versus_profiles to authenticated;

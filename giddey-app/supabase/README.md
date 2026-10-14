@@ -21,7 +21,7 @@ Accounts run on [Supabase](https://supabase.com) (free tier), which provides sig
 1. **Create a project** at [supabase.com](https://supabase.com/dashboard) (the free plan is enough).
 
 2. **Create the tables.** Open **SQL Editor → New query** and run the migrations, in order:
-   1. [`migrations/20261013000000_versus_accounts.sql`](migrations/20261013000000_versus_accounts.sql) (profiles, rivalries, games)
+   1. [`migrations/20261013000000_versus_accounts.sql`](migrations/20261013000000_versus_accounts.sql) (versus_profiles, rivalries, games)
    2. [`migrations/20261014000000_versus_leagues_careers.sql`](migrations/20261014000000_versus_leagues_careers.sql) (leagues, career pages)
    3. [`migrations/20261015000000_versus_rooms_push.sql`](migrations/20261015000000_versus_rooms_push.sql) (saved live rooms, turn-alert subscriptions)
 
@@ -64,7 +64,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 | Table | What's in it | Who can see it |
 |---|---|---|
-| `profiles` | display name, franchise guys | you, and people you share a rivalry with |
+| `versus_profiles` | display name, franchise guys | you, and people you share a rivalry with |
 | `rivalries` | the two seat names, invite code, last reset | its members |
 | `rivalry_members` | which account holds seat 0 / seat 1 | its members |
 | `games` | each game as the app's own JSON, keyed by timestamp + names | its members |

@@ -8,6 +8,7 @@ import Wheel from './Wheel';
 import SlotMachine from './SlotMachine';
 import { CoinFlip, SIDE_COLORS } from './Fx';
 import Icon from './Icon';
+import { disableTurnNotifications, enableTurnNotifications, pushEnabled, useNotifyStatus } from '@/lib/versus/notify';
 
 export function useLive() {
 	return useSyncExternalStore(subscribeLive, liveInfo, () => null);
@@ -81,6 +82,84 @@ function Qr({ text, size = 'w-36 h-36' }: { text: string; size?: string }) {
 
 type Seat = Side | 'screen';
 
+function ago(ms: number): string {
+	const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+	if (s < 45) return 'just now';
+	const m = Math.round(s / 60);
+	if (m < 60) return `${m} min ago`;
+	const h = Math.round(m / 60);
+	if (h < 24) return `${h} hr ago`;
+	const d = Math.round(h / 24);
+	return `${d} day${d === 1 ? '' : 's'} ago`;
+}
+
+/** Re-render every so often so "saved 3 min ago" stays true */
+function useTick(ms: number) {
+	const [, setN] = useState(0);
+	useEffect(() => {
+		const t = setInterval(() => setN(n => n + 1), ms);
+		return () => clearInterval(t);
+	}, [ms]);
+}
+
+/** "Draft now, play later" + the turn-alert opt-in */
+function PlayLater({ coach, savedAt }: { coach: boolean; savedAt: number | null | undefined }) {
+	const status = useNotifyStatus();
+	const [busy, setBusy] = useState(false);
+	useTick(30000);
+	const toggle = async () => {
+		if (status === 'on') return disableTurnNotifications();
+		setBusy(true);
+		await enableTurnNotifications();
+		setBusy(false);
+	};
+	return (
+		<div className='rounded-2xl bg-white/[0.04] border border-white/10 p-4'>
+			<div className='flex items-center gap-2 text-sm font-black text-white'>
+				<Icon name='hourglass' className='text-amber-300' /> Draft now, play later
+			</div>
+			<p className='text-[12px] text-white/55 mt-1 leading-snug'>
+				You can close the app mid-draft. Open the same link later and you pick up right where you left off — no need for both of you to be online at once.
+				{coach ? ' Turn on alerts to get a ping when it’s your pick.' : ''}
+			</p>
+			{savedAt ? (
+				<div className='text-[11px] font-bold text-emerald-300/80 mt-2 inline-flex items-center gap-1.5'>
+					<Icon name='save' size={13} /> Room saved {ago(savedAt)}
+				</div>
+			) : null}
+			{coach && (
+				<div className='mt-3'>
+					{status === 'install' ? (
+						<div className='text-[12px] text-amber-200/90 leading-snug'>On iPhone, add Giddey to your Home Screen (Share → Add to Home Screen) and open it from there to get turn alerts.</div>
+					) : status === 'unsupported' ? (
+						<div className='text-[12px] text-white/45'>This browser can’t show alerts.</div>
+					) : status === 'denied' ? (
+						<div className='text-[12px] text-amber-200/90 leading-snug'>Alerts are blocked for this site. Allow notifications in your browser settings, then come back.</div>
+					) : (
+						<button
+							onClick={toggle}
+							disabled={busy}
+							aria-pressed={status === 'on'}
+							className={`w-full min-h-[44px] rounded-xl px-3 py-2.5 text-sm font-black border flex items-center gap-3 text-left disabled:opacity-60 ${status === 'on' ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-100' : 'bg-white/[0.05] border-white/15 text-white'}`}
+						>
+							<Icon name='bell' size={18} className={status === 'on' ? 'text-emerald-300' : 'text-white/60'} />
+							<span className='flex-1'>
+								Notify me when it’s my turn
+								<span className='block text-[11px] font-bold text-white/45'>
+									{status === 'on' ? (pushEnabled ? 'On — even with the app closed' : 'On — while the app is open in the background') : 'Off'}
+								</span>
+							</span>
+							<span className={`w-10 h-6 rounded-full p-0.5 flex transition-colors ${status === 'on' ? 'bg-emerald-400 justify-end' : 'bg-white/15 justify-start'}`}>
+								<span className='w-5 h-5 rounded-full bg-white' />
+							</span>
+						</button>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
+
 function seatLabel(seat: Seat, names: [string, string]) {
 	return seat === 'screen' ? 'Main screen' : names[seat] || `Coach ${seat + 1}`;
 }
@@ -134,7 +213,7 @@ export default function LiveSheet({ state, onClose }: { state: VersusState; onCl
 					</button>
 				</div>
 				<p className='text-[13px] text-white/55 mb-5 leading-snug'>
-					Each coach drafts, spins and votes on their own phone. A main screen (TV, laptop or tablet) shows the night for everyone. Private choices — your own pack, blind bids, predictions, votes — stay on your phone. No account needed.
+					Each coach drafts, spins and votes on their own phone. A main screen (TV, laptop or tablet) shows the night for everyone. Private choices — your own pack, blind bids, predictions, votes — stay on your phone. No account needed, and you don’t both have to be online at once: close the app mid-draft and pick it up later.
 				</p>
 
 				{!live ? (
@@ -200,6 +279,7 @@ export default function LiveSheet({ state, onClose }: { state: VersusState; onCl
 								);
 							})}
 						</div>
+						<PlayLater coach={live.role === 'coach'} savedAt={live.savedAt} />
 						{open.length > 0 && (
 							<div className='rounded-2xl bg-white/[0.04] border border-white/10 p-4 space-y-4'>
 								<div className='text-sm font-black text-white'>Invite the other devices</div>

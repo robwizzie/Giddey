@@ -32,6 +32,7 @@ import { GradeCards } from './GradeCards';
 import Icon, { IconTile } from './Icon';
 import { announce } from '@/lib/versus/announcer';
 import { ScoutingResult } from './ScoutingReport';
+import DraftReplay from './DraftReplay';
 
 type SetState = (s: VersusState) => void;
 
@@ -353,6 +354,8 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 	const f = fairness(state.teams[0], state.teams[1]);
 	const [copied, setCopied] = useState(false);
 	const [sharing, setSharing] = useState<string | null>(null);
+	const [replay, setReplay] = useState(false);
+	const picks = (state.draft?.log ?? []).filter(e => !e.vetoed).map(e => [e.side, e.id] as [0 | 1, string]);
 	const grades = state.grades;
 	useEffect(() => {
 		if (!grades) return;
@@ -474,7 +477,14 @@ export function RevealScreen({ state, onNext }: { state: VersusState; onNext: ()
 						<Icon name={copied ? 'check' : 'copy'} />
 						{copied ? 'Copied' : 'Copy rosters'}
 					</button>
+					{picks.length > 1 && (
+						<button onClick={() => setReplay(true)} className='col-span-2 inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-sm font-black bg-white/10 text-white border border-white/10'>
+							<Icon name='film' />
+							Replay the draft · save a clip
+						</button>
+					)}
 				</div>
+				{replay && <DraftReplay names={names} picks={picks} colors={[SIDE_COLORS[0], SIDE_COLORS[1]]} title='Draft night' onClose={() => setReplay(false)} />}
 			</div>
 			<BottomBar>
 				<button onClick={onNext} className='flex-1 btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg'>

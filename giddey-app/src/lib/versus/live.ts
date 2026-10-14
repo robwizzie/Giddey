@@ -153,6 +153,9 @@ export function parseRoomHash(hash: string): { code: string; role: LiveRole; sid
 }
 
 export async function joinRoom(code: string, opts: { role: LiveRole; side: Side | null; host: boolean }, current?: VersusState): Promise<void> {
+	// coming back to my own room through its link (or a turn alert): keep hosting it
+	const prev = savedRoom();
+	if (!opts.host && prev?.host && prev.code === code && prev.role === opts.role && prev.side === (opts.role === 'coach' ? opts.side : null)) opts = { ...opts, host: true };
 	await leaveRoom(false);
 	const sb = await client();
 	version = 0;
@@ -219,7 +222,7 @@ async function loadSaved(code: string) {
 	const savedAt = Date.parse(row.updated_at) || null;
 	// newer than anything heard from the room — or, on a device that joined
 	// empty-handed and nobody has caught it up, the room as it was left
-	const newer = row.version > version || (row.version === version && !heard && !info.host && !latest);
+	const newer = row.version > version || (row.version === version && !heard && !latest);
 	set({ ...info, savedAt });
 	if (!newer) return;
 	version = row.version;

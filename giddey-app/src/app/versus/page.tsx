@@ -27,6 +27,8 @@ import TvBoard from '@/components/versus/TvBoard';
 import Icon, { IconTile } from '@/components/versus/Icon';
 import PowerRankings from '@/components/versus/PowerRankings';
 import CareerSheet from '@/components/versus/CareerSheet';
+import HallOfFame from '@/components/versus/HallOfFame';
+import { useTurnNotifications } from '@/lib/versus/notify';
 import { broadcastState, hostLock, joinRoom, liveAvailable, liveInfo, onRemoteState, parseRoomHash, savedRoom, takenSeats } from '@/lib/versus/live';
 import SyncSheet, { ImportPreview } from '@/components/versus/SyncSheet';
 import { decodeJson, decodeSync, SyncPayload } from '@/lib/versus/sync';
@@ -125,6 +127,7 @@ interface TopBarProps {
 	onLeagues: () => void;
 	onRankings: () => void;
 	onCareer: () => void;
+	onHall: () => void;
 }
 
 /** Everything that isn't needed every minute lives in the ⋯ menu */
@@ -160,6 +163,7 @@ function MoreMenu(p: TopBarProps) {
 						{item('arena', 'Leagues', p.onLeagues, '3+ friends · standings & playoffs')}
 						{item('trophy', 'Power rankings', p.onRankings, 'Skill ratings & biggest upsets')}
 						{item('medal', 'Career', p.onCareer, 'Record, titles, badges — share it')}
+						{item('shirt', 'Hall of Fame', p.onHall, 'Retired jerseys & belt history')}
 						{liveAvailable && item('cast', 'Play on separate devices', p.onLive, 'Each coach on their own phone, plus a TV')}
 						{cloudEnabled && item('user', cloud.session ? 'Account' : 'Sign in (optional)', p.onAccount, cloud.session ? (cloud.syncing ? 'Syncing…' : 'Cloud rivalries & sync') : 'Back up & share your rivalries')}
 						{item('help', 'How it works', p.onHelp)}
@@ -211,7 +215,9 @@ export default function VersusPage() {
 	const [showLive, setShowLive] = useState(false);
 	const [showRankings, setShowRankings] = useState(false);
 	const [showCareer, setShowCareer] = useState(false);
+	const [showHall, setShowHall] = useState(false);
 	const live = useLive();
+	useTurnNotifications(state);
 	const [leagueCode, setLeagueCode] = useState<string | null>(null);
 	const [incoming, setIncoming] = useState<SyncPayload | null>(null);
 	const [sharedWheels, setSharedWheels] = useState<SharedWheels | null>(null);
@@ -418,7 +424,7 @@ export default function VersusPage() {
 	const showReset = state.phase !== 'setup';
 	const wrap = (node: React.ReactNode) => (
 		<div className='min-h-screen vs-bg'>
-			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onAccount={() => setShowAccount(true)} onLive={() => setShowLive(true)} onLeagues={() => setShowLeagues(true)} onRankings={() => setShowRankings(true)} onCareer={() => setShowCareer(true)} />
+			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onAccount={() => setShowAccount(true)} onLive={() => setShowLive(true)} onLeagues={() => setShowLeagues(true)} onRankings={() => setShowRankings(true)} onCareer={() => setShowCareer(true)} onHall={() => setShowHall(true)} />
 			{live && (
 				<div className='max-w-3xl mx-auto px-4 pt-2 flex justify-end'>
 					<LivePill names={state.settings.names} onClick={() => setShowLive(true)} />
@@ -432,6 +438,7 @@ export default function VersusPage() {
 			{showRivalry && <RivalrySheet key={syncs} settings={state.settings} retired={state.retired} onClose={() => setShowRivalry(false)} onSync={() => setShowSync(true)} />}
 			{showRankings && <PowerRankings highlight={[...state.settings.names]} onClose={() => setShowRankings(false)} />}
 			{showCareer && <CareerSheet initial={state.settings.names[0]} onClose={() => setShowCareer(false)} />}
+			{showHall && <HallOfFame names={state.settings.names} onClose={() => setShowHall(false)} />}
 			{live && <FxMirror />}
 			{showLive && <LiveSheet state={state} onClose={() => setShowLive(false)} />}
 			{showLeagues && <LeagueSheet seedNames={[...state.settings.names]} joinCode={leagueCode} onPlay={(names, tag) => playRivalry(names, tag)} onClose={() => { setShowLeagues(false); setLeagueCode(null); }} />}

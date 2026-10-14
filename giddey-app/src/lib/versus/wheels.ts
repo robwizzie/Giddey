@@ -139,7 +139,7 @@ export function rollReward(difficulty: Difficulty): BoostId {
 }
 
 export function challengeSegments(rosterSize: number, difficulty?: Difficulty): (WheelSegment & { challenge: Challenge })[] {
-	return CHALLENGES.filter(c => !(c.needsBench && rosterSize <= 5) && (!difficulty || c.difficulty === difficulty)).map(c => ({
+	return activeChallenges(difficulty).filter(c => !(c.needsBench && rosterSize <= 5) && (!difficulty || c.difficulty === difficulty)).map(c => ({
 		id: c.id,
 		label: c.title,
 		color: DIFFICULTY_INFO[c.difficulty].color,
@@ -149,11 +149,11 @@ export function challengeSegments(rosterSize: number, difficulty?: Difficulty): 
 }
 
 export function getChallenge(id: string | null): Challenge | undefined {
-	return CHALLENGES.find(c => c.id === id);
+	return CHALLENGES.find(c => c.id === id) ?? activeChallenges().find(c => c.id === id);
 }
 
 export function getTwist(id: string | null): Twist | undefined {
-	return TWISTS.find(t => t.id === id);
+	return TWISTS.find(t => t.id === id) ?? customTwists().find(t => t.id === id);
 }
 
 // ─── sabotage (the loser spins, the winner suffers next game) ───
@@ -179,7 +179,7 @@ export const SABOTAGES: SabotageItem[] = [
 ];
 
 export function getSabotage(id: string | null | undefined): SabotageItem | undefined {
-	return SABOTAGES.find(x => x.id === id);
+	return SABOTAGES.find(x => x.id === id) ?? customSabotages().find(x => x.id === id);
 }
 
 // ─── halftime wheel ─────────────────────────────────────────────
@@ -208,10 +208,75 @@ export const HALFTIME: HalftimeTwist[] = [
 ];
 
 export function getHalftime(id: string | null | undefined): HalftimeTwist | undefined {
-	return HALFTIME.find(x => x.id === id);
+	return HALFTIME.find(x => x.id === id) ?? customHalftime().find(x => x.id === id);
 }
 
 /** Fill in the leader / trailer names */
 export function halftimeText(text: string, names: [string, string], leader: 0 | 1): string {
 	return text.replace(/\{L\}/g, names[leader]).replace(/\{T\}/g, names[leader === 0 ? 1 : 0]);
+}
+
+// ─── your own wheels ────────────────────────────────────────────
+// Coaches can add their own challenges, sabotages, twists and halftime
+// twists. They mix in with the built-in ones, or replace them. The page
+// hands the current set over with setCustomWheels() on every render.
+
+export interface CustomItem {
+	id: string;
+	label: string;
+	desc: string;
+	/** challenges only */
+	difficulty?: Difficulty;
+}
+
+export interface CustomWheels {
+	/** add to the built-in items, or use only yours (a wheel with fewer than 2 of yours keeps the built-ins) */
+	mode: 'mix' | 'only';
+	challenges: CustomItem[];
+	sabotages: CustomItem[];
+	twists: CustomItem[];
+	halftime: CustomItem[];
+}
+
+export type CustomKind = 'challenges' | 'sabotages' | 'twists' | 'halftime';
+
+export const EMPTY_CUSTOM: CustomWheels = { mode: 'mix', challenges: [], sabotages: [], twists: [], halftime: [] };
+
+const CUSTOM_COLORS = ['#f43f5e', '#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#d946ef', '#14b8a6', '#84cc16'];
+
+let custom: CustomWheels = EMPTY_CUSTOM;
+
+export function setCustomWheels(c: CustomWheels | undefined): void {
+	custom = c ?? EMPTY_CUSTOM;
+}
+
+export function newCustomId(): string {
+	return `c_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+const color = (i: number) => CUSTOM_COLORS[i % CUSTOM_COLORS.length];
+const customTwists = (): Twist[] => custom.twists.map((x, i) => ({ id: x.id, label: x.label, desc: x.desc, color: color(i), weight: 2 }));
+const customSabotages = (): SabotageItem[] => custom.sabotages.map((x, i) => ({ id: x.id, label: x.label, desc: x.desc, color: color(i + 3), weight: 2 }));
+const customHalftime = (): HalftimeTwist[] => custom.halftime.map((x, i) => ({ id: x.id, label: x.label, desc: x.desc, color: color(i + 5), weight: 2 }));
+
+function pick<T>(builtIn: T[], mine: T[]): T[] {
+	if (!mine.length) return builtIn;
+	return custom.mode === 'only' && mine.length >= 2 ? mine : [...builtIn, ...mine];
+}
+
+export const activeTwists = () => pick(TWISTS, customTwists());
+export const activeSabotages = () => pick(SABOTAGES, customSabotages());
+export const activeHalftime = () => pick(HALFTIME, customHalftime());
+
+export function activeChallenges(difficulty?: Difficulty): Challenge[] {
+	const mine: Challenge[] = custom.challenges.map(x => ({ id: x.id, title: x.label, desc: x.desc, difficulty: x.difficulty ?? 'medium' }));
+	if (!difficulty) return pick(CHALLENGES, mine);
+	return pick(
+		CHALLENGES.filter(c => c.difficulty === difficulty),
+		mine.filter(c => c.difficulty === difficulty),
+	);
+}
+
+export function customCount(c: CustomWheels | undefined): number {
+	return c ? c.challenges.length + c.sabotages.length + c.twists.length + c.halftime.length : 0;
 }

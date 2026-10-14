@@ -40,6 +40,8 @@ export function seatGames(all: RivalryGame[], names: [string, string]): RivalryG
 				covered: flipSide(g.covered),
 				halftime: g.halftime ? { ...g.halftime, leader: flipSide(g.halftime.leader) as Side } : g.halftime,
 				sabotageOn: flipSide(g.sabotageOn),
+				oracle: flipSide(g.oracle),
+				predictions: g.predictions ? ([g.predictions[1], g.predictions[0]].map(p => (p ? { ...p, winner: flipSide(p.winner) as Side } : null)) as RivalryGame['predictions']) : g.predictions,
 			};
 		})
 		.sort((x, y) => x.ts - y.ts);

@@ -34,6 +34,8 @@ import { themeTitle } from '@/lib/versus/themes';
 import Wheel from './Wheel';
 import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
+import { LiveGate, useCanAct } from './Live';
+import { liveInfo } from '@/lib/versus/live';
 import { BlindReveal, ChemBars, CommissionerIntro, Handoff, PickReveal, RewardBanner, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
 
 function useCardWidth(count: number) {
@@ -161,6 +163,8 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 	const introKey = `${state.gameNo}`;
 	const [showIntro, setShowIntro] = useState(() => d.log.length === 0 && !introsShown.has(introKey));
 	const [handoffDone, setHandoffDone] = useState<string | null>(null);
+	// live room: only the coach on the clock acts, on their own phone
+	const canAct = useCanAct(actor, names);
 
 	// new picks → reveal (single pick) or blind reveal (both secret picks)
 	const seen = useRef({ log: d.log.length, collisions: d.collisions, round: d.round });
@@ -195,12 +199,13 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 
 	// secret round: whoever is up must take the phone first
 	const handoffKey = isSecret ? `${d.round}-${d.turn}-${d.collisions}` : null;
-	const needHandoff = isSecret && handoffDone !== handoffKey;
+	const needHandoff = isSecret && handoffDone !== handoffKey && !liveInfo();
 
 	const overlay = showIntro || !!revealKey || !!blindShow || needHandoff;
 	const clockKey = `${d.round}-${d.turn}-${d.stage}-${d.log.length}-${d.collisions}`;
 
 	const autoAct = () => {
+		if (!canAct) return;
 		const allowed = visible.filter(id => canTake(state, actor, id));
 		const fits = allowed.filter(id => fitsNeed(getVersusPlayer(id)!, actorNeeds));
 		const best = (fits.length ? fits : allowed.length ? allowed : visible)[0];
@@ -222,7 +227,7 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 	const left = useShotClock(clockKey, clockOn ? shotClock : 0, overlay, autoAct);
 
 	const toggle = (id: string) => {
-		if (!canTake(state, actor, id)) return;
+		if (!canAct || !canTake(state, actor, id)) return;
 		play('tick');
 		buzz(12);
 		if (needCount === 1) setSelected(s => (s[0] === id ? [] : [id]));
@@ -324,6 +329,7 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 							items={franchiseItems}
 							size={Math.min(320, cardW * 2.6)}
 							accent={SIDE_COLORS[actor]}
+							disabled={!canAct}
 							onResult={i => {
 								const team = franchiseItems[i].id;
 								setLandedTeam(team);
@@ -374,7 +380,8 @@ export default function DraftScreen({ state, setState }: { state: VersusState; s
 			</div>
 
 			{/* Action bar */}
-			{d.stage !== 'spin' && !needHandoff && (
+			{d.stage !== 'spin' && !canAct && <LiveGate side={actor} names={names}>{null}</LiveGate>}
+			{d.stage !== 'spin' && !needHandoff && canAct && (
 				<div className='fixed bottom-0 left-0 right-0 z-30 p-3 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/95 to-transparent'>
 					{cutProblem && <div className='max-w-3xl mx-auto mb-2 text-center text-xs font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 rounded-xl px-3 py-2'>{cutProblem}</div>}
 					<div className='max-w-3xl mx-auto flex gap-2'>

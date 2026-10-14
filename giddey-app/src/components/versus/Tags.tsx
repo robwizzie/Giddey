@@ -3,6 +3,7 @@
 import { freshNeeded, ineligibleReason, other, Side, VersusState } from '@/lib/versus/engine';
 import { hotHand, isFreshFor, neverDrafted, timesUsed, usage } from '@/lib/versus/usage';
 import { SIDE_COLORS } from './Fx';
+import { ratingDelta } from '@/lib/versus/ratingChanges';
 
 export interface Tag {
 	icon: string;
@@ -35,6 +36,8 @@ export function playerTags(state: VersusState, side: Side, id: string, max = 2):
 		if (used >= 2) tags.push({ icon: '🔥', text: `Your ${ordinal(used + 1)} time`, color: '#f97316', title: `You've played ${used} games with him` });
 		else if (freshNeeded(state, side) > 0 && isFreshFor(side, id)) tags.push({ icon: '🌱', text: 'Fresh face', color: '#4ade80', title: 'You have never used him — counts toward Fresh Faces' });
 	}
+	const moved = ratingDelta(id);
+	if (moved) tags.push({ icon: moved > 0 ? '📈' : '📉', text: `${moved > 0 ? '+' : ''}${moved} OVR`, color: moved > 0 ? '#34d399' : '#f87171', title: `2K rating ${moved > 0 ? 'up' : 'down'} ${Math.abs(moved)} since launch` });
 	const hot = hotHand(id);
 	if (hot) tags.push({ icon: '⭐', text: hot > 1 ? `Hot hand ×${hot}` : 'Hot hand', color: '#facc15', title: `Player of the Game ${hot} time${hot === 1 ? '' : 's'}` });
 	return tags.slice(0, max);
@@ -84,6 +87,7 @@ export const TAG_LEGEND: { icon: string; label: string; desc: string }[] = [
 	{ icon: '🔥', label: 'Your Nth time', desc: 'You keep taking him. Overused players come up less often.' },
 	{ icon: '🌱', label: 'Fresh face', desc: 'You personally have never used him — counts toward the Fresh Faces rule.' },
 	{ icon: '⭐', label: 'Hot hand', desc: 'He has won Player of the Game before.' },
+	{ icon: '📈', label: '+2 OVR / 📉 -1 OVR', desc: '2K has updated his rating since launch.' },
 	{ icon: '💙', label: 'Your guy / 🎯 their guy', desc: 'A pinned franchise guy — yours, or your opponent’s (steal him first?).' },
 	{ icon: '🔒', label: 'Locked', desc: 'You can’t take him right now: retired from your side, a second player from one franchise, or you still owe Fresh Faces.' },
 ];

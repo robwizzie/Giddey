@@ -23,9 +23,14 @@ import {
 import { ALLTIME_PLAYERS, getPool, getVersusPlayer, MODERN_PLAYERS } from '@/lib/versus/pool';
 import { THEMES } from '@/lib/versus/themes';
 import { matchups } from '@/lib/versus/rivalry';
+import { loadLeagues } from '@/lib/versus/league';
 import { cloudEnabled } from '@/lib/versus/cloud';
 import { CoachBadges } from './Badges';
 import InstallButton from './InstallButton';
+import RatingsSheet from './RatingsSheet';
+import PowerRankings from './PowerRankings';
+import CustomWheelsEditor from './CustomWheelsEditor';
+import { fmtDate, lastRatingUpdate } from '@/lib/versus/ratingChanges';
 
 const POOLS: { id: PoolSetting; title: string; sub: string; icon: string }[] = [
 	{ id: 'modern', title: 'Modern', sub: 'Current 2K27 rosters', icon: '🏀' },
@@ -610,6 +615,14 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 				<div className='space-y-3'>
 					<Seg label='Regular season' value={s.season} onChange={v => set('season', v)} options={[{ v: 0, l: 'Off' }, { v: 6, l: '6 games' }, { v: 10, l: '10 games' }, { v: 16, l: '16 games' }]} />
 					{s.season > 0 && <Seg label='Finals' value={s.finals} onChange={v => set('finals', v)} options={[{ v: 3, l: 'Best of 3' }, { v: 5, l: 'Best of 5' }, { v: 7, l: 'Best of 7' }]} />}
+					{s.season > 0 && (
+						<Toggle
+							on={s.dynasty}
+							onChange={v => set('dynasty', v)}
+							title='👑 Dynasty'
+							desc={`Squads carry through the season (run it back between games). Each new season opens with a draft lottery — the worse record gets 3 of 4 ping-pong balls — then you each keep up to 3 players. A one-time trade deadline opens at mid-season.`}
+						/>
+					)}
 					<div className='text-[11px] text-white/45'>
 						{s.season > 0
 							? `Every game counts toward the season. After ${s.season} games, the better record gets home court (picks first in every Finals draft), then it's first to ${Math.floor(s.finals / 2) + 1} wins. A new length starts with the next season.`
@@ -617,12 +630,18 @@ export function SettingsForm({ s, setS, lockDraft }: { s: Settings; setS: SetS; 
 					</div>
 				</div>
 			</Section>
+
+			<Section n={10} icon='🎡' title='Your wheels' desc='Write your own challenges, sabotages, twists and halftime rules, and share them with your rival.'>
+				<CustomWheelsEditor s={s} setS={setS} />
+			</Section>
 		</>
 	);
 }
 
-export default function SetupScreen({ initial, onStart, onRivalry, onHelp }: { initial: Settings; onStart: (s: Settings) => void; onRivalry: () => void; onHelp: () => void }) {
+export default function SetupScreen({ initial, onStart, onRivalry, onHelp, onLeagues }: { initial: Settings; onStart: (s: Settings) => void; onRivalry: () => void; onHelp: () => void; onLeagues: () => void }) {
 	const [s, setS] = useState<Settings>(() => normalizeSettings(initial));
+	const [showRatings, setShowRatings] = useState(false);
+	const [showRankings, setShowRankings] = useState(false);
 	const [firstTime] = useState(() => !matchups().length && !initial.names[0] && !initial.names[1]);
 	const a = s.names[0].trim();
 	const b = s.names[1].trim();
@@ -651,9 +670,37 @@ export default function SetupScreen({ initial, onStart, onRivalry, onHelp }: { i
 					<button onClick={onRivalry} className='text-xs font-black uppercase tracking-widest text-white/70 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2 border border-white/10'>
 						📊 Rivalry record
 					</button>
+					<button onClick={onLeagues} className='text-xs font-black uppercase tracking-widest text-white/70 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2 border border-white/10'>
+						🏟️ Leagues
+					</button>
+					<button onClick={() => setShowRankings(true)} className='text-xs font-black uppercase tracking-widest text-white/70 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2 border border-white/10'>
+						🏆 Rankings
+					</button>
 					<InstallButton />
 				</div>
+				{showRankings && <PowerRankings onClose={() => setShowRankings(false)} highlight={s.names} />}
+				<button onClick={() => setShowRatings(true)} className='mt-3 text-[11px] font-bold text-white/45 underline decoration-white/20'>
+					{lastRatingUpdate() ? `📈 Ratings updated ${fmtDate(lastRatingUpdate()!.date)} — see who moved` : '2K27 launch ratings'}
+				</button>
+				{showRatings && <RatingsSheet onClose={() => setShowRatings(false)} />}
 			</div>
+
+			{s.league &&
+				(() => {
+					const l = loadLeagues().find(x => x.id === s.league!.id);
+					return (
+						<div className='rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-3 mb-6 flex items-center gap-3'>
+							<div className='text-3xl'>🏟️</div>
+							<div className='flex-1 min-w-0 text-[13px] text-white/80'>
+								<div className='font-black text-white'>League match{l ? ` · ${l.name}` : ''}</div>
+								The next game you finish counts for the league{s.league!.match.startsWith('p:') ? ' playoffs' : ''}.
+							</div>
+							<button onClick={() => setS(prev => ({ ...prev, league: null }))} className='text-[11px] text-white/50 underline shrink-0'>
+								Make it a friendly
+							</button>
+						</div>
+					);
+				})()}
 
 			{firstTime && (
 				<div className='rounded-2xl border border-orange-400/30 bg-orange-500/[0.08] p-4 mb-6 animate-fade-in'>

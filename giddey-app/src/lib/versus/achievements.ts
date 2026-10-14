@@ -68,6 +68,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 		desc: 'Your players win Player of the Game 5 times.',
 		progress: (g, s) => [Math.min(5, g.reduce((n, x) => n + (x.potg ?? []).filter(id => x.rosters[s]?.includes(id)).length, 0)), 5],
 	},
+	{ id: 'oracle', icon: '🔮', title: 'Oracle', desc: 'Win 5 prediction duels.', progress: (g, s) => [Math.min(5, g.filter(x => x.oracle === s).length), 5] },
 	{ id: 'gradeA', icon: '🅰️', title: 'Front Office', desc: 'Get an A+ draft grade.', progress: (g, s) => has(g.some(x => x.grades?.[s]?.letter === 'A+')) },
 	{ id: 'champ', icon: '🏆', title: 'Champion', desc: 'Win a season title.', progress: (g, s) => [Math.min(1, seasons(g).filter(x => x.champion === s).length), 1] },
 	{ id: 'dynasty', icon: '👑', title: 'Dynasty', desc: 'Win 3 titles.', progress: (g, s) => [Math.min(3, seasons(g).filter(x => x.champion === s).length), 3] },

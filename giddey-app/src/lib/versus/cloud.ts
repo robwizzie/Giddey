@@ -1,6 +1,7 @@
 import type { SupabaseClient, Session } from '@supabase/supabase-js';
 import { loadRivalry, RivalryGame, saveRivalry } from './rivalry';
 import { mergeGames } from './sync';
+import { League, LeagueFormat, loadLeagues, saveLeagues } from './league';
 
 // ═══════════════════════════════════════════════════════════════
 //  OPTIONAL ACCOUNTS (Supabase)
@@ -79,7 +80,7 @@ export function onCloudChange(fn: ChangeFn): void {
 
 let clientP: Promise<SupabaseClient> | null = null;
 
-function client(): Promise<SupabaseClient> {
+export function client(): Promise<SupabaseClient> {
 	if (!cloudEnabled) return Promise.reject(new Error('Accounts are not set up on this site'));
 	clientP ??= import('@supabase/supabase-js').then(({ createClient }) =>
 		createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce', storageKey: 'giddey-versus-auth' } }),
@@ -270,6 +271,93 @@ async function pullGames(sb: SupabaseClient, rivalryId: string): Promise<Rivalry
 
 let syncing: Promise<void> | null = null;
 
+// ─── leagues ────────────────────────────────────────────────────
+
+/** Cloud leagues are cached in the local league list (so they work offline) */
+async function loadCloudLeagues(sb: SupabaseClient): Promise<League[]> {
+	const uid = state.session?.user.id;
+	const { data, error } = await sb.from('leagues').select('id, name, names, format, playoffs_early, invite_code, created_by, created_at').order('created_at');
+	if (error) throw error;
+	type Row = { id: string; name: string; names: string[]; format: LeagueFormat; playoffs_early: boolean; invite_code: string; created_by: string; created_at: string };
+	const cloud = ((data ?? []) as Row[]).map(
+		(r): League => ({
+			id: r.id,
+			name: r.name,
+			names: r.names,
+			format: r.format,
+			createdAt: Date.parse(r.created_at),
+			playoffsEarly: r.playoffs_early,
+			cloud: { inviteCode: r.invite_code, isCommissioner: r.created_by === uid },
+		}),
+	);
+	// replace every cached cloud league; local-only leagues stay
+	saveLeagues([...loadLeagues().filter(l => !l.cloud), ...cloud]);
+	return cloud;
+}
+
+/** Move a phone-only league to the cloud (its games come along) */
+export async function uploadLeague(local: League): Promise<League> {
+	const sb = await client();
+	const { data, error } = await sb.from('leagues').insert({ name: local.name, names: local.names, format: local.format, playoffs_early: !!local.playoffsEarly }).select('id').single();
+	if (error) throw new Error(message(error));
+	const id = (data as { id: string }).id;
+	// re-tag this league's games with the cloud id, then drop the local copy
+	saveRivalry(loadRivalry().map(g => (g.league?.id === local.id ? { ...g, league: { ...g.league, id } } : g)));
+	saveLeagues(loadLeagues().filter(l => l.id !== local.id));
+	await refresh();
+	return loadLeagues().find(l => l.id === id)!;
+}
+
+export async function peekLeague(code: string): Promise<{ id: string; name: string; names: string[]; claimed: string[] } | null> {
+	const sb = await client();
+	const { data, error } = await sb.rpc('league_by_code', { code: code.trim() });
+	if (error) throw new Error(message(error));
+	return ((data as { id: string; name: string; names: string[]; claimed: string[] }[]) ?? [])[0] ?? null;
+}
+
+export async function joinLeague(code: string, asName: string): Promise<void> {
+	const sb = await client();
+	const { error } = await sb.rpc('join_league', { code: code.trim(), as_name: asName });
+	if (error) throw new Error(message(error));
+	await refresh();
+}
+
+export async function updateCloudLeague(id: string, patch: { playoffs_early?: boolean; names?: string[]; format?: LeagueFormat; name?: string }): Promise<void> {
+	const sb = await client();
+	const { error } = await sb.from('leagues').update(patch).eq('id', id);
+	if (error) throw new Error(message(error));
+	await refresh();
+}
+
+export async function leaveCloudLeague(l: League): Promise<void> {
+	const sb = await client();
+	const uid = state.session?.user.id;
+	const { error } = l.cloud?.isCommissioner ? await sb.from('leagues').delete().eq('id', l.id) : await sb.from('league_members').delete().eq('league_id', l.id).eq('user_id', uid!);
+	if (error) throw new Error(message(error));
+	saveLeagues(loadLeagues().filter(x => x.id !== l.id));
+	await refresh();
+}
+
+async function syncLeagueGames(sb: SupabaseClient, leagues: League[], uid: string) {
+	for (const l of leagues) {
+		const remote: RivalryGame[] = [];
+		for (let from = 0; ; from += 1000) {
+			const { data, error } = await sb.from('league_games').select('data').eq('league_id', l.id).order('played_at').range(from, from + 999);
+			if (error) throw error;
+			remote.push(...(data ?? []).map(r => r.data as RivalryGame));
+			if (!data || data.length < 1000) break;
+		}
+		mergeGames({ v: 1, games: remote, favorites: {} });
+		const have = new Set(remote.map(gameKey));
+		const mine = loadRivalry().filter(g => g.league?.id === l.id && !have.has(gameKey(g)));
+		for (let i = 0; i < mine.length; i += 200) {
+			const rows = mine.slice(i, i + 200).map(g => ({ league_id: l.id, game_key: gameKey(g), played_at: new Date(g.ts).toISOString(), data: g, created_by: uid }));
+			const { error } = await sb.from('league_games').upsert(rows, { onConflict: 'league_id,game_key', ignoreDuplicates: true });
+			if (error) throw error;
+		}
+	}
+}
+
 /** Two-way sync of every linked rivalry. Safe to call often — runs one at a time. */
 export function syncNow(): Promise<void> {
 	if (!cloudEnabled || !state.session) return Promise.resolve();
@@ -298,6 +386,7 @@ export function syncNow(): Promise<void> {
 				}
 				if (mine.length) r.games += mine.length;
 			}
+			await syncLeagueGames(sb, await loadCloudLeagues(sb), uid);
 			// franchise guys travel with each person's profile
 			const favorites: Record<string, string[]> = {};
 			if (state.profile) {
@@ -318,4 +407,43 @@ export function syncNow(): Promise<void> {
 		}
 	})();
 	return syncing;
+}
+
+// ─── public career page ─────────────────────────────────────────
+
+/** Publish (or refresh) your public career snapshot; returns the share slug */
+export async function publishCareer(data: unknown): Promise<string> {
+	const sb = await client();
+	const uid = state.session?.user.id;
+	if (!uid) throw new Error('Sign in first');
+	const { data: existing } = await sb.from('careers').select('slug').eq('user_id', uid).maybeSingle();
+	if (existing) {
+		const { error } = await sb.from('careers').update({ data }).eq('user_id', uid);
+		if (error) throw new Error(message(error));
+		return (existing as { slug: string }).slug;
+	}
+	const { data: row, error } = await sb.from('careers').insert({ data }).select('slug').single();
+	if (error) throw new Error(message(error));
+	return (row as { slug: string }).slug;
+}
+
+export async function unpublishCareer(): Promise<void> {
+	const sb = await client();
+	const uid = state.session?.user.id;
+	if (!uid) return;
+	await sb.from('careers').delete().eq('user_id', uid);
+}
+
+/** Read a published career with the public key — no sign-in, no library download */
+export async function fetchCareer(slug: string): Promise<{ data: unknown; updated: string } | null> {
+	if (!cloudEnabled) return null;
+	const res = await fetch(`${URL}/rest/v1/careers?slug=eq.${encodeURIComponent(slug)}&select=data,updated_at`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
+	if (!res.ok) return null;
+	const rows = (await res.json()) as { data: unknown; updated_at: string }[];
+	return rows[0] ? { data: rows[0].data, updated: rows[0].updated_at } : null;
+}
+
+export function careerLink(slug: string): string {
+	// keep the .html form when the site is served that way (local previews)
+	return `${location.origin}/versus/career${location.pathname.endsWith('.html') ? '.html' : ''}#${slug}`;
 }

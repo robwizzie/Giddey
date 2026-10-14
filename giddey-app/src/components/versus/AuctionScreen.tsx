@@ -10,6 +10,7 @@ import VersusCard from './VersusCard';
 import Scoreboard from './Scoreboard';
 import { SIDE_COLORS } from './Fx';
 import { RosterColumn } from './DraftScreen';
+import { LiveGate, useCanAct } from './Live';
 import { CommissionerIntro, PickReveal, RewardBanner, ShotClockRing, useShotClock, ViolationToast } from './DraftFx';
 
 const POSITIONS: (Position | 'ALL' | 'NEED')[] = ['ALL', 'NEED', 'PG', 'SG', 'SF', 'PF', 'C'];
@@ -72,6 +73,7 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 	const lot = a.lot;
 	const block = a.block;
 	const actor: Side = lot ? lot.turn : a.nominator;
+	const canAct = useCanAct(actor, names);
 	const [stamp, setStamp] = useState<string | null>(null);
 	// unsold random lots get a stamp (sold ones get the pick reveal)
 	const seenLot = useRef(block?.lotNo ?? 0);
@@ -123,6 +125,7 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 	const overlay = showIntro || !!revealKey || !!stamp;
 	const clockKey = `${d.log.length}-${block?.lotNo ?? 0}-${lot ? `${lot.id}-${lot.bid}-${lot.turn}-${lot.passes ?? 0}` : `nom-${a.nominator}`}`;
 	const left = useShotClock(clockKey, shotClock, overlay, () => {
+		if (!canAct) return;
 		setViolation(lot ? `Shot clock — ${names[actor]} passes` : 'Shot clock — auto-nomination');
 		setTimeout(() => setViolation(null), 2200);
 		if (lot) setState(passBid(state));
@@ -316,6 +319,7 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 									state={state}
 									side={actor}
 									onClick={() => {
+										if (!canAct) return;
 										play('tick');
 										setChosen(chosen === p.id ? null : p.id);
 										setOpening(1);
@@ -339,7 +343,8 @@ export default function AuctionScreen({ state, setState }: { state: VersusState;
 			</div>
 
 			{/* action bar */}
-			<div className='fixed bottom-0 left-0 right-0 z-30 p-3 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/95 to-transparent'>
+			{!canAct && <LiveGate side={actor} names={names}>{null}</LiveGate>}
+			<div className={`${canAct ? '' : 'hidden '}fixed bottom-0 left-0 right-0 z-30 p-3 bg-gradient-to-t from-[#0a0e17] via-[#0a0e17]/95 to-transparent`}>
 				<div className='max-w-3xl mx-auto'>
 					{lot ? (
 						<div className='space-y-2'>

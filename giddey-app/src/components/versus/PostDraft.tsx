@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LiveGate } from './Live';
 import {
 	answerTrade,
 	applyEqualizer,
@@ -73,7 +74,8 @@ export function EqualizerScreen({ state, setState }: { state: VersusState; setSt
 					</div>
 				)}
 			</div>
-			<BottomBar>
+			<LiveGate side={state.equalizer!.side} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(applyEqualizer(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					Keep my team
 				</button>
@@ -81,6 +83,7 @@ export function EqualizerScreen({ state, setState }: { state: VersusState; setSt
 					Sign him
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }
@@ -164,6 +167,7 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 						<FairnessMeter a={after[0]} b={after[1]} />
 					</div>
 				</div>
+				<LiveGate side={other(state.trade!.proposal!.from)} names={state.settings.names}>
 				<BottomBar>
 					<button onClick={() => setState(answerTrade(state, false))} className='flex-1 rounded-2xl py-3.5 font-black uppercase tracking-wider bg-red-500/80 text-white'>
 						Decline
@@ -172,6 +176,7 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 						Accept
 					</button>
 				</BottomBar>
+			</LiveGate>
 			</div>
 		);
 	}
@@ -204,7 +209,8 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 					</div>
 				</div>
 			</div>
-			<BottomBar>
+			<LiveGate side={state.trade!.turn} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(passTrade(state))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					No trade
 				</button>
@@ -212,6 +218,7 @@ export function TradeScreen({ state, setState }: { state: VersusState; setState:
 					Send offer
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }
@@ -240,7 +247,8 @@ export function BoostScreen({ state, setState }: { state: VersusState; setState:
 				/>
 				{opts.length ? <OptionPicker options={opts} chosen={chosen} setChosen={setChosen} /> : <div className='text-center text-white/50'>Nothing to take — boost fizzles.</div>}
 			</div>
-			<BottomBar>
+			<LiveGate side={state.boostQueue[0]?.side ?? null} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(resolveBoost(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					Skip
 				</button>
@@ -248,6 +256,7 @@ export function BoostScreen({ state, setState }: { state: VersusState; setState:
 					{sign ? 'Sign him' : 'Upgrade'}
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }
@@ -417,7 +426,8 @@ export function KeepersScreen({ state, setState }: { state: VersusState; setStat
 					))}
 				</div>
 			</div>
-			<BottomBar>
+			<LiveGate side={state.keeperTurn} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(chooseKeeper(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					No keeper
 				</button>
@@ -430,6 +440,7 @@ export function KeepersScreen({ state, setState }: { state: VersusState; setStat
 					{chosen ? `Keep ${getVersusPlayer(chosen)?.lastName}` : 'Pick a keeper'}
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }

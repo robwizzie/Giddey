@@ -2,6 +2,12 @@
 
 Versus works with no backend: every game is saved on the phone it was played on, any number of rivalries can share a phone, and two phones can be merged with a sync link or QR code.
 
+Connecting a Supabase project turns on these features:
+
+- **Two phones and a TV** (no account needed): live draft rooms over Supabase Realtime.
+- **Online leagues**: friends join with an invite code and log games from their own phones.
+- **Public career pages**: a link anyone can open.
+
 Accounts add three things on top of that:
 
 - **Cloud backup.** Every rivalry you create or join is stored in the cloud. Sign in on any phone, or in the installed home-screen app, and it's all there.
@@ -14,7 +20,11 @@ Accounts run on [Supabase](https://supabase.com) (free tier), which provides sig
 
 1. **Create a project** at [supabase.com](https://supabase.com/dashboard) (the free plan is enough).
 
-2. **Create the tables.** Open **SQL Editor → New query**, paste [`migrations/20261013000000_versus_accounts.sql`](migrations/20261013000000_versus_accounts.sql) and run it. If you use the Supabase CLI, `supabase link` then `supabase db push` does the same thing.
+2. **Create the tables.** Open **SQL Editor → New query** and run both migrations, in order:
+   1. [`migrations/20261013000000_versus_accounts.sql`](migrations/20261013000000_versus_accounts.sql) (profiles, rivalries, games)
+   2. [`migrations/20261014000000_versus_leagues_careers.sql`](migrations/20261014000000_versus_leagues_careers.sql) (leagues, career pages)
+
+   If you use the Supabase CLI, `supabase link` then `supabase db push` does the same thing. Live rooms use Realtime broadcast, which is on by default; nothing to create.
 
 3. **Allow the redirect.** Go to **Authentication → URL Configuration**:
    - Site URL: `https://playgiddey.com/versus`
@@ -57,11 +67,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 | `rivalries` | the two seat names, invite code, last reset | its members |
 | `rivalry_members` | which account holds seat 0 / seat 1 | its members |
 | `games` | each game as the app's own JSON, keyed by timestamp + names | its members |
+| `leagues` | name, 3–12 coach names, format, invite code | its members (the commissioner edits) |
+| `league_members` | which account plays as which league name | its members |
+| `league_games` | each league game, as JSON | its members |
+| `careers` | a published career snapshot and its share slug | **everyone** — publishing is the opt-in |
 
 - **Creating a rivalry** gives you seat 0. The other name waits as a guest until someone joins with the invite code (`join_rivalry` RPC).
 - **The phone's local log is still what the app reads from.** Sync pulls a rivalry's cloud games into it and pushes up any local games between those two names. Games played before signing up upload the first time you link that pair.
 - **Games never change after they're logged.** They're de-duplicated by key, so syncing as often as you like is safe.
 - **Resetting a record** sets `reset_at`. Every phone drops its older copies on the next sync instead of uploading them again.
+- **Live rooms** are Realtime broadcast channels named after a random 6-character code. The phone whose turn it is sends the new state, and the others swap it in. No rows are written.
 - **The policies are tested** on a local Postgres 16 with a stub `auth` schema:
   - strangers see nothing
   - nobody can log a game as someone else

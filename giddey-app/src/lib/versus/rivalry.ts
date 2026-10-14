@@ -1,5 +1,6 @@
-import { GameResult, Grade, Halftime, Line, SeasonTag, Settings, Side, teamName } from './engine';
+import { GameResult, Grade, Halftime, Line, Prediction, SeasonTag, Settings, Side, teamName } from './engine';
 import { seatGames } from './history';
+import type { LeagueTag } from './league';
 import { getPool } from './pool';
 
 // ═══════════════════════════════════════════════════════════════
@@ -32,6 +33,10 @@ export interface RivalryGame {
 	grades?: [Grade, Grade] | null;
 	season?: SeasonTag | null;
 	sabotageOn?: Side | null;
+	predictions?: [Prediction | null, Prediction | null] | null;
+	oracle?: Side | null;
+	/** league match this game counted for */
+	league?: LeagueTag | null;
 }
 
 export function loadRivalry(): RivalryGame[] {
@@ -54,8 +59,11 @@ export function saveRivalry(games: RivalryGame[]) {
 
 export function logGame(settings: Settings, g: GameResult): void {
 	const games = loadRivalry();
+	const ts = g.playedAt ?? Date.now();
+	// a live room logs the same game on both phones — keep one
+	if (games.some(x => x.ts === ts && x.names.map(n => n.trim().toLowerCase()).sort().join() === settings.names.map(n => n.trim().toLowerCase()).sort().join())) return;
 	games.push({
-		ts: Date.now(),
+		ts,
 		names: [...settings.names],
 		teams: [teamName(settings, 0), teamName(settings, 1)],
 		winner: g.winner,
@@ -76,6 +84,9 @@ export function logGame(settings: Settings, g: GameResult): void {
 		grades: g.grades ?? null,
 		season: g.season ?? null,
 		sabotageOn: g.sabotageOn ?? null,
+		predictions: g.predictions ?? null,
+		oracle: g.oracle ?? null,
+		league: g.league ?? null,
 	});
 	saveRivalry(games);
 }

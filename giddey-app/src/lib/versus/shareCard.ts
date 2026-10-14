@@ -38,7 +38,7 @@ async function headshot(p: VersusPlayer): Promise<HTMLImageElement | null> {
 	return null;
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
 	ctx.beginPath();
 	ctx.moveTo(x + r, y);
 	ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -48,7 +48,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 	ctx.closePath();
 }
 
-function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number, size: number, weight = 900): number {
+export function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number, size: number, weight = 900): number {
 	let s = size;
 	ctx.font = `${weight} ${s}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
 	while (ctx.measureText(text).width > maxW && s > 14) {
@@ -266,13 +266,16 @@ export async function renderShareCard(s: VersusState): Promise<Blob | null> {
 
 /** Share via the OS sheet when possible, otherwise download */
 export async function shareSquads(s: VersusState): Promise<'shared' | 'downloaded' | 'failed'> {
-	const blob = await renderShareCard(s);
+	return shareImage(await renderShareCard(s), `giddey-versus-game-${s.gameNo}.png`, `${teamName(s.settings, 0)} vs ${teamName(s.settings, 1)}`);
+}
+
+export async function shareImage(blob: Blob | null, name: string, text: string): Promise<'shared' | 'downloaded' | 'failed'> {
 	if (!blob) return 'failed';
-	const file = new File([blob], `giddey-versus-game-${s.gameNo}.png`, { type: 'image/png' });
+	const file = new File([blob], name, { type: 'image/png' });
 	const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
 	if (nav.canShare?.({ files: [file] })) {
 		try {
-			await nav.share({ files: [file], title: 'Giddey Versus', text: `${teamName(s.settings, 0)} vs ${teamName(s.settings, 1)}` });
+			await nav.share({ files: [file], title: 'Giddey Versus', text });
 			return 'shared';
 		} catch {
 			/* cancelled — fall through to download */

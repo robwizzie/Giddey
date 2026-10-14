@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LiveGate, useCanAct } from './Live';
 import { availableFavorites, chooseFavorite, other, pickThemeParam, setTheme, themeOptions, VersusState } from '@/lib/versus/engine';
 import { getTheme, themeTitle, ThemeId } from '@/lib/versus/themes';
 import { getVersusPlayer } from '@/lib/versus/pool';
@@ -25,6 +26,7 @@ export function ThemeScreen({ state, setState }: { state: VersusState; setState:
 	const [landed, setLanded] = useState<{ id: ThemeId; param?: string } | null>(null);
 	const [size] = useState(() => (typeof window === 'undefined' ? 300 : Math.min(330, window.innerWidth - 48)));
 	const theme = landed ? getTheme(landed.id) : undefined;
+	const canSpin = useCanAct(state.coinWinner ?? 0, state.settings.names);
 	return (
 		<div className='min-h-screen pb-28'>
 			<div className='max-w-3xl mx-auto px-4 pt-6 animate-fade-in'>
@@ -35,6 +37,7 @@ export function ThemeScreen({ state, setState }: { state: VersusState; setState:
 							items={options.map(t => ({ id: t.id, label: `${t.icon} ${t.label}`, color: t.color }))}
 							size={size}
 							accent='#a855f7'
+							disabled={!canSpin}
 							onResult={i => {
 								const id = options[i].id;
 								setTimeout(() => setLanded({ id, param: pickThemeParam(state, id) }), 700);
@@ -60,7 +63,8 @@ export function ThemeScreen({ state, setState }: { state: VersusState; setState:
 					)
 				)}
 			</div>
-			<BottomBar>
+			<LiveGate side={state.coinWinner ?? 0} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(setTheme(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					No theme
 				</button>
@@ -72,6 +76,7 @@ export function ThemeScreen({ state, setState }: { state: VersusState; setState:
 					{landed ? 'Lock it in →' : 'Spin first'}
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }
@@ -123,7 +128,8 @@ export function FavoritesScreen({ state, setState }: { state: VersusState; setSt
 					</div>
 				)}
 			</div>
-			<BottomBar>
+			<LiveGate side={state.favoriteTurn} names={state.settings.names}>
+				<BottomBar>
 				<button onClick={() => setState(chooseFavorite(state, null))} className='rounded-2xl px-4 py-3.5 font-bold text-sm bg-white/10 text-white/70'>
 					Skip
 				</button>
@@ -136,6 +142,7 @@ export function FavoritesScreen({ state, setState }: { state: VersusState; setSt
 					{chosen ? `Grab ${getVersusPlayer(chosen)?.lastName}` : 'Pick one'}
 				</button>
 			</BottomBar>
+			</LiveGate>
 		</div>
 	);
 }

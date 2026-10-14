@@ -1,11 +1,12 @@
 import { Position } from '@/lib/types';
 import { getPool, getVersusPlayer, PoolMode, VersusPlayer } from './pool';
-import { BOOSTS, BoostId } from './wheels';
+import { BOOSTS, BoostId, CustomWheels, EMPTY_CUSTOM } from './wheels';
+import type { LeagueTag } from './league';
 import { ActiveTheme, getTheme, rollThemeParam, Theme, ThemeId, THEMES, DIVISIONS } from './themes';
 import { freshnessWeight, isFreshFor } from './usage';
 import { draftGrades } from './grades';
 import { history } from './history';
-import { currentSeason, nextSeasonTag } from './seasons';
+import { currentSeason, nextSeasonTag, seasons as seasonsOf } from './seasons';
 import { coveredBy, vegasLine } from './vegas';
 
 // ═══════════════════════════════════════════════════════════════
@@ -19,7 +20,7 @@ export type Side = 0 | 1;
 export type DraftStyle = 'snake' | 'cut' | 'franchise' | 'auction' | 'block';
 export type Band = 'superstar' | 'star' | 'starter' | 'rotation' | 'deep';
 export type PoolSetting = PoolMode | 'erawars';
-export type Phase = 'setup' | 'coin' | 'theme' | 'keepers' | 'favorites' | 'draft' | 'equalizer' | 'trade' | 'boosts' | 'reveal' | 'gameday' | 'postgame';
+export type Phase = 'setup' | 'coin' | 'lottery' | 'dynasty' | 'theme' | 'keepers' | 'favorites' | 'draft' | 'equalizer' | 'trade' | 'boosts' | 'reveal' | 'gameday' | 'postgame';
 
 export interface Identity {
 	team: string;
@@ -80,7 +81,15 @@ export interface Settings {
 	/** regular-season length in games (0 = no seasons), then a best-of Finals */
 	season: 0 | 6 | 10 | 16;
 	finals: 3 | 5 | 7;
+	/** your own challenges, sabotages, twists and halftime twists */
+	custom: CustomWheels;
+	/** Dynasty: keep 3 players between seasons, a mid-season trade deadline, and a draft lottery */
+	dynasty: boolean;
+	/** the league match tonight's next game counts for (cleared once it's logged) */
+	league?: LeagueTag | null;
 }
+
+export const DYNASTY_KEEPS = 3;
 
 export const MAX_FAVORITES = 5;
 export const RETIRE_DRAFTS = 2;
@@ -123,6 +132,8 @@ export const DEFAULT_SETTINGS: Settings = {
 	vegas: true,
 	season: 10,
 	finals: 7,
+	custom: EMPTY_CUSTOM,
+	dynasty: false,
 };
 
 export const BAND_INFO: Record<Band, { label: string; range: [number, number]; color: string }> = {
@@ -251,7 +262,8 @@ export function normalizeSettings(raw: Partial<Settings> & { rosterSize?: number
 		{ ...DEFAULT_SETTINGS.identity[1], ...(raw.identity?.[1] ?? {}) },
 	];
 	const favorites: [string[], string[]] = [[...(raw.favorites?.[0] ?? [])], [...(raw.favorites?.[1] ?? [])]];
-	const s: Settings = { ...DEFAULT_SETTINGS, ...raw, tiers, tiers2, identity, favorites, rosterSize: 0 };
+	const custom: CustomWheels = { ...EMPTY_CUSTOM, ...(raw.custom ?? {}) };
+	const s: Settings = { ...DEFAULT_SETTINGS, ...raw, tiers, tiers2, identity, favorites, custom, rosterSize: 0 };
 	// one shared auction board can't split eras
 	if ((s.style === 'auction' || s.style === 'block') && s.pool === 'erawars') s.pool = 'mixed';
 	return { ...s, rosterSize: Math.min(rosterTotal(tiers), s.handicap ? rosterTotal(tiers2) : rosterTotal(tiers)) };
@@ -416,6 +428,12 @@ export interface GameResult {
 	grades?: [Grade, Grade] | null;
 	season?: SeasonTag | null;
 	sabotageOn?: Side | null;
+	predictions?: [Prediction | null, Prediction | null] | null;
+	/** coach whose prediction was closer (earned the bonus) */
+	oracle?: Side | null;
+	league?: LeagueTag | null;
+	/** when the result was entered — the same on every phone in a live room */
+	playedAt?: number;
 }
 
 /** Point spread: `fav` is expected to win by `spread` */
@@ -452,6 +470,13 @@ export interface GameDay {
 	challenges: [string | null, string | null];
 	rewards: [BoostId | null, BoostId | null];
 	halftime?: Halftime | null;
+	/** each coach's secret pick before tip-off */
+	predictions?: [Prediction | null, Prediction | null];
+}
+
+export interface Prediction {
+	winner: Side;
+	margin: number;
 }
 
 export interface TradeState {
@@ -516,7 +541,20 @@ export interface VersusState {
 	retired: Retired[];
 	/** grades for the most recent draft */
 	grades: [Grade, Grade] | null;
+	dynasty?: DynastyState;
 }
+
+export interface DynastyState {
+	/** players each coach carries into the season-opening draft */
+	keeps: [string[], string[]];
+	turn: Side;
+	/** season-opening lottery: balls per coach and who won it */
+	lottery: { balls: [number, number]; winner: Side; season: number } | null;
+	/** season whose trade deadline has been used */
+	deadline: number;
+}
+
+const NO_DYNASTY: DynastyState = { keeps: [[], []], turn: 0, lottery: null, deadline: 0 };
 
 export interface Retired {
 	id: string;
@@ -999,8 +1037,8 @@ export function startRound(s: VersusState, round: number): VersusState {
  * uses up one of the coach's rounds in their tier (or the closest one).
  */
 /** Players a coach starts the draft with (keeper, franchise guy) */
-function seedsOf(keep: [string | null, string | null], favs: [string | null, string | null], side: Side): string[] {
-	return [keep[side], favs[side]].filter((x): x is string => !!x);
+function seedsOf(keep: [string | null, string | null], favs: [string | null, string | null], side: Side, dynasty: string[] = []): string[] {
+	return [...new Set([...dynasty, keep[side], favs[side]].filter((x): x is string => !!x))];
 }
 
 /**
@@ -1008,7 +1046,8 @@ function seedsOf(keep: [string | null, string | null], favs: [string | null, str
  * roster; each one uses up the coach's round in their tier (or the closest).
  */
 export function startDraft(s: VersusState, keep: [string | null, string | null] = [null, null], favs: [string | null, string | null] = [null, null]): VersusState {
-	const teams: [string[], string[]] = [seedsOf(keep, favs, 0), seedsOf(keep, favs, 1)];
+	const dk = s.dynasty?.keeps ?? [[], []];
+	const teams: [string[], string[]] = [seedsOf(keep, favs, 0, dk[0]), seedsOf(keep, favs, 1, dk[1])];
 	const mods = s.draftMods ?? NO_MODS;
 	const tiers = ([0, 1] as Side[]).map(side => effectiveTiers(s.settings, side, mods[side].rewards)) as [Record<Band, number>, Record<Band, number>];
 	const blueprints = ([0, 1] as Side[]).map(side => {
@@ -1059,7 +1098,18 @@ export function startDraft(s: VersusState, keep: [string | null, string | null] 
 		rewards: [mods[0].rewards, mods[1].rewards],
 	};
 	// rewards are spent once the draft starts
-	const base: VersusState = { ...s, phase: 'draft', teams, draft, equalizer: null, trade: null, keeperPicks: [null, null], favoritePicks: [null, null], draftMods: NO_MODS };
+	const base: VersusState = {
+		...s,
+		phase: 'draft',
+		teams,
+		draft,
+		equalizer: null,
+		trade: null,
+		keeperPicks: [null, null],
+		favoritePicks: [null, null],
+		draftMods: NO_MODS,
+		dynasty: s.dynasty ? { ...s.dynasty, keeps: [[], []] } : s.dynasty,
+	};
 	if (s.settings.style === 'auction' || s.settings.style === 'block') return startAuction(base);
 	if (!roundsTotal(draft)) return endDraft(base);
 	return startRound(base, 0);
@@ -1714,6 +1764,10 @@ export function recordGame(s: VersusState, result: Omit<GameResult, 'game' | 'te
 	const line = s.settings.vegas ? vegasLine(s, history()) : null;
 	const covered = coveredBy(line, result.score);
 	if (covered !== null) earned[covered].push('tierUp');
+	// Predictions: the closer guess earns +1 Rotation player
+	const preds = s.gameday.predictions ?? null;
+	const oracle = predictionWinner(preds, result.winner, result.score);
+	if (oracle !== null) earned[oracle].push('extraRotation');
 	const game: GameResult = {
 		...result,
 		game: s.gameNo,
@@ -1729,7 +1783,12 @@ export function recordGame(s: VersusState, result: Omit<GameResult, 'game' | 'te
 		line,
 		covered,
 		grades: s.grades,
-		season: nextSeasonTag(history(), s.settings),
+		// league games count for the league, not the head-to-head season
+		season: s.settings.league ? null : nextSeasonTag(history(), s.settings),
+		predictions: preds,
+		oracle,
+		league: s.settings.league ?? null,
+		playedAt: Date.now(),
 	};
 	// Retire rule: players who just won you a game sit out your next drafts
 	const retired = [...(s.retired ?? [])];
@@ -1755,6 +1814,11 @@ export function setSabotage(s: VersusState, id: string): VersusState {
 }
 
 export function nextGame(s: VersusState, redraft: boolean): VersusState {
+	// Dynasty: a new season always opens with the lottery and a fresh draft
+	if (dynastyOpener(s)) {
+		const opener = distributeBoosts({ ...s, gameNo: s.gameNo + 1, gameday: EMPTY_GAMEDAY, sabotage: s.pendingSabotage, pendingSabotage: null }, true);
+		return { ...opener, phase: 'lottery', draft: null };
+	}
 	const base = distributeBoosts({ ...s, gameNo: s.gameNo + 1, gameday: EMPTY_GAMEDAY, sabotage: s.pendingSabotage, pendingSabotage: null }, redraft);
 	if (redraft) {
 		// loser of the last game gets the coin flip win
@@ -1766,6 +1830,82 @@ export function nextGame(s: VersusState, redraft: boolean): VersusState {
 		return beginDraft(freshPreDraft({ ...base, coinWinner }));
 	}
 	return toBoosts({ ...base, draft: null });
+}
+
+/**
+ * Whose prediction was closer. Both scores entered: distance between the
+ * predicted and actual margin (calling the wrong winner counts as the
+ * gap across zero). No scores: whoever alone called the winner.
+ */
+export function predictionWinner(preds: [Prediction | null, Prediction | null] | null | undefined, winner: Side, score: [number | null, number | null]): Side | null {
+	if (!preds?.[0] || !preds[1]) return null;
+	const signed = (p: Prediction) => (p.winner === 0 ? p.margin : -p.margin);
+	if (score[0] !== null && score[1] !== null) {
+		const actual = score[0] - score[1];
+		const e0 = Math.abs(signed(preds[0]) - actual);
+		const e1 = Math.abs(signed(preds[1]) - actual);
+		return e0 === e1 ? null : e0 < e1 ? 0 : 1;
+	}
+	const ok0 = preds[0].winner === winner;
+	const ok1 = preds[1].winner === winner;
+	return ok0 === ok1 ? null : ok0 ? 0 : 1;
+}
+
+// ─── dynasty ────────────────────────────────────────────────────
+
+/** Dynasty and the next game opens a new season (after a finished one) */
+export function dynastyOpener(s: VersusState): boolean {
+	if (!s.settings.dynasty || !s.settings.season) return false;
+	const tag = nextSeasonTag(history(), s.settings);
+	return !!tag && tag.stage === 'regular' && tag.g === 1 && tag.n > 1 && s.dynasty?.lottery?.season !== tag.n;
+}
+
+/** Last season's regular-season record decides the lottery balls: worse record 3, better 1 */
+export function lotteryBalls(s: VersusState): [number, number] {
+	const tag = nextSeasonTag(history(), s.settings);
+	const prev = tag ? seasonsOf(history()).find(x => x.n === tag.n - 1) : undefined;
+	if (!prev || prev.regular[0] === prev.regular[1]) return [2, 2];
+	return prev.regular[0] < prev.regular[1] ? [3, 1] : [1, 3];
+}
+
+/** Draw the lottery (call from an event handler): the winner picks first all draft */
+export function runLottery(s: VersusState): VersusState {
+	const balls = lotteryBalls(s);
+	const winner: Side = Math.random() * (balls[0] + balls[1]) < balls[0] ? 0 : 1;
+	const season = nextSeasonTag(history(), s.settings)?.n ?? 0;
+	const dynasty: DynastyState = { ...(s.dynasty ?? NO_DYNASTY), lottery: { balls, winner, season }, keeps: [[], []], turn: winner };
+	return { ...s, coinWinner: winner, dynasty };
+}
+
+/** After the lottery: keepers if there's a roster to keep from, else straight to the draft */
+export function afterLottery(s: VersusState): VersusState {
+	if (s.teams[0].length || s.teams[1].length) return { ...s, phase: 'dynasty', dynasty: { ...(s.dynasty ?? NO_DYNASTY), turn: s.coinWinner ?? 0 } };
+	return beginDraft(freshPreDraft(s));
+}
+
+/** One coach's keepers (up to DYNASTY_KEEPS from their last roster) */
+export function chooseDynastyKeeps(s: VersusState, ids: string[]): VersusState {
+	const d = s.dynasty ?? NO_DYNASTY;
+	const keeps: [string[], string[]] = [[...d.keeps[0]], [...d.keeps[1]]];
+	keeps[d.turn] = ids.filter(id => s.teams[d.turn].includes(id)).slice(0, DYNASTY_KEEPS);
+	const first = s.coinWinner ?? 0;
+	if (d.turn === first) return { ...s, dynasty: { ...d, keeps, turn: other(first) } };
+	return beginDraft(freshPreDraft({ ...s, dynasty: { ...d, keeps } }));
+}
+
+/** The mid-season trade deadline is open after this game */
+export function deadlineOpen(s: VersusState): boolean {
+	if (!s.settings.dynasty) return false;
+	const last = s.series[s.series.length - 1]?.season;
+	return !!last && last.stage === 'regular' && last.g === Math.floor(last.len / 2) && (s.dynasty?.deadline ?? 0) !== last.n;
+}
+
+/** Run it back, but open a trade window first (one per season) */
+export function tradeDeadline(s: VersusState): VersusState {
+	const season = s.series[s.series.length - 1]?.season?.n ?? 0;
+	const base = nextGame(s, false);
+	const t: TradeState = { turn: other(s.series[s.series.length - 1]?.winner ?? 0), done: [false, false], proposal: null, history: [] };
+	return { ...base, phase: 'trade', trade: t, dynasty: { ...(s.dynasty ?? NO_DYNASTY), deadline: season } };
 }
 
 /** In the Finals, the higher seed — otherwise null */

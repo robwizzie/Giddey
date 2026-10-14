@@ -18,6 +18,8 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 	const auction = s.style === 'auction' || s.style === 'block';
 	return [
 		{ icon: '⚙️', title: 'Set up', desc: 'Pick a quick setup or customize. Pin your franchise guys in Coaches.', on: true },
+		{ icon: '📡', title: 'Two phones (optional)', desc: 'From ⋯ → Two phones, each coach drafts on their own phone — same couch or across town — and a TV can show the draft board.', on: true },
+		{ icon: '👑', title: 'Dynasty lottery', desc: 'A new Dynasty season opens with a draft lottery (worse record, more balls), then each coach keeps up to 3 players.', on: s.dynasty && s.season > 0 },
 		{ icon: '🪙', title: 'Coin toss', desc: 'Winner picks first in round 1. In the Finals, the higher seed has home court and picks first instead.', on: true },
 		{
 			icon: '🎡',
@@ -33,6 +35,7 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 		{ icon: '📝', title: 'Draft grades', desc: 'Each team gets a letter grade and an analyst take. They’re saved, so the rivalry page shows whether the better grade wins.', on: true },
 		{ icon: '📈', title: 'Vegas line', desc: 'A point spread from the ratings and your recent games. An underdog who covers earns ⬆️ Tier Up for the next draft.', on: s.vegas },
 		{ icon: '🏀', title: 'Game day', desc: 'Spin quarter length and the scoring twist, then each coach picks a challenge and a risk level.', on: true },
+		{ icon: '🔮', title: 'Predictions', desc: 'Before tip-off, each coach secretly picks the winner and margin. The closer guess earns ➕ +1 Rotation player.', on: true },
 		{ icon: '🕐', title: 'Halftime wheel', desc: 'Tap who leads at the half; the team that’s behind spins a second-half twist.', on: s.halftime },
 		{ icon: '⭐', title: 'Result + Player of the Game', desc: 'Enter the winner and score, then each coach votes Player of the Game.', on: true },
 		{
@@ -41,6 +44,7 @@ function steps(s: Settings): { icon: string; title: string; desc: string; on: bo
 			desc: s.retire === 'off' ? 'Off.' : `The winner's ${s.retire === 'potg' ? 'Player of the Game' : 'starting five'} sits out the next ${RETIRE_DRAFTS} drafts for that coach.`,
 			on: s.retire !== 'off',
 		},
+		{ icon: '📸', title: 'Night recap', desc: 'One shareable image of the whole night: results, Players of the Game, badges, standings and rating moves.', on: true },
 		{ icon: '🔁', title: 'Run it back or redraft', desc: 'Challenge rewards (keepers, tier-ups, extra stars) apply to the next draft.', on: true },
 		{
 			icon: '🏆',
@@ -101,6 +105,9 @@ export default function HelpSheet({ settings, onClose }: { settings: Settings; o
 					<div className='mt-2'>
 						<span className='font-black text-white'>No account, two phones?</span> 📊 Rivalry → 🔄 Sync phones sends your record as a QR code or link; the other phone merges whatever it&apos;s missing. Badges, seasons and
 						freshness all update.
+					</div>
+					<div className='mt-2'>
+						<span className='font-black text-white'>More in ⋯:</span> 🏟️ Leagues for 3–12 friends (round robin, standings, playoff bracket), 🏆 power rankings and the biggest upsets, 🎖️ your career (publish it as a public link when signed in), and ⚙️ Settings → 🎡 Your wheels to write and share your own challenges, sabotages and twists. Cards show 📈/📉 when 2K updates a rating.
 					</div>
 					<div className='mt-2'>
 						<span className='font-black text-white'>📲 Install:</span> add Versus to your home screen from the setup screen. It opens full-screen and works offline.

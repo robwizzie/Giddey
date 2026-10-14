@@ -132,9 +132,18 @@ Setup starts with four **quick setups** (Classic, Variety Night, Money Night, Ch
   - who is currently retired
   - a **Games** list grouped by season; tap any game to see both rosters, the theme, twist, halftime spin, line, grades and Player of the Game
   - championship banners, whether the better draft grade wins, and the record against the spread
-  - 20 **achievements** (Heater, Giant Killer, Sweep, Comeback from 0–2, Kaleidoscope, Every Style…). Titles and badge counts show next to each coach's name.
+  - 21 **achievements** (Heater, Giant Killer, Sweep, Comeback from 0–2, Kaleidoscope, Every Style…). Titles and badge counts show next to each coach's name.
 - **Anyone can play.** There are no built-in names. A first-run welcome walks you through setup, one phone can hold any number of rivalries (pick a recent matchup with one tap), and the rivalry page switches between them.
 - **Optional accounts** (Supabase): sign in with an emailed code (or Google), back rivalries up to the cloud, and invite your opponent with a link or code so games either of you logs show up for both. Without the Supabase variables the site builds with no accounts and everything still works. Setup: [`giddey-app/supabase/README.md`](giddey-app/supabase/README.md).
+- **Two phones and a TV:** from ⋯ → Two phones, one coach hosts a room and the other scans its QR code. Each drafts on their own phone in real time (Supabase Realtime broadcast, no account needed), blind bids stay secret, and the other phone shows whose turn it is. A TV or laptop can join with the TV link for a big-screen draft board.
+- **Leagues** for 3–12 coaches: a round-robin schedule (once or home & away), standings with tiebreakers, a seeded playoff bracket (top 2/4/8, best of 1/3/5) and a league champion. Tap ▶ Play on a match and the next game you finish counts. Leagues work on one phone, or online with an invite code so everyone logs games from their own phone.
+- **Power rankings:** an Elo-style skill rating for every coach on the device (and anything synced). The team OVR gap counts as a head start, so beating a better-drafted team moves you more. Includes the biggest upsets ever.
+- **Career pages:** record, season and league titles, badges, rating, Players of the Game, go-to players and rivals. Signed-in coaches can publish theirs to a public link (`/versus/career#…`).
+- **Predictions:** before tip-off each coach secretly picks the winner and margin; the closer guess earns +1 Rotation player.
+- **Your own wheels:** write custom challenges (with difficulty), sabotages, twists and halftime rules, mix them with the built-ins or use only yours, and share them with a link.
+- **Dynasty mode** (with seasons): squads carry through the season, a one-time trade deadline opens at mid-season, and each new season starts with a draft lottery (the worse record gets 3 of 4 ping-pong balls) and up to 3 keepers each.
+- **Night recap card:** one shareable image with the night's results, Players of the Game, badges unlocked, season standings and rating moves.
+- **2K rating updates:** paste new overalls into `giddey-app/ratings-update.txt` on `main` (or run *Actions → Update 2K ratings* with a CSV link). A workflow applies them with `scripts/update-ratings.mjs` and opens a PR listing every riser and faller. The app tags moved players 📈/📉 and lists each update.
 - **Sync between phones (no account):** the site has no server, so 🔄 Sync phones packs the rivalry log and franchise guys into a QR code or share link. The other phone merges any games it's missing; re-importing the same link adds nothing.
 - **Installable:** add Versus to your home screen (a 📲 button on the setup screen, with step-by-step instructions on iPhone). A service worker lets it open offline.
 

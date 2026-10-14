@@ -64,6 +64,25 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 	return new Uint8Array(await out.arrayBuffer());
 }
 
+/** Any JSON → compact link-safe code ("z…" deflated, "j…" plain) */
+export async function encodeJson(value: unknown): Promise<string> {
+	const raw = new TextEncoder().encode(JSON.stringify(value));
+	if (typeof CompressionStream !== 'undefined') return 'z' + b64url(await pipe(raw, new CompressionStream('deflate-raw')));
+	return 'j' + b64url(raw);
+}
+
+export async function decodeJson<T>(code: string): Promise<T | null> {
+	try {
+		const c = code.trim();
+		let bytes: Uint8Array = unb64url(c.slice(1));
+		if (c[0] === 'z') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
+		else if (c[0] !== 'j') return null;
+		return JSON.parse(new TextDecoder().decode(bytes)) as T;
+	} catch {
+		return null;
+	}
+}
+
 /** "z…" = deflated, "j…" = plain (browsers without CompressionStream) */
 export async function encodeSync(p: SyncPayload): Promise<string> {
 	const raw = new TextEncoder().encode(JSON.stringify(pack(p)));

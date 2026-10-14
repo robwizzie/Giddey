@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { bestLineup, normalizeSettings, other, players, recordGame, RETIRE_DRAFTS, seriesScore, setSabotage, Settings, Side, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
+import { bestLineup, deadlineOpen, normalizeSettings, other, players, Prediction, tradeDeadline, recordGame, RETIRE_DRAFTS, seriesScore, setSabotage, Settings, Side, teamName, teamOvr, VersusState } from '@/lib/versus/engine';
 import { TierBuilder } from './SetupScreen';
+import { useCanAct, WaitingBar } from './Live';
+import { liveInfo } from '@/lib/versus/live';
 import { getTeamFor, getVersusPlayer, VersusPlayer } from '@/lib/versus/pool';
 import { hotHand } from '@/lib/versus/usage';
 import { buzz } from '@/lib/versus/sound';
@@ -19,19 +21,21 @@ import {
 	getChallenge,
 	getSabotage,
 	getTwist,
-	SABOTAGES,
+	activeSabotages,
 	rollReward,
-	TWISTS,
-	HALFTIME,
+	activeTwists,
+	activeHalftime,
 	getHalftime,
 	halftimeText,
 } from '@/lib/versus/wheels';
 import { history } from '@/lib/versus/history';
 import { coveredBy, vegasLine } from '@/lib/versus/vegas';
 import { nextSeasonTag, seasonLabel } from '@/lib/versus/seasons';
-import { CoverCard, NewBadges, SeasonCard } from './PostGameExtras';
+import { CoverCard, EloCard, LeagueResultCard, NewBadges, PredictionReveal, SeasonCard } from './PostGameExtras';
 import { CoachBadges } from './Badges';
 import { announce } from '@/lib/versus/announcer';
+import { renderRecap } from '@/lib/versus/recapCard';
+import { shareImage } from '@/lib/versus/shareCard';
 import Wheel from './Wheel';
 import SlotMachine from './SlotMachine';
 import { Confetti, Pill, SectionTitle, SIDE_COLORS } from './Fx';
@@ -91,6 +95,7 @@ function ChallengeCard({ state, side }: { state: VersusState; side: Side }) {
 /** One coach's Player of the Game vote — anyone from either roster */
 function PotgVote({ state, side, value, onChange }: { state: VersusState; side: Side; value: string | null; onChange: (id: string | null) => void }) {
 	const { names } = state.settings;
+	const canVote = useCanAct(side, names);
 	const both = [...players(state.teams[0]).map(p => ({ p, team: 0 as Side })), ...players(state.teams[1]).map(p => ({ p, team: 1 as Side }))].sort((a, b) => b.p.overall - a.p.overall);
 	return (
 		<div className='rounded-xl bg-black/25 p-2.5'>
@@ -103,6 +108,7 @@ function PotgVote({ state, side, value, onChange }: { state: VersusState; side: 
 					return (
 						<button
 							key={p.id}
+							disabled={!canVote}
 							onClick={() => {
 								buzz(10);
 								onChange(on ? null : p.id);
@@ -388,6 +394,72 @@ function LineCard({ state }: { state: VersusState }) {
 	);
 }
 
+/** Secret picks before tip-off — pass the phone, closer guess earns +1 Rotation */
+function PredictionCard({ state, setState }: { state: VersusState; setState: SetState }) {
+	const { names } = state.settings;
+	const preds = state.gameday.predictions ?? [null, null];
+	const [open, setOpen] = useState<Side | null>(null);
+	const [winner, setWinner] = useState<Side | null>(null);
+	const [margin, setMargin] = useState(5);
+	const mine = [useCanAct(0, names), useCanAct(1, names)];
+	const lock = (side: Side) => {
+		const next: [Prediction | null, Prediction | null] = [...preds];
+		next[side] = { winner: winner!, margin };
+		buzz(30);
+		setState({ ...state, gameday: { ...state.gameday, predictions: next } });
+		setOpen(null);
+		setWinner(null);
+		setMargin(5);
+	};
+	return (
+		<div className='rounded-2xl border border-violet-400/30 bg-violet-400/[0.06] p-4'>
+			<div className='text-[11px] font-black uppercase tracking-widest text-violet-300 text-center mb-1'>🔮 Predictions</div>
+			<div className='text-[12px] text-white/60 text-center mb-3'>Each coach secretly picks the winner and margin. Closer guess earns ➕ +1 Rotation player next draft. Revealed after the game.</div>
+			<div className='grid grid-cols-2 gap-2'>
+				{([0, 1] as Side[]).map(side =>
+					preds[side] ? (
+						<div key={side} className='rounded-xl py-2.5 text-center text-sm font-black border border-white/10 bg-white/5 text-white/70'>
+							🔒 {names[side]} locked in
+						</div>
+					) : (
+						<button key={side} disabled={!mine[side]} onClick={() => setOpen(side)} className='rounded-xl py-2.5 text-sm font-black border disabled:opacity-40' style={{ borderColor: `${SIDE_COLORS[side]}66`, color: SIDE_COLORS[side], background: `${SIDE_COLORS[side]}14` }}>
+							{names[side]}&apos;s pick
+						</button>
+					),
+				)}
+			</div>
+			{open !== null && (
+				<div className='fixed inset-0 z-[80] bg-black/90 backdrop-blur flex items-center justify-center p-6' onClick={() => setOpen(null)}>
+					<div className='w-full max-w-sm rounded-3xl border border-white/10 bg-[#0d1220] p-5 vs-pop' onClick={e => e.stopPropagation()}>
+						<div className='text-center text-[11px] font-black uppercase tracking-widest text-white/45'>Only {names[open]} looks 👀</div>
+						<div className='text-center text-xl font-black text-white mb-4'>Who wins?</div>
+						<div className='grid grid-cols-2 gap-2 mb-4'>
+							{([0, 1] as Side[]).map(w => (
+								<button key={w} onClick={() => setWinner(w)} className='rounded-xl py-3 font-black border-2' style={{ borderColor: winner === w ? SIDE_COLORS[w] : 'rgba(255,255,255,0.1)', color: SIDE_COLORS[w], background: winner === w ? `${SIDE_COLORS[w]}22` : 'transparent' }}>
+									{names[w]}
+								</button>
+							))}
+						</div>
+						<div className='text-center text-[11px] font-black uppercase tracking-widest text-white/45 mb-1'>By how much?</div>
+						<div className='flex items-center justify-center gap-4 mb-5'>
+							<button onClick={() => setMargin(m => Math.max(1, m - 1))} className='w-10 h-10 rounded-full bg-white/10 text-white text-xl font-black'>
+								−
+							</button>
+							<div className='text-4xl font-black text-white tabular-nums w-16 text-center'>{margin}</div>
+							<button onClick={() => setMargin(m => Math.min(60, m + 1))} className='w-10 h-10 rounded-full bg-white/10 text-white text-xl font-black'>
+								+
+							</button>
+						</div>
+						<button disabled={winner === null} onClick={() => lock(open)} className='w-full btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'>
+							🔒 Lock it in
+						</button>
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
+
 /** Halftime: whoever's behind spins a second-half twist */
 function HalftimeCard({ state, setState }: { state: VersusState; setState: SetState }) {
 	const gd = state.gameday;
@@ -444,12 +516,12 @@ function HalftimeCard({ state, setState }: { state: VersusState; setState: SetSt
 						)}
 					</div>
 					<Wheel
-						items={HALFTIME}
+						items={activeHalftime()}
 						size={size}
 						accent='#38bdf8'
 						onResult={i => {
 							const leader: Side = lead === 'tied' ? (Math.random() < 0.5 ? 0 : 1) : lead;
-							setTimeout(() => setState({ ...state, gameday: { ...gd, halftime: { id: HALFTIME[i].id, leader, tied: lead === 'tied' } } }), 900);
+							setTimeout(() => setState({ ...state, gameday: { ...gd, halftime: { id: activeHalftime()[i].id, leader, tied: lead === 'tied' } } }), 900);
 						}}
 					/>
 					<button onClick={() => setLead(null)} className='mt-3 text-xs text-white/35 underline'>
@@ -481,6 +553,8 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 
 	// whose challenge spin is next
 	const spinner: Side = !gd.rewards[0] ? 0 : 1;
+	const canSpin = useCanAct(spinner, names);
+	const canHost = useCanAct(null, names, true);
 	const segs = risk
 		? challengeSegments(rosterSize, risk)
 				.filter(sg => sg.id !== gd.challenges[other(spinner)])
@@ -496,14 +570,18 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 				{step === 0 && (
 					<div className='animate-fade-in'>
 						<p className='text-sm text-white/55 mb-4 text-center'>One pull sets the quarter length (2–5 min) and a rule twist for both teams.</p>
+						{!canHost ? (
+							<WaitingBar name={names[liveInfo()?.hostSide ?? 0]} fixed={false} />
+						) : (
 						<SlotMachine
 							reels={[
 								{ title: 'Quarters', items: QUARTER_REEL },
-								{ title: 'Twist', items: TWISTS.map(t => ({ id: t.id, label: t.label, color: t.color, weight: t.weight })) },
+								{ title: 'Twist', items: activeTwists().map(t => ({ id: t.id, label: t.label, color: t.color, weight: t.weight })) },
 							]}
-							onDone={([q, t]) => set({ quarter: parseInt(QUARTER_REEL[q].id, 10), modifier: TWISTS[t].id })}
+							onDone={([q, t]) => set({ quarter: parseInt(QUARTER_REEL[q].id, 10), modifier: activeTwists()[t].id })}
 						/>
-						<div className='text-center mt-3'>
+						)}
+						<div className={`text-center mt-3 ${canHost ? '' : 'hidden'}`}>
 							<button onClick={() => later(() => set({ quarter: 4, modifier: 'straight' }), '4-minute quarters, straight up')} className='text-xs text-white/35 underline'>
 								Skip — 4-minute quarters, no twist
 							</button>
@@ -526,7 +604,9 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 								<ChallengeCard state={state} side={0} />
 							</div>
 						)}
-						{!risk ? (
+						{!canSpin ? (
+							<WaitingBar name={names[spinner]} fixed={false} />
+						) : !risk ? (
 							<RiskPicker key={spinner} side={spinner} name={names[spinner]} onPick={setRisk} />
 						) : (
 							<div className='flex flex-col items-center'>
@@ -617,6 +697,7 @@ export function GameDayScreen({ state, setState }: { state: VersusState; setStat
 							<ChallengeCard state={state} side={1} />
 						</div>
 
+						{!showForm && <PredictionCard state={state} setState={setState} />}
 						<HalftimeCard state={state} setState={setState} />
 
 						{!showForm ? (
@@ -672,6 +753,7 @@ export function SabotageCard({ state, pending }: { state: VersusState; pending?:
 function SabotageSpin({ state, setState }: { state: VersusState; setState: SetState }) {
 	const last = state.series[state.series.length - 1];
 	const loser = other(last.winner);
+	const canSpin = useCanAct(loser, state.settings.names);
 	const [size] = useState(() => (typeof window === 'undefined' ? 280 : Math.min(300, window.innerWidth - 64)));
 	if (state.pendingSabotage) return <SabotageCard state={state} pending />;
 	return (
@@ -681,7 +763,7 @@ function SabotageSpin({ state, setState }: { state: VersusState; setState: SetSt
 				<span className='font-black' style={{ color: SIDE_COLORS[loser] }}>{state.settings.names[loser]}</span> lost — spin a sabotage for{' '}
 				<span className='font-black' style={{ color: SIDE_COLORS[last.winner] }}>{state.settings.names[last.winner]}</span> to suffer next game.
 			</div>
-			<Wheel items={SABOTAGES} size={size} accent='#ef4444' spinLabel='SPIN' onResult={i => setTimeout(() => setState(setSabotage(state, SABOTAGES[i].id)), 900)} />
+			<Wheel items={activeSabotages()} size={size} accent='#ef4444' spinLabel='SPIN' disabled={!canSpin} onResult={i => setTimeout(() => setState(setSabotage(state, activeSabotages()[i].id)), 900)} />
 		</div>
 	);
 }
@@ -718,12 +800,14 @@ function HandicapSheet({ state, setState, onClose }: { state: VersusState; setSt
 	);
 }
 
-export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSeries }: { state: VersusState; setState: SetState; onRunBack: () => void; onRedraft: () => void; onNewSeries: () => void }) {
+export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSeries, onLeagues }: { state: VersusState; setState: SetState; onRunBack: () => void; onRedraft: () => void; onNewSeries: () => void; onLeagues: () => void }) {
 	const { names } = state.settings;
 	const last = state.series[state.series.length - 1];
 	const [w0, w1] = seriesScore(state);
 	const w = last.winner;
 	const [handicapOpen, setHandicapOpen] = useState(false);
+	const [recapMsg, setRecapMsg] = useState<string | null>(null);
+	const canNext = useCanAct(null, names, true);
 	useEffect(() => {
 		const sc = last.score[0] !== null && last.score[1] !== null ? ` ${Math.max(last.score[0], last.score[1])} to ${Math.min(last.score[0], last.score[1])}` : '';
 		announce(`Ballgame! ${names[w]} wins${sc}.`);
@@ -746,9 +830,12 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 					)}
 				</div>
 
+				<LeagueResultCard last={last} onOpen={onLeagues} />
 				<SeasonCard state={state} last={last} />
 				<NewBadges state={state} />
+				<EloCard state={state} />
 				<CoverCard state={state} last={last} />
+				<PredictionReveal state={state} last={last} />
 
 				{(last.potg?.length ?? 0) > 0 && (
 					<div className='rounded-2xl border border-yellow-400/40 bg-yellow-400/[0.07] p-4 mb-4 text-center vs-rise'>
@@ -815,6 +902,9 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 						const c = getChallenge(state.gameday.challenges[side]);
 						const ok = last.challenges[side];
 						const earned = state.earned[side];
+						// earned in order: challenge reward, spread cover, prediction duel
+						const sources = [...(ok && state.gameday.rewards[side] ? [''] : []), ...(last.covered === side ? [' · 📈 covered the spread'] : []), ...(last.oracle === side ? [' · 🔮 best prediction'] : [])];
+						const bonusSource = (_side: Side, i: number) => sources[i] ?? '';
 						return (
 							<div key={side} className='rounded-2xl p-4 border' style={{ borderColor: ok ? '#22c55e66' : 'rgba(255,255,255,0.1)', background: ok ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.02)' }}>
 								<div className='text-[10px] font-black uppercase tracking-widest' style={{ color: SIDE_COLORS[side] }}>{names[side]}</div>
@@ -830,7 +920,7 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 												<div className='flex items-center gap-2'>
 													<span className='text-xl'>{info.icon}</span>
 													<span className='font-black text-amber-300'>{info.label}</span>
-													<span className='text-white/45 text-xs'>{last.covered === side && i === earned.length - 1 ? 'next draft · 📈 covered the spread' : 'next draft'}</span>
+													<span className='text-white/45 text-xs'>next draft{bonusSource(side, i)}</span>
 												</div>
 												<div className='text-[11px] text-white/45 mt-0.5'>
 													{info.desc} Run it back instead: {info.runBack.toLowerCase()}.
@@ -852,7 +942,14 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 
 				{handicapOpen && <HandicapSheet state={state} setState={setState} onClose={() => setHandicapOpen(false)} />}
 
-				<div className='space-y-2'>
+				{!canNext && <WaitingBar name={names[liveInfo()?.hostSide ?? 0]} fixed={false} />}
+				<div className={`space-y-2 ${canNext ? '' : 'hidden'}`}>
+					{deadlineOpen(state) && (
+						<button onClick={() => setState(tradeDeadline(state))} className='w-full rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg bg-gradient-to-r from-emerald-600 to-teal-600 border border-emerald-300/40'>
+							📞 Trade deadline — deal, then run it back
+						</button>
+					)}
+					{state.settings.dynasty && <div className='text-[11px] text-white/45 text-center'>👑 Dynasty: squads carry through the season — running it back is the default.</div>}
 					<button onClick={onRunBack} className='w-full btn-primary rounded-2xl py-4 font-black uppercase tracking-wider text-white text-lg'>
 						🔁 Run it back — same squads
 					</button>
@@ -861,6 +958,17 @@ export function PostGameScreen({ state, setState, onRunBack, onRedraft, onNewSer
 					</button>
 					<button onClick={() => setHandicapOpen(true)} className='w-full rounded-2xl py-3 text-sm font-black text-amber-300 bg-amber-400/10 border border-amber-400/25'>
 						🎯 {names[other(w)]} sets {names[w]}&apos;s handicap for the redraft
+					</button>
+					<button
+						onClick={async () => {
+							setRecapMsg('Drawing…');
+							const r = await shareImage(await renderRecap(state), 'giddey-versus-night-recap.png', `${names[0]} vs ${names[1]} — night recap`);
+							setRecapMsg(r === 'failed' ? 'Couldn’t draw the recap' : r === 'downloaded' ? '✓ Saved' : null);
+							setTimeout(() => setRecapMsg(null), 2000);
+						}}
+						className='w-full rounded-2xl py-3 text-sm font-black text-fuchsia-200 bg-fuchsia-500/15 border border-fuchsia-400/30'
+					>
+						📸 {recapMsg ?? 'Night recap card'}
 					</button>
 					<button onClick={onNewSeries} className='w-full rounded-2xl py-3 text-sm font-bold text-white/45'>
 						End series &amp; start over

@@ -52,9 +52,18 @@ export interface CloudState {
 	syncing: boolean;
 	lastSync: number | null;
 	error: string | null;
+	/** a newer night in progress saved from another device, waiting for "pick up where you left off" */
+	handoff: Handoff | null;
 }
 
-let state: CloudState = { ready: !cloudEnabled, session: null, profile: null, rivalries: [], syncing: false, lastSync: null, error: null };
+/** The night in progress on another of your devices */
+export interface Handoff {
+	state: unknown;
+	changedAt: number;
+	device: string;
+}
+
+let state: CloudState = { ready: !cloudEnabled, session: null, profile: null, rivalries: [], syncing: false, lastSync: null, error: null, handoff: null };
 const listeners = new Set<() => void>();
 
 function set(patch: Partial<CloudState>) {
@@ -107,11 +116,18 @@ export async function startCloud(): Promise<void> {
 			const was = state.session?.user.id;
 			set({ session });
 			if (session && session.user.id !== was) void refresh();
-			if (!session) set({ profile: null, rivalries: [], lastSync: null });
+			if (!session) set({ profile: null, rivalries: [], lastSync: null, handoff: null });
 		});
 		const { data } = await sb.auth.getSession();
 		set({ session: data.session, ready: true });
 		if (data.session) await refresh();
+		// back on this tab or app after using another device: catch up
+		let lastFocus = 0;
+		document.addEventListener('visibilitychange', () => {
+			if (document.visibilityState !== 'visible' || !state.session || Date.now() - lastFocus < 15000) return;
+			lastFocus = Date.now();
+			void syncNow();
+		});
 	} catch (e) {
 		set({ ready: true, error: message(e) });
 	}
@@ -130,8 +146,13 @@ export async function sendSignInEmail(email: string): Promise<void> {
 /** The 6-digit code from the same email — works inside the installed app too */
 export async function verifyEmailCode(email: string, code: string): Promise<void> {
 	const sb = await client();
-	const { error } = await sb.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' });
-	if (error) throw new Error(message(error));
+	const { error } = await sb.auth.verifyOtp({ email: email.trim(), token: code.replace(/\D/g, ''), type: 'email' });
+	if (error)
+		throw new Error(
+			/expired|invalid/i.test(error.message)
+				? 'That code didn’t work. Codes expire after an hour and only work once — tapping the link in the email uses it up. Send a new one and use the newest email.'
+				: message(error),
+		);
 }
 
 export async function signInWithGoogle(): Promise<void> {
@@ -143,7 +164,7 @@ export async function signInWithGoogle(): Promise<void> {
 export async function signOut(): Promise<void> {
 	const sb = await client();
 	await sb.auth.signOut();
-	set({ session: null, profile: null, rivalries: [], lastSync: null });
+	set({ session: null, profile: null, rivalries: [], lastSync: null, handoff: null });
 }
 
 // ─── profile & rivalries ────────────────────────────────────────
@@ -377,6 +398,7 @@ export function syncNow(): Promise<void> {
 		try {
 			const sb = await client();
 			const uid = state.session!.user.id;
+			await pullDevice(sb, uid);
 			for (const r of state.rivalries) {
 				// a reset on another phone: drop this pair's older games here too
 				if (r.resetAt) {
@@ -418,6 +440,139 @@ export function syncNow(): Promise<void> {
 		}
 	})();
 	return syncing;
+}
+
+// ─── your account follows you between devices ───────────────────
+
+const CHANGED_KEY = 'giddey-versus-changed-at';
+const STATE_KEY = 'giddey-versus-v1';
+
+const readNum = (k: string) => {
+	try {
+		return Number(localStorage.getItem(k)) || 0;
+	} catch {
+		return 0;
+	}
+};
+
+/** Call on every local change to the night in progress */
+export function markLocalChange(at = Date.now()): void {
+	try {
+		localStorage.setItem(CHANGED_KEY, String(at));
+	} catch {
+		/* storage blocked */
+	}
+}
+
+function deviceName(): string {
+	const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
+	if (/iPhone/.test(ua)) return 'iPhone';
+	if (/iPad|Macintosh.*Mobile/.test(ua) || (/Macintosh/.test(ua) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1)) return 'iPad';
+	if (/Android/.test(ua)) return /Mobile/.test(ua) ? 'Android phone' : 'Android tablet';
+	if (/Macintosh/.test(ua)) return 'Mac';
+	if (/Windows/.test(ua)) return 'Windows PC';
+	if (/CrOS/.test(ua)) return 'Chromebook';
+	return 'another device';
+}
+
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let pushPending: unknown = null;
+
+async function pushNow(): Promise<void> {
+	pushTimer = null;
+	if (!state.session || pushPending === null) return;
+	const body = pushPending;
+	pushPending = null;
+	try {
+		const sb = await client();
+		const { error } = await sb
+			.from('versus_user_state')
+			.upsert({ user_id: state.session.user.id, state: body, games: loadRivalry(), changed_at: readNum(CHANGED_KEY), device: deviceName() }, { onConflict: 'user_id' });
+		if (error) throw error;
+	} catch {
+		/* best effort — the next change tries again */
+	}
+}
+
+/** Save the night in progress (and the whole game log) to your account, a moment after the last change */
+export function pushDevice(s: unknown): void {
+	if (!cloudEnabled || !state.session) return;
+	pushPending = s;
+	if (pushTimer) clearTimeout(pushTimer);
+	pushTimer = setTimeout(() => void pushNow(), 2000);
+}
+
+// leaving the page right after a change: send it now
+if (typeof window !== 'undefined')
+	window.addEventListener('pagehide', () => {
+		if (pushTimer) {
+			clearTimeout(pushTimer);
+			void pushNow();
+		}
+	});
+
+const isFresh = (s: { phase?: string; series?: unknown[] } | null) => !s || (s.phase === 'setup' && !(s.series ?? []).length);
+
+/** Merge this account's games from your other devices, and notice a newer night in progress */
+async function pullDevice(sb: SupabaseClient, uid: string): Promise<void> {
+	const { data, error } = await sb.from('versus_user_state').select('state, games, changed_at, device').eq('user_id', uid).maybeSingle();
+	if (error) {
+		// table not created yet (migration 5 not run): everything else still works
+		if (/versus_user_state|schema cache|does not exist/i.test(error.message)) return;
+		throw error;
+	}
+	if (!data) {
+		// first device on this account: start the backup from here
+		try {
+			const local = localStorage.getItem(STATE_KEY);
+			if (local) pushDevice(JSON.parse(local));
+		} catch {
+			/* ignore */
+		}
+		return;
+	}
+	const row = data as { state: unknown; games: RivalryGame[] | null; changed_at: number; device: string | null };
+	const added = mergeGames({ v: 1, games: Array.isArray(row.games) ? row.games : [], favorites: {} });
+	let local: { phase?: string; series?: unknown[] } | null = null;
+	try {
+		local = JSON.parse(localStorage.getItem(STATE_KEY) ?? 'null');
+	} catch {
+		local = null;
+	}
+	const mine = readNum(CHANGED_KEY);
+	const same = JSON.stringify(row.state) === JSON.stringify(local);
+	if (row.state && !same && row.changed_at > mine) {
+		set({ handoff: { state: row.state, changedAt: row.changed_at, device: row.device || 'another device' } });
+		// nothing going on here yet: no need to ask
+		if (isFresh(local)) handoffAuto?.(row.state, row.changed_at);
+	} else if (!same && mine > row.changed_at && local) {
+		// this device is ahead (it changed while offline): bring the account up to date
+		pushDevice(local);
+	} else if (added) {
+		pushDevice(local);
+	}
+}
+
+let handoffAuto: ((s: unknown, at: number) => void) | null = null;
+/** The page applies a handoff by itself when this device has nothing going on */
+export function onHandoffAuto(fn: (s: unknown, at: number) => void): void {
+	handoffAuto = fn;
+}
+
+/** "Pick up where you left off" — returns the other device's state to load (and marks it as current here) */
+export function takeHandoff(): unknown {
+	const h = state.handoff;
+	if (!h) return null;
+	markLocalChange(h.changedAt);
+	set({ handoff: null });
+	return h.state;
+}
+
+/** "Keep this one" — this device's night becomes the one your account remembers */
+export function keepThisDevice(current: unknown): void {
+	set({ handoff: null });
+	markLocalChange();
+	pushDevice(current);
 }
 
 // ─── public career page ─────────────────────────────────────────

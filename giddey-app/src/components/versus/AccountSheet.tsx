@@ -56,7 +56,7 @@ function SignIn() {
 				<ul className='mt-2 space-y-1.5 text-white/80'>
 					<li className='flex gap-2'>
 						<Icon name='cloud' className='mt-0.5 shrink-0 text-sky-300' />
-						<span>back up every rivalry and see it on any phone or the installed app</span>
+						<span>pick up your night on any device — laptop, phone or the installed app — with every game backed up</span>
 					</li>
 					<li className='flex gap-2'>
 						<Icon name='handshake' className='mt-0.5 shrink-0 text-emerald-300' />
@@ -92,10 +92,10 @@ function SignIn() {
 			) : (
 				<>
 					<div className='text-sm text-white/75'>
-						Check <span className='font-black text-white'>{email}</span>. Tap the link in the email, or type the 6-digit code here — the code also works inside the installed app.
+						Check <span className='font-black text-white'>{email}</span>. Tap the link in the email, or type the code from it here (the code also works inside the installed app). Use the newest email — each code works once.
 					</div>
-					<input className={`${field} text-center tracking-[0.5em] text-lg font-black`} inputMode='numeric' autoComplete='one-time-code' maxLength={6} placeholder='••••••' value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
-					<button disabled={busy || code.length !== 6} onClick={() => run(() => verifyEmailCode(email, code))} className='w-full btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'>
+					<input className={`${field} text-center tracking-[0.4em] text-lg font-black placeholder:tracking-normal placeholder:text-sm placeholder:font-bold`} inputMode='numeric' autoComplete='one-time-code' maxLength={10} placeholder='Code from the email' value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))} />
+					<button disabled={busy || code.length < 6} onClick={() => run(() => verifyEmailCode(email, code))} className='w-full btn-primary rounded-2xl py-3 font-black uppercase tracking-wider text-white disabled:opacity-40'>
 						{busy ? 'Checking…' : 'Sign in'}
 					</button>
 					<button onClick={() => setSent(false)} className='w-full text-xs text-white/40 underline'>

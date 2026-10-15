@@ -28,13 +28,14 @@ import Icon, { IconTile } from '@/components/versus/Icon';
 import PowerRankings from '@/components/versus/PowerRankings';
 import CareerSheet from '@/components/versus/CareerSheet';
 import HallOfFame from '@/components/versus/HallOfFame';
+import H2HStats from '@/components/versus/H2HStats';
 import { useTurnNotifications } from '@/lib/versus/notify';
-import { broadcastState, hostLock, joinRoom, liveAvailable, liveInfo, onRemoteState, parseRoomHash, savedRoom, takenSeats } from '@/lib/versus/live';
+import { broadcastState, hostLock, isScreen, joinRoom, liveAvailable, liveInfo, onRemoteState, parseRoomHash, savedRoom, takenSeats } from '@/lib/versus/live';
 import SyncSheet, { ImportPreview } from '@/components/versus/SyncSheet';
 import { decodeJson, decodeSync, SyncPayload } from '@/lib/versus/sync';
 import { mergeWheels, SharedWheels } from '@/components/versus/CustomWheelsEditor';
 import AccountSheet, { useCloud } from '@/components/versus/AccountSheet';
-import { cloudEnabled, cloudState, joinRivalry, linkedRivalry, onCloudChange, startCloud, subscribeCloud, syncNow, updateProfile } from '@/lib/versus/cloud';
+import { cloudEnabled, cloudState, joinRivalry, keepThisDevice, linkedRivalry, markLocalChange, onCloudChange, onHandoffAuto, pushDevice, startCloud, subscribeCloud, syncNow, takeHandoff, updateProfile } from '@/lib/versus/cloud';
 
 const JOIN_KEY = 'giddey-versus-join';
 import { isMuted, onMuteChange, setMuted, play } from '@/lib/versus/sound';
@@ -128,6 +129,7 @@ interface TopBarProps {
 	onRankings: () => void;
 	onCareer: () => void;
 	onHall: () => void;
+	onStats: () => void;
 }
 
 /** Everything that isn't needed every minute lives in the ⋯ menu */
@@ -161,6 +163,7 @@ function MoreMenu(p: TopBarProps) {
 					<div className='fixed inset-0 z-[60]' onClick={() => setOpen(false)} />
 					<div className='absolute right-0 top-10 z-[61] w-64 rounded-2xl border border-white/10 bg-[#0d1220] p-1.5 shadow-2xl animate-fade-in'>
 						{item('arena', 'Leagues', p.onLeagues, '3+ friends · standings & playoffs')}
+						{item('lineChart', 'Head-to-head stats', p.onStats, 'Win share, most-drafted, best nights')}
 						{item('trophy', 'Power rankings', p.onRankings, 'Skill ratings & biggest upsets')}
 						{item('medal', 'Career', p.onCareer, 'Record, titles, badges — share it')}
 						{item('shirt', 'Hall of Fame', p.onHall, 'Retired jerseys & belt history')}
@@ -201,6 +204,51 @@ function TopBar(p: TopBarProps) {
 	);
 }
 
+/** "Where you left off" in a few words: "Rob vs Dave · Game 3 · Draft round 4" */
+function nightSummary(raw: unknown): string {
+	const s = raw as Partial<VersusState> | null;
+	if (!s?.settings) return 'a night in progress';
+	const names = s.settings.names?.filter(Boolean).join(' vs ') || 'Versus';
+	const where: Record<string, string> = { setup: 'Setting up', coin: 'Coin toss', theme: 'Theme spin', keepers: 'Keepers', favorites: 'Favorites round', bans: 'Ban phase', board: 'Scouting report', lottery: 'Draft lottery', dynasty: 'Dynasty keeps', equalizer: 'Equalizer', trade: 'Trade window', boosts: 'Boosts', reveal: 'Squads set', gameday: 'Game day', postgame: 'Final score in' };
+	const step = s.phase === 'draft' && s.draft ? `Draft round ${s.draft.round + 1}` : where[s.phase ?? ''] ?? '';
+	return [names, s.gameNo ? `Game ${s.gameNo}` : '', step].filter(Boolean).join(' · ');
+}
+
+function ago(ms: number): string {
+	const m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+	return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+}
+
+/** Signed in on two devices: offer the newer night from the other one */
+function HandoffBanner({ onTake, onKeep }: { onTake: () => void; onKeep: () => void }) {
+	const cloud = useCloud();
+	const h = cloud.handoff;
+	if (!h) return null;
+	return (
+		<div className='fixed inset-x-0 bottom-0 z-[85] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] animate-slide-up'>
+			<div className='max-w-lg mx-auto rounded-2xl border border-sky-400/40 bg-[#0d1626]/95 backdrop-blur p-4 shadow-2xl'>
+				<div className='flex items-start gap-3'>
+					<IconTile name='refresh' color='#38bdf8' size={40} />
+					<div className='min-w-0 flex-1'>
+						<div className='text-sm font-black text-white'>Pick up where you left off?</div>
+						<div className='text-[12px] text-white/60 leading-snug'>
+							{h.device === 'another device' ? 'On another device' : `On your ${h.device}`} {ago(h.changedAt)}: <span className='text-white/85 font-bold'>{nightSummary(h.state)}</span>
+						</div>
+					</div>
+				</div>
+				<div className='grid grid-cols-2 gap-2 mt-3'>
+					<button onClick={onKeep} className='rounded-xl py-2.5 text-sm font-bold text-white/70 bg-white/[0.06] border border-white/10'>
+						Keep this one
+					</button>
+					<button onClick={onTake} className='btn-primary rounded-xl py-2.5 text-sm font-black text-white'>
+						Continue here
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 export default function VersusPage() {
 	const [state, setStateRaw] = useState<VersusState | null>(null);
 	const [showSettings, setShowSettings] = useState(false);
@@ -216,6 +264,7 @@ export default function VersusPage() {
 	const [showRankings, setShowRankings] = useState(false);
 	const [showCareer, setShowCareer] = useState(false);
 	const [showHall, setShowHall] = useState(false);
+	const [showStats, setShowStats] = useState(false);
 	const live = useLive();
 	useTurnNotifications(state);
 	const [leagueCode, setLeagueCode] = useState<string | null>(null);
@@ -312,10 +361,24 @@ export default function VersusPage() {
 		} catch {
 			/* storage full or blocked — the session just won't survive a refresh */
 		}
+		// signed in: the night (and the game log) follow you to your other devices
+		markLocalChange();
+		if (!isScreen()) pushDevice(s);
 		if (screenChanged) window.scrollTo({ top: 0, behavior: 'smooth' });
 		// live room: send every local change to the other phone (and the TV)
 		if (!fromRemote) broadcastState(s);
 	}, []);
+
+	// signed in on a device with nothing going on: pick up the night from your other device
+	useEffect(
+		() =>
+			onHandoffAuto((s, at) => {
+				takeHandoff();
+				setState(migrateState(s as Parameters<typeof migrateState>[0]));
+				markLocalChange(at);
+			}),
+		[setState],
+	);
 
 	// live room: a state from the other phone replaces ours
 	useEffect(() => onRemoteState(s => setState(migrateState(s as Parameters<typeof migrateState>[0]), true)), [setState]);
@@ -424,7 +487,7 @@ export default function VersusPage() {
 	const showReset = state.phase !== 'setup';
 	const wrap = (node: React.ReactNode) => (
 		<div className='min-h-screen vs-bg'>
-			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onAccount={() => setShowAccount(true)} onLive={() => setShowLive(true)} onLeagues={() => setShowLeagues(true)} onRankings={() => setShowRankings(true)} onCareer={() => setShowCareer(true)} onHall={() => setShowHall(true)} />
+			<TopBar onReset={reset} showReset={showReset} onSettings={() => setShowSettings(true)} onRivalry={() => setShowRivalry(true)} onHelp={() => setShowHelp(true)} onAccount={() => setShowAccount(true)} onLive={() => setShowLive(true)} onLeagues={() => setShowLeagues(true)} onRankings={() => setShowRankings(true)} onCareer={() => setShowCareer(true)} onHall={() => setShowHall(true)} onStats={() => setShowStats(true)} />
 			{live && (
 				<div className='max-w-3xl mx-auto px-4 pt-2 flex justify-end'>
 					<LivePill names={state.settings.names} onClick={() => setShowLive(true)} />
@@ -435,10 +498,21 @@ export default function VersusPage() {
 				{node}
 			</div>
 			{showHelp && <HelpSheet settings={state.settings} onClose={() => setShowHelp(false)} />}
-			{showRivalry && <RivalrySheet key={syncs} settings={state.settings} retired={state.retired} onClose={() => setShowRivalry(false)} onSync={() => setShowSync(true)} />}
+			{showRivalry && <RivalrySheet key={syncs} settings={state.settings} retired={state.retired} onClose={() => setShowRivalry(false)} onSync={() => setShowSync(true)} onStats={() => { setShowRivalry(false); setShowStats(true); }} />}
 			{showRankings && <PowerRankings highlight={[...state.settings.names]} onClose={() => setShowRankings(false)} />}
 			{showCareer && <CareerSheet initial={state.settings.names[0]} onClose={() => setShowCareer(false)} />}
 			{showHall && <HallOfFame names={state.settings.names} onClose={() => setShowHall(false)} />}
+			{showStats && <H2HStats key={syncs} settings={state.settings} onClose={() => setShowStats(false)} />}
+			<HandoffBanner
+				onTake={() => {
+					const s = takeHandoff();
+					if (!s) return;
+					const at = Date.now();
+					setState(migrateState(s as Parameters<typeof migrateState>[0]));
+					markLocalChange(at);
+				}}
+				onKeep={() => keepThisDevice(current.current)}
+			/>
 			{live && <FxMirror />}
 			{showLive && <LiveSheet state={state} onClose={() => setShowLive(false)} />}
 			{showLeagues && <LeagueSheet seedNames={[...state.settings.names]} joinCode={leagueCode} onPlay={(names, tag) => playRivalry(names, tag)} onClose={() => { setShowLeagues(false); setLeagueCode(null); }} />}
